@@ -1,0 +1,67 @@
+.footer {
+  background: #222;
+  color: #fff;
+  padding: 4px 0 2px 0;    /* Padding rất nhỏ */
+  font-size: 10px;         /* Font nhỏ hơn nữa */
+  margin-top: auto;
+}
+
+.footer-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;                /* Khoảng cách nhỏ hơn nữa */
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.footer-section {
+  min-width: 80px;
+  flex: 1 1 80px;
+  text-align: center;
+  padding: 0 2px;          /* Padding ngang nhỏ hơn nữa */
+}
+
+.footer-section h3,
+.footer-section h4 {
+  margin-bottom: 3px;
+  color: #ffb400;
+  font-size: 11px;         /* Tiêu đề nhỏ hơn nữa */
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section li {
+  margin-bottom: 2px;      /* Khoảng cách nhỏ hơn nữa */
+}
+
+.social-icons a {
+  color: #fff;
+  margin: 0 2px;
+  font-size: 11px;         /* Icon nhỏ hơn nữa */
+  transition: color 0.2s;
+}
+
+.social-icons a:hover {
+  color: #ffb400;
+}
+
+.footer-bottom {
+  text-align: center;
+  font-size: 9px;
+  margin-top: 2px;
+  opacity: 0.8;
+  padding-bottom: 1px;
+}
+
+@media (max-width: 700px) {
+  .footer-container {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+}

@@ -1,11 +1,9 @@
 <script setup>
-import {  RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { RouterView } from 'vue-router'
+import HeaderChillstay from './components/HeaderChillstay.vue'
 </script>
 
 <template>
-   <HelloWorld />
+  <HeaderChillstay />
   <RouterView />
 </template>
-
-

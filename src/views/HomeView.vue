@@ -1,9 +1,5 @@
-<script setup>
-import TheWelcome from '../components/TheWelcome.vue'
-</script>
-
 <template>
-  <main>
-    <TheWelcome />
-  </main>
+  <h1>Welcome to Chillstay</h1>
+  <TheWelcome />
+  <p>Explore our services and book your stay with us</p>
 </template>

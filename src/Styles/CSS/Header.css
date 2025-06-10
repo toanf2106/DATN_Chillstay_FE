@@ -18,13 +18,15 @@ body {
   height: 70px;
   object-fit: contain;
   margin-right: 10px;
+
+  border-radius: 4px; /* Slightly rounded corners */
 }
 /* Header styling */
 header {
-  background-color: #ffffff;
+  background-color: #206243;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
   padding: 1em 0;
-  border-bottom: 3px solid #007bff;
+  border-bottom: 3px solid #174d33;
 }
 
 /* Navigation bar styling */
@@ -51,7 +53,7 @@ header {
 .logo span {
   margin-left: 110px; /* Để chừa khoảng trống cho logo */
   font-weight: normal; /* Pacifico đã có độ đậm riêng */
-  color: #206243;
+  color: #fff;
   font-family: 'Pacifico', cursive; /* Font giống trong ảnh */
   letter-spacing: 0.5px;
   font-size: 1.4em; /* Điều chỉnh tùy kích thước logo */
@@ -70,7 +72,7 @@ header {
 
 .nav-links a {
   text-decoration: none;
-  color: #4a4a4a; /* Darker grey for better readability */
+  color: #ffffff; /* Changed to white */
   font-size: 1.1em;
   font-weight: 500; /* Slightly bolder */
   padding: 0.5em 0;
@@ -88,12 +90,12 @@ header {
   bottom: -5px; /* Adjust as needed */
   left: 50%;
   transform: translateX(-50%);
-  background-color: #007bff;
+  background-color: #ffffff;
   transition: width 0.3s ease;
 }
 
 .nav-links a:hover {
-  color: #007bff;
+  color: #e6f2ff; /* Light blue-white on hover */
 }
 
 .nav-links a:hover::after {
@@ -102,42 +104,68 @@ header {
 
 /* Authentication buttons styling */
 .auth-buttons .btn {
-  padding: 0.7em 1.8em; /* Adjusted padding */
+  padding: 0.8em 2em; /* Increased padding */
   border: none;
   border-radius: 25px; /* More rounded buttons */
   cursor: pointer;
-  font-size: 1em;
+  font-size: 1.05em;
   font-weight: 600;
   transition: all 0.3s ease; /* Smooth transition for all properties */
-  margin-left: 1em;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-left: 1.2em;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .login-btn {
-  background-color: transparent;
-  color: #007bff;
-  border: 2px solid #007bff;
+  background: linear-gradient(135deg, #0ba360, #3cba92);
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .login-btn:hover {
-  background-color: #007bff;
-  color: #fff;
+  background: linear-gradient(135deg, #3cba92, #0ba360);
+  color: #ffffff;
   transform: translateY(-2px); /* Slight lift on hover */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(11, 163, 96, 0.4);
 }
 
 .signup-btn {
-  background-color: #007bff;
-  color: #fff;
-  border: 2px solid #007bff;
+  background: linear-gradient(135deg, #56c596, #7be495);
+  color: #206243;
+  border: none;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(86, 197, 150, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(86, 197, 150, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(86, 197, 150, 0);
+  }
 }
 
 .signup-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-  color: #fff;
+  background: linear-gradient(135deg, #7be495, #56c596);
+  border: none;
+  color: #206243;
   transform: translateY(-2px); /* Slight lift on hover */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(86, 197, 150, 0.4);
+  animation: none;
 }
 
 /* Responsive adjustments (example for smaller screens) */
@@ -153,6 +181,8 @@ header {
   }
   .auth-buttons {
     margin-top: 1em;
+    display: flex;
+    align-items: center;
   }
 }
 
@@ -244,13 +274,13 @@ header {
 .auth-form input[type='text']:focus,
 .auth-form input[type='email']:focus,
 .auth-form input[type='password']:focus {
-  border-color: #007bff;
+  border-color: #206243;
   outline: none;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 5px rgba(32, 98, 67, 0.25);
 }
 
 .auth-form .submit-btn {
-  background-color: #007bff;
+  background-color: #206243;
   color: white;
   padding: 12px 20px;
   border: none;
@@ -264,7 +294,7 @@ header {
 }
 
 .auth-form .submit-btn:hover {
-  background-color: #0056b3;
+  background-color: #174d33;
 }
 
 .form-switcher {
@@ -274,7 +304,7 @@ header {
 }
 
 .form-switcher a {
-  color: #007bff;
+  color: #206243;
   text-decoration: none;
   font-weight: 500;
 }

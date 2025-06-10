@@ -2,45 +2,41 @@
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-section">
-        <h3>ChillStay</h3>
-        <p>Đặt phòng homestay dễ dàng, nhanh chóng và an toàn.</p>
-      </div>
-      <div class="footer-section">
-        <h4>Liên hệ</h4>
+        <h4>Công ty</h4>
         <ul>
-          <li>Email: support@chillstay.vn</li>
-          <li>Hotline: 0123 456 789</li>
-          <li>Địa chỉ: 123 Đường Láng, Quận Ba Đình, TP.HN</li>
+          <li><a href="/about">Về ChillStay</a></li>
+          <li><a href="/careers">Tuyển dụng</a></li>
+          <li><a href="/press">Báo chí</a></li>
         </ul>
       </div>
       <div class="footer-section">
-        <h4>Kết nối với chúng tôi</h4>
-        <div class="social-icons">
-          <a href="https://facebook.com" target="_blank" rel="noopener" aria-label="Facebook">
-            <i class="fab fa-facebook-f"></i>
-          </a>
-          <a href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
-            <i class="fab fa-instagram"></i>
-          </a>
-          <a href="https://twitter.com" target="_blank" rel="noopener" aria-label="Twitter">
-            <i class="fab fa-twitter"></i>
-          </a>
-        </div>
-        <!-- <div class="social-icons">
-          <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
-          <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-          <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-        </div> -->
+        <h4>Hỗ trợ</h4>
+        <ul>
+          <li><a href="#">Trung tâm trợ giúp</a></li>
+          <li><a href="#">Liên hệ</a></li>
+          <li><a href="#">Câu hỏi thường gặp</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h4>Đối tác</h4>
+        <ul>
+          <li><a href="#">Đăng ký chỗ nghỉ</a></li>
+          <li><a href="#">Chương trình liên kết</a></li>
+        </ul>
       </div>
     </div>
     <div class="footer-bottom">
+      <Icon icon="mdi:abjad-hebrew" />
       &copy; 2024 ChillStay. All rights reserved.
     </div>
   </footer>
 </template>
 
+<!-- <script setup>
+import '@/Styles/CSS/Footer.css'
+</script> -->
+
 <script setup>
 import '@/Styles/CSS/Footer.css'
+import { Icon } from '@iconify/vue'
 </script>
-
-

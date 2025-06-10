@@ -1,8 +1,8 @@
 .footer {
-  background: #222;
-  color: #fff;
-  padding: 4px 0 2px 0;    /* Padding rất nhỏ */
-  font-size: 10px;         /* Font nhỏ hơn nữa */
+  background: #f5f5f5;   /* Nền xám nhạt */
+  color: #222;           /* Chữ xám đậm */
+  padding: 4px 0 2px 0;
+  font-size: 10px;
   margin-top: auto;
 }
 
@@ -10,8 +10,8 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;                /* Khoảng cách nhỏ hơn nữa */
-  max-width: 700px;
+  gap: 6px; /* Khoảng cách nhỏ hơn nữa */
+  max-width: 1800px;
   margin: 0 auto;
 }
 
@@ -19,14 +19,14 @@
   min-width: 80px;
   flex: 1 1 80px;
   text-align: center;
-  padding: 0 2px;          /* Padding ngang nhỏ hơn nữa */
+  padding: 0 50px; /* Padding ngang nhỏ hơn nữa */
 }
 
 .footer-section h3,
 .footer-section h4 {
   margin-bottom: 3px;
-  color: #ffb400;
-  font-size: 11px;         /* Tiêu đề nhỏ hơn nữa */
+  color: #0071c2;        /* Tiêu đề xanh dương */
+  font-size: 11px; /* Tiêu đề nhỏ hơn nữa */
 }
 
 .footer-section ul {
@@ -36,13 +36,24 @@
 }
 
 .footer-section li {
-  margin-bottom: 2px;      /* Khoảng cách nhỏ hơn nữa */
+  margin-bottom: 2px; /* Khoảng cách nhỏ hơn nữa */
+}
+
+.footer-section a {
+  color: #222;           /* Link chữ xám đậm */
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-section a:hover {
+  color: #0071c2;        /* Hover xanh dương */
+  text-decoration: underline;
 }
 
 .social-icons a {
   color: #fff;
   margin: 0 2px;
-  font-size: 11px;         /* Icon nhỏ hơn nữa */
+  font-size: 11px; /* Icon nhỏ hơn nữa */
   transition: color 0.2s;
 }
 

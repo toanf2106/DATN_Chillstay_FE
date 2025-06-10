@@ -1,14 +1,26 @@
-<script setup>
+<script>
 import { RouterView } from 'vue-router'
 import HeaderChillstay from './components/HeaderChillstay.vue'
 import FooterHome from './components/FooterHome.vue'
+
+export default {
+  components: {
+    RouterView,
+    HeaderChillstay,
+    FooterHome,
+  },
+  computed: {
+    isAdminRoute() {
+      return this.$route.path.includes('/admin')
+    },
+  },
+}
 </script>
 
 <template>
-  <HeaderChillstay />
+  <HeaderChillstay v-if="!isAdminRoute" />
   <RouterView />
-  <FooterHome />
-
+  <FooterHome v-if="!isAdminRoute" />
 </template>
 
 <style>

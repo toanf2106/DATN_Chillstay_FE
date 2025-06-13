@@ -2,6 +2,7 @@
   <div class="admin-dashboard">
     <header class="admin-header">
       <div class="header-left">
+        <button class="navbar-toggler" type="button" @click="toggleSidebar">☰</button>
         <h1>Chillstay Admin</h1>
       </div>
       <div class="header-right">
@@ -22,479 +23,220 @@
     </header>
 
     <div class="dashboard-content">
-      <div class="sidebar">
-        <nav class="admin-nav">
-          <ul>
-            <li class="active">
-              <a href="#dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            </li>
-            <li>
-              <a href="#users"><i class="fas fa-users"></i> Quản lý người dùng</a>
-            </li>
-            <li>
-              <a href="#bookings"><i class="fas fa-calendar-check"></i> Quản lý đặt phòng</a>
-            </li>
-            <li>
-              <a href="#properties"><i class="fas fa-home"></i> Quản lý chỗ nghỉ</a>
-            </li>
-            <li>
-              <a href="#reviews"><i class="fas fa-star"></i> Đánh giá</a>
-            </li>
-            <li>
-              <a href="#reports"><i class="fas fa-chart-bar"></i> Báo cáo</a>
-            </li>
-            <li>
-              <a href="#settings"><i class="fas fa-cog"></i> Cài đặt</a>
-            </li>
-          </ul>
-        </nav>
+      <div
+        class="offcanvas offcanvas-start"
+        data-bs-scroll="true"
+        tabindex="-1"
+        id="sidebarOffcanvas"
+        aria-labelledby="sidebarOffcanvasLabel"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="sidebarOffcanvasLabel">Quản lý Chillstays</h5>
+          <button
+            type="button"
+            class="btn-close text-reset"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="offcanvas-body p-0">
+          <div class="sidebar-menu">
+            <div class="menu-item" :class="{ active: isRouteActive('admin-thong-ke') }">
+              <a href="#" @click.prevent="navigateTo('admin-thong-ke')">
+                <i class="fas fa-chart-line"></i>
+                <span>Thống kê</span>
+              </a>
+            </div>
+
+            <div class="menu-item" :class="{ active: isRouteActive('admin-dat-homestay') }">
+              <a href="#" @click.prevent="navigateTo('admin-dat-homestay')">
+                <i class="fas fa-home"></i>
+                <span>Đặt homestay</span>
+              </a>
+            </div>
+            <div
+              class="menu-item"
+              :class="{ open: isSubmenuOpen.nguoiDung, active: isUserMenuActive }"
+            >
+              <a href="#" class="has-submenu" @click.prevent="toggleSubmenu('nguoiDung')">
+                <i class="fas fa-users"></i>
+                <span>Người dùng</span>
+                <span class="arrow">
+                  <i class="fas fa-chevron-right" v-if="!isSubmenuOpen.nguoiDung"></i>
+                  <i class="fas fa-chevron-down" v-else></i>
+                </span>
+              </a>
+              <div class="submenu">
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-nhan-vien')"
+                  :class="{ active: isRouteActive('admin-nhan-vien') }"
+                >
+                  Nhân viên
+                  <i class="fas fa-check check-icon" v-if="isRouteActive('admin-nhan-vien')"></i>
+                </a>
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-khach-hang')"
+                  :class="{ active: isRouteActive('admin-khach-hang') }"
+                >
+                  Khách hàng
+                  <i class="fas fa-check check-icon" v-if="isRouteActive('admin-khach-hang')"></i>
+                </a>
+              </div>
+            </div>
+
+            <div
+              class="menu-item"
+              :class="{ open: isSubmenuOpen.Homestay, active: isBookingMenuActive }"
+            >
+              <a href="#" class="has-submenu" @click.prevent="toggleSubmenu('Homestay')">
+                <i class="fas fa-calendar-check"></i>
+                <span>Homestay</span>
+                <span class="arrow">
+                  <i class="fas fa-chevron-right" v-if="!isSubmenuOpen.Homestay"></i>
+                  <i class="fas fa-chevron-down" v-else></i>
+                </span>
+              </a>
+              <div class="submenu">
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-homestay')"
+                  :class="{ active: isRouteActive('admin-homestay') }"
+                >
+                  Homestay
+                </a>
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-homestay-phong')"
+                  :class="{ active: isRouteActive('admin-homestay-phong') }"
+                >
+                  Phòng
+                  <i
+                    class="fas fa-check check-icon"
+                    v-if="isRouteActive('admin-homestay-phong')"
+                  ></i>
+                </a>
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-homestay-vattu')"
+                  :class="{ active: isRouteActive('admin-homestay-vattu') }"
+                >
+                  Vật tư
+                </a>
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-homestay-tiennghi')"
+                  :class="{ active: isRouteActive('admin-homestay-tiennghi') }"
+                >
+                  Tiện nghi
+                </a>
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-homestay-dichvu')"
+                  :class="{ active: isRouteActive('admin-homestay-dichvu') }"
+                >
+                  Dịch vụ
+                </a>
+              </div>
+            </div>
+
+            <div class="menu-item" :class="{ active: isRouteActive('admin-voucher') }">
+              <a href="#" @click.prevent="navigateTo('admin-voucher')">
+                <i class="fas fa-ticket-alt"></i>
+                <span>Voucher</span>
+              </a>
+            </div>
+
+            <div class="menu-item" :class="{ active: isRouteActive('admin-tai-khoan') }">
+              <a href="#" @click.prevent="navigateTo('admin-tai-khoan')">
+                <i class="fas fa-user-circle"></i>
+                <span>Tài khoản</span>
+              </a>
+            </div>
+
+            <div
+              class="menu-item"
+              :class="{ open: isSubmenuOpen.noiDung, active: isContentMenuActive }"
+            >
+              <a href="#" class="has-submenu" @click.prevent="toggleSubmenu('noiDung')">
+                <i class="fas fa-file-alt"></i>
+                <span>Nội dung và đánh giá</span>
+                <span class="arrow">
+                  <i class="fas fa-chevron-right" v-if="!isSubmenuOpen.noiDung"></i>
+                  <i class="fas fa-chevron-down" v-else></i>
+                </span>
+              </a>
+              <div class="submenu">
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-tin-tuc')"
+                  :class="{ active: isRouteActive('admin-tin-tuc') }"
+                >
+                  Tin tức
+                  <i class="fas fa-check check-icon" v-if="isRouteActive('admin-tin-tuc')"></i>
+                </a>
+                <a
+                  href="#"
+                  @click.prevent="navigateTo('admin-danh-gia')"
+                  :class="{ active: isRouteActive('admin-danh-gia') }"
+                >
+                  Đánh giá
+                </a>
+              </div>
+            </div>
+
+            <div class="menu-item" :class="{ active: isRouteActive('admin-thanh-toan') }">
+              <a href="#" @click.prevent="navigateTo('admin-thanh-toan')">
+                <i class="fas fa-credit-card"></i>
+                <span>Thanh toán</span>
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="main-content">
-        <div class="page-header">
-          <h2>Dashboard</h2>
-          <div class="date-filter">
-            <label>Thời gian:</label>
-            <select>
-              <option>Hôm nay</option>
-              <option>7 ngày qua</option>
-              <option selected>30 ngày qua</option>
-              <option>Năm nay</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="dashboard-summary">
-          <div class="stat-card">
-            <h3>Tổng người dùng</h3>
-            <p class="stat-number">1,245</p>
-            <p class="stat-change positive">+12% so với tháng trước</p>
-          </div>
-
-          <div class="stat-card">
-            <h3>Đặt phòng mới</h3>
-            <p class="stat-number">87</p>
-            <p class="stat-change positive">+5% so với tháng trước</p>
-          </div>
-
-          <div class="stat-card">
-            <h3>Doanh thu</h3>
-            <p class="stat-number">45.2M VND</p>
-            <p class="stat-change positive">+8% so với tháng trước</p>
-          </div>
-
-          <div class="stat-card">
-            <h3>Đánh giá mới</h3>
-            <p class="stat-number">32</p>
-            <p class="stat-change negative">-3% so với tháng trước</p>
-          </div>
-        </div>
-
-        <div class="dashboard-row">
-          <div class="recent-activity">
-            <div class="card-header">
-              <h2>Hoạt động gần đây</h2>
-              <button class="view-all-btn">Xem tất cả</button>
-            </div>
-            <table class="activity-table">
-              <thead>
-                <tr>
-                  <th>Người dùng</th>
-                  <th>Hoạt động</th>
-                  <th>Thời gian</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Nguyễn Văn A</td>
-                  <td>Đặt phòng mới</td>
-                  <td>15 phút trước</td>
-                  <td><span class="status-badge success">Thành công</span></td>
-                </tr>
-                <tr>
-                  <td>Trần Thị B</td>
-                  <td>Đánh giá mới</td>
-                  <td>1 giờ trước</td>
-                  <td><span class="status-badge success">Đã đăng</span></td>
-                </tr>
-                <tr>
-                  <td>Lê Văn C</td>
-                  <td>Hủy đặt phòng</td>
-                  <td>3 giờ trước</td>
-                  <td><span class="status-badge warning">Đang xử lý</span></td>
-                </tr>
-                <tr>
-                  <td>Phạm Thị D</td>
-                  <td>Đăng ký mới</td>
-                  <td>5 giờ trước</td>
-                  <td><span class="status-badge success">Đã xác nhận</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <router-view></router-view>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import 'bootstrap/dist/css/bootstrap.min.css'
+import { useAdminDashboard } from '../Styles/JS/Admin.js'
+
 export default {
   name: 'AdminDashboard',
-  methods: {
-    logout() {
-      // Xóa trạng thái đăng nhập
-      localStorage.removeItem('isAdmin')
+  setup() {
+    const {
+      isSubmenuOpen,
+      isUserMenuActive,
+      isBookingMenuActive,
+      isContentMenuActive,
+      isRouteActive,
+      navigateTo,
+      toggleSubmenu,
+      toggleSidebar,
+      logout,
+    } = useAdminDashboard()
 
-      // Thông báo đăng xuất thành công
-      alert('Đăng xuất thành công!')
-
-      // Chuyển hướng về trang chủ
-      window.location.href = '/'
-    },
-  },
-  mounted() {
-    // Thêm Font Awesome
-    if (!document.getElementById('font-awesome')) {
-      const link = document.createElement('link')
-      link.id = 'font-awesome'
-      link.rel = 'stylesheet'
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css'
-      document.head.appendChild(link)
+    return {
+      isSubmenuOpen,
+      isUserMenuActive,
+      isBookingMenuActive,
+      isContentMenuActive,
+      isRouteActive,
+      navigateTo,
+      toggleSubmenu,
+      toggleSidebar,
+      logout,
     }
   },
 }
 </script>
 
-<style scoped>
-.admin-dashboard {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  min-height: 100vh;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-header {
-  background-color: #206243;
-  color: white;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-left,
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.header-right {
-  gap: 20px;
-}
-
-.admin-header h1 {
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-.admin-search {
-  display: flex;
-  align-items: center;
-}
-
-.admin-search input {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px 0 0 4px;
-  width: 200px;
-}
-
-.admin-search button {
-  background: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-}
-
-.admin-notifications {
-  position: relative;
-  cursor: pointer;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background-color: #ff4757;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.admin-profile img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid white;
-}
-
-.logout-btn {
-  background-color: transparent;
-  border: 2px solid white;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.logout-btn:hover {
-  background-color: white;
-  color: #206243;
-}
-
-.dashboard-content {
-  display: flex;
-  flex: 1;
-  height: calc(100vh - 70px);
-}
-
-.sidebar {
-  width: 250px;
-  background-color: #f5f5f5;
-  padding: 2rem 0;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-  height: 100%;
-  overflow-y: auto;
-  position: sticky;
-  top: 70px;
-}
-
-.admin-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.admin-nav li {
-  padding: 0.8rem 1.5rem;
-  margin-bottom: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-.admin-nav li.active {
-  background-color: #e0f2e9;
-  border-left: 4px solid #206243;
-}
-
-.admin-nav li:hover {
-  background-color: #e0f2e9;
-}
-
-.admin-nav a {
-  text-decoration: none;
-  color: #333;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.admin-nav i {
-  width: 20px;
-  text-align: center;
-}
-
-.main-content {
-  flex: 1;
-  padding: 2rem;
-  background-color: #f9f9f9;
-  overflow-y: auto;
-  height: 100%;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 1.8rem;
-  color: #333;
-}
-
-.date-filter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.date-filter label {
-  font-weight: 500;
-}
-
-.date-filter select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.dashboard-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card h3 {
-  margin-top: 0;
-  color: #555;
-  font-size: 1rem;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: bold;
-  margin: 0.5rem 0;
-  color: #206243;
-}
-
-.stat-change {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.positive {
-  color: #28a745;
-}
-
-.negative {
-  color: #dc3545;
-}
-
-.dashboard-row {
-  margin-bottom: 2rem;
-}
-
-.recent-activity {
-  background-color: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.card-header h2 {
-  margin: 0;
-  color: #333;
-  font-size: 1.5rem;
-}
-
-.view-all-btn {
-  background-color: transparent;
-  border: 1px solid #206243;
-  color: #206243;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.view-all-btn:hover {
-  background-color: #206243;
-  color: white;
-}
-
-.activity-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-.activity-table th,
-.activity-table td {
-  padding: 0.8rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.activity-table th {
-  font-weight: 600;
-  color: #555;
-}
-
-.activity-table tbody tr:hover {
-  background-color: #f5f5f5;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge.success {
-  background-color: #e6f7e6;
-  color: #28a745;
-}
-
-.status-badge.warning {
-  background-color: #fff8e6;
-  color: #ffa502;
-}
-
-.status-badge.danger {
-  background-color: #ffe6e6;
-  color: #dc3545;
-}
+<style>
+@import '../Styles/CSS/Admin.css';
 </style>

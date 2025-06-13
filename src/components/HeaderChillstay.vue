@@ -11,11 +11,11 @@ import '@/Styles/CSS/Header.css'
         >
       </div>
       <ul class="nav-links">
-        <li><a href="#">Trang Chủ</a> </li>
+        <li><a href="#">Trang Chủ</a></li>
         <li><a href="#">Bookings</a></li>
         <li><a href="#">Dịch Vụ</a></li>
         <li><a href="#">Tin Tức</a></li>
-        <li><a href="#">Liên Hệ</a></li>
+        <li><a href="#">Giảm Giá</a></li>
       </ul>
       <div class="auth-buttons">
         <button class="btn login-btn">Đăng Nhập</button>
@@ -108,7 +108,7 @@ export default {
   methods: {
     adminLogin() {
       // Xác thực đăng nhập admin
-      if (this.adminUsername === 'admin' && this.adminPassword === 'admin123') {
+      if (this.adminUsername === 'admin' && this.adminPassword === '1') {
         // Lưu trạng thái đăng nhập vào localStorage
         localStorage.setItem('isAdmin', 'true')
 

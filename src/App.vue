@@ -11,7 +11,7 @@ export default {
   },
   computed: {
     isAdminRoute() {
-      return this.$route.path.includes('/admin')
+      return this.$route.path.startsWith('/admin')
     },
   },
 }
@@ -28,5 +28,12 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+body {
+  padding-top: 0;
+  background: #f4f6fb;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 </style>

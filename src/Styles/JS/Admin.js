@@ -9,7 +9,7 @@ export function useAdminDashboard() {
   const isSubmenuOpen = ref({
     nguoiDung: false,
     datHome: false,
-    noiDung: false
+    noiDung: false,
   })
 
   const isUserMenuActive = computed(() => {
@@ -68,8 +68,10 @@ export function useAdminDashboard() {
   }
 
   function logout() {
-    // Xóa trạng thái đăng nhập
+    // Xóa toàn bộ thông tin đăng nhập
     localStorage.removeItem('isAdmin')
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
 
     // Thông báo đăng xuất thành công
     alert('Đăng xuất thành công!')
@@ -130,6 +132,6 @@ export function useAdminDashboard() {
     navigateTo,
     toggleSubmenu,
     toggleSidebar,
-    logout
+    logout,
   }
 }

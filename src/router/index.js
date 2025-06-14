@@ -116,12 +116,12 @@ const router = createRouter({
           name: 'admin-thanh-toan',
           component: () => import('../views/Admin/ThanhToan.vue'),
         },
-
-        // Chuyển hướng mặc định về trang thống kê
         {
           path: '',
-          redirect: { name: 'admin-thong-ke' },
+          name: 'admin-welcome',
+          component: () => import('../components/Welcome.vue'), // Trang welcome admin
         },
+        // Chuyển hướng mặc định về trang thống kê
       ],
     },
 
@@ -141,20 +141,34 @@ const router = createRouter({
 
 // Navigation guard để bảo vệ route admin
 router.beforeEach((to, from, next) => {
-  // Nếu route yêu cầu xác thực
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    // Kiểm tra xem người dùng đã đăng nhập chưa (có thể sử dụng localStorage hoặc vuex)
-    const isAdmin = localStorage.getItem('isAdmin')
+    try {
+      const userStr = localStorage.getItem('user')
+      console.log('User string from localStorage:', userStr)
 
-    if (!isAdmin) {
-      // Nếu chưa đăng nhập, chuyển hướng về trang đăng nhập
+      if (!userStr) {
+        console.log('Không tìm thấy user trong localStorage')
+        next('/')
+        return
+      }
+
+      const user = JSON.parse(userStr)
+      console.log('User from localStorage:', user)
+      console.log('User accountTypeId:', user.accountTypeId)
+
+      // Kiểm tra xem user có tồn tại và có accountTypeId là 1 (NhanVien) hoặc 2 (Admin) không
+      if (user && (user.accountTypeId === 1 || user.accountTypeId === 2)) {
+        console.log('Có quyền truy cập, tiếp tục')
+        next()
+      } else {
+        console.log('Không có quyền truy cập, chuyển hướng về trang chủ')
+        next('/')
+      }
+    } catch (error) {
+      console.error('Lỗi khi kiểm tra quyền truy cập:', error)
       next('/')
-    } else {
-      // Nếu đã đăng nhập, cho phép truy cập
-      next()
     }
   } else {
-    // Nếu route không yêu cầu xác thực, cho phép truy cập
     next()
   }
 })

@@ -13,13 +13,23 @@ export const useNotificationStore = defineStore('notification', () => {
    * @param {number} notification.duration - Thời gian hiển thị (ms)
    * @param {string} notification.position - Vị trí (top-right, top-left, bottom-right, bottom-left, top-center, bottom-center)
    * @param {boolean} notification.dismissible - Có thể đóng thủ công không
+   * @param {boolean} notification.isModal - Có phải là modal không
+   * @param {boolean} notification.showCancelButton - Hiển thị nút hủy
+   * @param {string} notification.title - Tiêu đề thông báo
+   * @param {string} notification.confirmText - Nội dung nút xác nhận
+   * @param {string} notification.cancelText - Nội dung nút hủy
    */
   function showNotification({
     message,
     type = 'info',
     duration = 5000,
     position = 'top-right',
-    dismissible = true
+    dismissible = true,
+    isModal = false,
+    showCancelButton = false,
+    title = '',
+    confirmText = 'OK',
+    cancelText = 'Hủy'
   }) {
     const id = nextId.value++
 
@@ -29,12 +39,17 @@ export const useNotificationStore = defineStore('notification', () => {
       type,
       position,
       dismissible,
-      visible: true
+      visible: true,
+      isModal,
+      showCancelButton,
+      title,
+      confirmText,
+      cancelText
     }
 
     notifications.value.push(notification)
 
-    if (duration > 0) {
+    if (!isModal && duration > 0) {
       setTimeout(() => {
         dismissNotification(id)
       }, duration)
@@ -54,6 +69,14 @@ export const useNotificationStore = defineStore('notification', () => {
         notifications.value = notifications.value.filter(n => n.id !== id)
       }, 300) // Thời gian animation
     }
+  }
+
+  function confirmNotification(id) {
+    dismissNotification(id)
+  }
+
+  function cancelNotification(id) {
+    dismissNotification(id)
   }
 
   function clearAll() {
@@ -109,6 +132,8 @@ export const useNotificationStore = defineStore('notification', () => {
     notifications,
     showNotification,
     dismissNotification,
+    confirmNotification,
+    cancelNotification,
     clearAll,
     success,
     error,

@@ -1,74 +1,196 @@
 <script setup>
 import '@/Styles/JS/Header.js'
 import '@/Styles/CSS/Header.css'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { login } from '@/Service/authService.js'
 import notification from '@/utils/notification'
+import { useAuthStore } from '@/stores/authStore'
 
 const loginUsername = ref('')
 const loginPassword = ref('')
 const loginError = ref('')
 const router = useRouter()
-const isLoggedIn = ref(false)
-const currentUser = ref(null)
+const authStore = useAuthStore()
+
+// Sử dụng computed properties để lấy dữ liệu từ store
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const currentUser = computed(() => authStore.user)
+
+const passwordVisible = ref(false)
+const signupPasswordVisible = ref(false)
+const confirmPasswordVisible = ref(false)
+
+function setupModalListeners() {
+  // Lấy các phần tử DOM
+  const modal = document.getElementById('authModal')
+  const loginForm = document.getElementById('loginForm')
+  const signupForm = document.getElementById('signupForm')
+  const loginBtn = document.querySelector('.login-btn')
+  const signupBtn = document.querySelector('.signup-btn')
+  const closeBtn = document.querySelector('.close-button')
+  const showSignupLink = document.getElementById('showSignup')
+  const showLoginLink = document.getElementById('showLogin')
+
+  // Function để reset form
+  function resetForms() {
+    resetLoginForm()
+    // Reset signup form
+    if (signupForm.querySelector('form')) {
+      signupForm.querySelector('form').reset()
+    }
+  }
+
+  if (loginBtn) {
+    // Hiển thị modal khi nhấn nút đăng nhập
+    loginBtn.addEventListener('click', function () {
+      resetForms() // Reset form trước khi hiển thị
+      modal.style.display = 'block'
+      loginForm.style.display = 'block'
+      signupForm.style.display = 'none'
+      loginForm.classList.add('form-active')
+      signupForm.classList.remove('form-active')
+    })
+  }
+
+  if (signupBtn) {
+    // Hiển thị modal khi nhấn nút đăng ký
+    signupBtn.addEventListener('click', function () {
+      resetForms() // Reset form trước khi hiển thị
+      modal.style.display = 'block'
+      loginForm.style.display = 'none'
+      signupForm.style.display = 'block'
+      signupForm.classList.add('form-active')
+      loginForm.classList.remove('form-active')
+    })
+  }
+
+  // Đóng modal khi nhấn nút đóng
+  closeBtn.addEventListener('click', function () {
+    modal.style.display = 'none'
+    resetForms() // Reset form khi đóng modal
+  })
+
+  // Chuyển đổi giữa form đăng nhập và đăng ký
+  showSignupLink.addEventListener('click', function (e) {
+    e.preventDefault()
+    resetForms() // Reset form khi chuyển đổi
+    loginForm.style.display = 'none'
+    signupForm.style.display = 'block'
+    signupForm.classList.add('form-active')
+    loginForm.classList.remove('form-active')
+  })
+
+  showLoginLink.addEventListener('click', function (e) {
+    e.preventDefault()
+    resetForms() // Reset form khi chuyển đổi
+    loginForm.style.display = 'block'
+    signupForm.style.display = 'none'
+    loginForm.classList.add('form-active')
+    signupForm.classList.remove('form-active')
+  })
+
+  // Đóng modal khi nhấn bên ngoài
+  window.addEventListener('click', function (event) {
+    if (event.target == modal) {
+      modal.style.display = 'none'
+      resetForms() // Reset form khi đóng modal
+    }
+  })
+}
 
 // Kiểm tra trạng thái đăng nhập khi component được tạo
 onMounted(() => {
-  checkLoginStatus()
+  setupModalListeners()
 })
 
-function checkLoginStatus() {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    currentUser.value = JSON.parse(userStr)
-    isLoggedIn.value = true
-  } else {
-    isLoggedIn.value = false
-    currentUser.value = null
-  }
+function resetLoginForm() {
+  loginUsername.value = ''
+  loginPassword.value = ''
+  loginError.value = ''
+  passwordVisible.value = false
+  signupPasswordVisible.value = false
+  confirmPasswordVisible.value = false
+}
+
+function togglePasswordVisibility() {
+  passwordVisible.value = !passwordVisible.value
+}
+
+function toggleSignupPasswordVisibility() {
+  signupPasswordVisible.value = !signupPasswordVisible.value
+}
+
+function toggleConfirmPasswordVisibility() {
+  confirmPasswordVisible.value = !confirmPasswordVisible.value
 }
 
 async function handleLogin() {
   try {
+    // Đánh dấu đang trong quá trình đăng nhập để ngăn đóng modal
+    window.isLoginProcessing = true
+
+    // Hiển thị trạng thái loading
+    const submitBtn = document.querySelector('#loginForm .submit-btn')
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
+    submitBtn.disabled = true
+
     loginError.value = ''
     console.log('Đang đăng nhập với:', loginUsername.value)
 
-    // Gọi API đăng nhập
-    const res = await login(loginUsername.value, loginPassword.value)
-    console.log('Kết quả đăng nhập:', res.data)
+    // Sử dụng authStore để đăng nhập
+    const result = await authStore.login(loginUsername.value, loginPassword.value)
 
-    const userData = res.data
-    const token = userData.token
-
-    // Lưu thông tin vào localStorage
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(userData))
-
-    // Cập nhật trạng thái đăng nhập
-    currentUser.value = userData
-    isLoggedIn.value = true
-
-    // Đóng modal
-    document.getElementById('authModal').style.display = 'none'
-
-    // Hiển thị thông báo đăng nhập thành công
-    notification.success('Đăng nhập thành công!', {
-      position: 'top-right',
-      duration: 3000,
-    })
-
-    // Kiểm tra loại tài khoản
-    if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
-      // Nếu là nhân viên hoặc admin
-      console.log('Đăng nhập thành công với quyền admin/nhân viên')
-      localStorage.setItem('isAdmin', 'true')
-      router.push('/admin')
-    } else {
-      // Nếu là khách hàng
-      console.log('Đăng nhập thành công với quyền khách hàng')
-      router.push('/')
+    if (!result.success) {
+      throw new Error('Đăng nhập thất bại')
     }
+
+    // Gỡ bỏ sự kiện onclick để tránh xung đột
+    const closeBtn = document.querySelector('.close-button')
+    if (closeBtn) {
+      closeBtn.onclick = null
+    }
+
+    // Tạm thời vô hiệu hóa window.onclick
+    window.onclick = null
+
+    // Đóng modal sử dụng hàm closeModal trong Header.js (tránh animation conflict)
+    const modal = document.getElementById('authModal')
+    modal.classList.remove('modal-active')
+
+    // Đợi animation hoàn tất rồi mới ẩn modal
+    setTimeout(() => {
+      modal.style.display = 'none'
+      // Xóa class active khỏi forms
+      document.getElementById('loginForm').classList.remove('form-active')
+      document.getElementById('signupForm').classList.remove('form-active')
+
+      // Reset form sau khi đăng nhập thành công
+      resetLoginForm()
+
+      // Hủy cờ đang xử lý đăng nhập
+      window.isLoginProcessing = false
+
+      // Hiển thị thông báo đăng nhập thành công
+      notification.success('Đăng nhập thành công!', {
+        position: 'top-right',
+        duration: 3000,
+      })
+
+      // Kiểm tra loại tài khoản và chuyển hướng
+      const userData = result.userData
+      if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
+        // Nếu là nhân viên hoặc admin
+        console.log('Đăng nhập thành công với quyền admin/nhân viên')
+        router.push('/admin')
+      } else {
+        // Nếu là khách hàng
+        console.log('Đăng nhập thành công với quyền khách hàng')
+        router.push('/')
+      }
+
+      // Khôi phục các event handlers sau khi đã xử lý xong
+      setupModalListeners()
+    }, 300)
   } catch (e) {
     console.error('Lỗi đăng nhập:', e)
     loginError.value = 'Sai tài khoản hoặc mật khẩu!'
@@ -76,36 +198,39 @@ async function handleLogin() {
       position: 'top-right',
       duration: 5000,
     })
+
+    // Hủy cờ đang xử lý đăng nhập
+    window.isLoginProcessing = false
+
+    // Khôi phục nút submit
+    const submitBtn = document.querySelector('#loginForm .submit-btn')
+    submitBtn.innerHTML = 'Đăng nhập'
+    submitBtn.disabled = false
+
+    // Bảo đảm modal vẫn hiển thị
+    const modal = document.getElementById('authModal')
+    if (modal) {
+      modal.style.display = 'block'
+      modal.classList.add('modal-active')
+      document.getElementById('loginForm').classList.add('form-active')
+    }
   }
 }
 
 function handleLogout() {
-  // Hiển thị confirm dialog
-  notification
-    .confirm({
-      message: 'Bạn có chắc chắn muốn đăng xuất?',
-    })
-    .then((confirmed) => {
-      if (confirmed) {
-        // Xóa dữ liệu từ localStorage
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        localStorage.removeItem('isAdmin')
+  // Sử dụng authStore để đăng xuất
+  authStore.logout()
 
-        // Cập nhật trạng thái đăng nhập
-        isLoggedIn.value = false
-        currentUser.value = null
+  // Thông báo đăng xuất thành công
+  notification.success('Đăng xuất thành công!', {
+    position: 'top-right',
+    duration: 3000,
+  })
 
-        // Chuyển về trang chủ
-        router.push('/')
-
-        // Thông báo đăng xuất thành công
-        notification.success('Đăng xuất thành công!', {
-          position: 'top-right',
-          duration: 3000,
-        })
-      }
-    })
+  // Đợi 1 giây sau đó làm mới trang
+  setTimeout(() => {
+    window.location.reload()
+  }, 1000)
 }
 </script>
 <template>
@@ -145,7 +270,7 @@ function handleLogout() {
       <div class="form-container">
         <!-- Login Form -->
         <div id="loginForm" class="auth-form">
-          <h2>Login</h2>
+          <h2>Đăng nhập</h2>
           <form @submit.prevent="handleLogin">
             <div class="input-group">
               <label for="loginUsername">Tên đăng nhập</label>
@@ -153,7 +278,19 @@ function handleLogout() {
             </div>
             <div class="input-group">
               <label for="loginPassword">Mật khẩu</label>
-              <input type="password" id="loginPassword" v-model="loginPassword" required />
+              <div class="password-input-container">
+                <input
+                  :type="passwordVisible ? 'text' : 'password'"
+                  id="loginPassword"
+                  v-model="loginPassword"
+                  required
+                />
+                <span class="password-toggle" @click="togglePasswordVisibility">
+                  <font-awesome-icon
+                    :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
+                  />
+                </span>
+              </div>
             </div>
             <button type="submit" class="btn submit-btn">Đăng nhập</button>
             <div v-if="loginError" style="color: red">{{ loginError }}</div>
@@ -163,7 +300,7 @@ function handleLogout() {
 
         <!-- Signup Form -->
         <div id="signupForm" class="auth-form" style="display: none">
-          <h2>Sign Up</h2>
+          <h2>Đăng ký</h2>
           <form>
             <div class="input-group">
               <label for="signupUsername">Tên đăng nhập</label>
@@ -175,11 +312,35 @@ function handleLogout() {
             </div>
             <div class="input-group">
               <label for="signupPassword">Mật khẩu</label>
-              <input type="password" id="signupPassword" name="signupPassword" required />
+              <div class="password-input-container">
+                <input
+                  :type="signupPasswordVisible ? 'text' : 'password'"
+                  id="signupPassword"
+                  name="signupPassword"
+                  required
+                />
+                <span class="password-toggle" @click="toggleSignupPasswordVisibility">
+                  <font-awesome-icon
+                    :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
+                  />
+                </span>
+              </div>
             </div>
             <div class="input-group">
               <label for="confirmPassword">Xác nhận mật khẩu</label>
-              <input type="password" id="confirmPassword" name="confirmPassword" required />
+              <div class="password-input-container">
+                <input
+                  :type="confirmPasswordVisible ? 'text' : 'password'"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  required
+                />
+                <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
+                  <font-awesome-icon
+                    :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
+                  />
+                </span>
+              </div>
             </div>
             <button type="submit" class="btn submit-btn">Đăng ký</button>
           </form>
@@ -189,65 +350,6 @@ function handleLogout() {
     </div>
   </div>
 </template>
-
-<script>
-export default {
-  mounted() {
-    // Lấy các phần tử DOM
-    const modal = document.getElementById('authModal')
-    const loginForm = document.getElementById('loginForm')
-    const signupForm = document.getElementById('signupForm')
-    const loginBtn = document.querySelector('.login-btn')
-    const signupBtn = document.querySelector('.signup-btn')
-    const closeBtn = document.querySelector('.close-button')
-    const showSignupLink = document.getElementById('showSignup')
-    const showLoginLink = document.getElementById('showLogin')
-
-    if (loginBtn) {
-      // Hiển thị modal khi nhấn nút đăng nhập
-      loginBtn.addEventListener('click', function () {
-        modal.style.display = 'block'
-        loginForm.style.display = 'block'
-        signupForm.style.display = 'none'
-      })
-    }
-
-    if (signupBtn) {
-      // Hiển thị modal khi nhấn nút đăng ký
-      signupBtn.addEventListener('click', function () {
-        modal.style.display = 'block'
-        loginForm.style.display = 'none'
-        signupForm.style.display = 'block'
-      })
-    }
-
-    // Đóng modal khi nhấn nút đóng
-    closeBtn.addEventListener('click', function () {
-      modal.style.display = 'none'
-    })
-
-    // Chuyển đổi giữa form đăng nhập và đăng ký
-    showSignupLink.addEventListener('click', function (e) {
-      e.preventDefault()
-      loginForm.style.display = 'none'
-      signupForm.style.display = 'block'
-    })
-
-    showLoginLink.addEventListener('click', function (e) {
-      e.preventDefault()
-      loginForm.style.display = 'block'
-      signupForm.style.display = 'none'
-    })
-
-    // Đóng modal khi nhấn bên ngoài
-    window.addEventListener('click', function (event) {
-      if (event.target == modal) {
-        modal.style.display = 'none'
-      }
-    })
-  },
-}
-</script>
 
 <style scoped>
 /* Thêm CSS cho user menu */

@@ -1,5 +1,16 @@
 import axios from 'axios'
 
+// Lấy ID phiên từ authStore
+const getSessionId = () => {
+  // Tìm ID phiên từ localStorage
+  const keys = Object.keys(localStorage)
+  const tokenKey = keys.find(key => key.startsWith('token_'))
+  if (tokenKey) {
+    return tokenKey.replace('token_', '')
+  }
+  return null
+}
+
 // Tạo instance axios với cấu hình mặc định
 const api = axios.create({
   baseURL: 'http://localhost:8080', // URL API backend Spring Boot
@@ -13,15 +24,56 @@ const api = axios.create({
 // Interceptor để thêm token vào header của mỗi request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    const sessionId = getSessionId()
+    if (sessionId) {
+      const token = localStorage.getItem(`token_${sessionId}`)
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
   (error) => {
     return Promise.reject(error)
   },
+)
+
+// Interceptor để xử lý response
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    // Xử lý lỗi 401 Unauthorized
+    if (error.response && error.response.status === 401) {
+      console.log('Lỗi xác thực:', error.response.data)
+
+      // Kiểm tra xem lỗi có phải từ đường dẫn login hay không
+      const isLoginRequest = error.config && error.config.url && error.config.url.includes('/api/login')
+
+      // Nếu không phải lỗi từ request login thì mới logout và redirect
+      if (!isLoginRequest) {
+        console.log('Token hết hạn hoặc không hợp lệ, đăng xuất...')
+
+        // Xóa dữ liệu localStorage cho phiên hiện tại
+        const sessionId = getSessionId()
+        if (sessionId) {
+          localStorage.removeItem(`token_${sessionId}`)
+          localStorage.removeItem(`user_${sessionId}`)
+          localStorage.removeItem(`isAdmin_${sessionId}`)
+        }
+
+        // Reload trang để App.vue có thể khởi tạo lại trạng thái
+        setTimeout(() => {
+          window.location.href = '/'
+        }, 100)
+      } else {
+        // Nếu là lỗi đăng nhập, chỉ log ra console và không redirect
+        console.log('Đăng nhập thất bại: Sai tên đăng nhập hoặc mật khẩu')
+      }
+    }
+    return Promise.reject(error)
+  }
 )
 
 export default api

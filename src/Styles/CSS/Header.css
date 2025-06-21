@@ -106,7 +106,7 @@ header {
 .auth-buttons .btn {
   padding: 0.8em 2em; /* Increased padding */
   border: none;
-  border-radius: 25px; /* More rounded buttons */
+  border-radius: 20px; /* Consistent rounded buttons */
   cursor: pointer;
   font-size: 1.05em;
   font-weight: 600;
@@ -188,7 +188,6 @@ header {
 
 /* Modal Styling */
 .modal {
-  display: none; /* Hidden by default */
   position: fixed; /* Stay in place */
   z-index: 1000; /* Sit on top */
   left: 0;
@@ -196,47 +195,93 @@ header {
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
-  background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
+  background-color: rgba(0, 0, 0, 0.75); /* Black w/ opacity - tăng độ tối */
   padding-top: 60px; /* Location of the box */
+  backdrop-filter: blur(8px); /* Hiệu ứng mờ phía sau - tăng cường */
+  opacity: 0;
+  visibility: hidden;
+  display: block !important;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  pointer-events: none;
+}
+
+.modal-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .modal-content {
-  background-color: #fefefe;
-  margin: 5% auto; /* 5% from the top and centered */
-  padding: 30px;
-  border: 1px solid #888;
+  background-color: #ffffff;
+  margin: 2% auto; /* Giảm khoảng cách từ trên xuống */
+  padding: 45px; /* Tăng padding */
+  border: none; /* Bỏ viền */
   width: 90%; /* Could be more or less, depending on screen size */
-  max-width: 500px; /* Maximum width */
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-width: 480px; /* Maximum width */
+  border-radius: 20px; /* Bo tròn nhiều hơn */
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.2),
+    0 5px 15px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   position: relative;
-  animation: slideIn 0.5s ease-out;
+  animation: modalFadeIn 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+  transform: translateY(0);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%),
+    linear-gradient(to right, rgba(240, 245, 243, 0.5), rgba(230, 240, 235, 0.5));
 }
 
-@keyframes slideIn {
-  from {
-    top: -300px;
+/* Tăng chiều rộng cho form đăng ký */
+.modal-content:has(#signupForm:not([style*='display: none'])) {
+  max-width: 500px;
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%),
+    linear-gradient(to right, rgba(235, 250, 245, 0.4), rgba(225, 245, 235, 0.4));
+}
+
+@keyframes modalFadeIn {
+  0% {
     opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+    box-shadow:
+      0 5px 15px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   }
-  to {
-    top: 0;
+  50% {
+    opacity: 0.8;
+  }
+  100% {
     opacity: 1;
-  } /* Adjust top if padding-top changes in .modal */
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 15px 35px rgba(0, 0, 0, 0.2),
+      0 5px 15px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  }
 }
 
 .close-button {
-  color: #aaa;
+  color: #999;
   float: right;
   font-size: 28px;
   font-weight: bold;
   position: absolute;
-  top: 10px;
+  top: 15px;
   right: 20px;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .close-button:hover,
 .close-button:focus {
-  color: black;
+  color: #206243;
+  background-color: rgba(32, 98, 67, 0.1);
   text-decoration: none;
   cursor: pointer;
 }
@@ -244,71 +289,499 @@ header {
 /* Form Container & Individual Forms */
 .form-container h2 {
   text-align: center;
-  margin-bottom: 25px;
-  color: #333;
-  font-size: 1.8em;
+  margin-bottom: 30px;
+  color: #206243;
+  font-size: 2em;
+  font-weight: 600;
+  position: relative;
+}
+
+.form-container h2::after {
+  content: '';
+  position: absolute;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, #0ba360, #3cba92);
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  animation: widthPulse 3s infinite ease-in-out;
+}
+
+@keyframes widthPulse {
+  0% {
+    width: 60px;
+    opacity: 0.7;
+  }
+  50% {
+    width: 90px;
+    opacity: 1;
+  }
+  100% {
+    width: 60px;
+    opacity: 0.7;
+  }
+}
+
+.auth-form {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+}
+
+.form-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.form-active::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(60, 186, 146, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  animation: pulseFadeIn 1.5s infinite ease-out;
+  z-index: -1;
+}
+
+.form-hiding {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes pulseFadeIn {
+  0% {
+    transform: translateX(-50%) scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateX(-50%) scale(0.95);
+    opacity: 0.7;
+  }
 }
 
 .auth-form .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
 }
 
 .auth-form label {
   display: block;
-  margin-bottom: 8px;
-  color: #555;
+  margin-bottom: 10px;
   font-weight: 500;
+  color: #444;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+  position: relative;
+  padding-left: 2px;
 }
 
 .auth-form input[type='text'],
 .auth-form input[type='email'],
 .auth-form input[type='password'] {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box; /* So padding doesn't affect width */
-  font-size: 1em;
+  padding: 10px 16px;
+  border: 2px solid transparent;
+  border-radius: 0;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: #f0f5f3;
+  box-sizing: border-box;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.05);
+  color: #444;
+  letter-spacing: 0.3px;
+  height: 45px;
+}
+
+/* Các style riêng cho form đăng ký */
+#signupForm .input-group {
+  margin-bottom: 20px;
+}
+
+#signupForm label {
+  margin-bottom: 6px;
+}
+
+#signupForm input[type='text'],
+#signupForm input[type='email'],
+#signupForm input[type='password'] {
+  padding: 8px 14px;
+  height: 45px;
+  border-radius: 4px;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  margin-left: 0;
 }
 
 .auth-form input[type='text']:focus,
 .auth-form input[type='email']:focus,
 .auth-form input[type='password']:focus {
-  border-color: #206243;
   outline: none;
-  box-shadow: 0 0 5px rgba(32, 98, 67, 0.25);
+  border-color: #3cba92;
+  box-shadow: 0 8px 20px rgba(60, 186, 146, 0.2);
+  background-color: #fff;
+  transform: translateY(-2px);
+}
+
+.auth-form input[type='text']:focus::after,
+.auth-form input[type='email']:focus::after,
+.auth-form input[type='password']:focus::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #0ba360, #3cba92);
+  animation: focusLine 0.5s ease forwards;
+}
+
+@keyframes focusLine {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+#signupForm input[type='text']:focus,
+#signupForm input[type='email']:focus,
+#signupForm input[type='password']:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(60, 186, 146, 0.25);
+  border-left: 3px solid #0ba360;
 }
 
 .auth-form .submit-btn {
-  background-color: #206243;
-  color: white;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1.1em;
-  font-weight: 600;
   width: 100%;
-  transition: background-color 0.3s ease;
-  margin-top: 10px;
+  padding: 16px;
+  background: linear-gradient(135deg, #0ba360, #3cba92);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 600;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  margin-top: 20px;
+  box-shadow:
+    0 6px 15px rgba(11, 163, 96, 0.25),
+    0 2px 5px rgba(11, 163, 96, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.auth-form .submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .auth-form .submit-btn:hover {
-  background-color: #174d33;
+  background: linear-gradient(135deg, #0a8f53, #35a583);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 12px 25px rgba(11, 163, 96, 0.4),
+    0 5px 10px rgba(11, 163, 96, 0.25);
+  letter-spacing: 1px;
+}
+
+.auth-form .submit-btn:hover::before {
+  left: 100%;
+}
+
+.auth-form .submit-btn:active {
+  transform: translateY(-1px) scale(0.98);
+  box-shadow:
+    0 5px 15px rgba(11, 163, 96, 0.35),
+    0 2px 5px rgba(11, 163, 96, 0.2);
+  transition: all 0.1s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .form-switcher {
   text-align: center;
-  margin-top: 20px;
-  font-size: 0.95em;
+  margin-top: 25px;
+  font-size: 0.95rem;
+  color: #666;
 }
 
 .form-switcher a {
-  color: #206243;
+  color: #0ba360;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.form-switcher a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #0ba360, #3cba92);
+  transition: width 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  border-radius: 2px;
 }
 
 .form-switcher a:hover {
-  text-decoration: underline;
+  color: #0a8f53;
+  background-color: rgba(11, 163, 96, 0.05);
+  box-shadow: 0 2px 8px rgba(11, 163, 96, 0.1);
+}
+
+.form-switcher a:hover::after {
+  width: 90%;
+}
+
+.form-switcher a:active {
+  transform: translateY(1px);
+}
+
+/* Input Focus Effect */
+.input-group {
+  position: relative;
+}
+
+.input-group::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0ba360, #3cba92);
+  transition: width 0.4s ease;
+}
+
+.input-group.input-focused::after {
+  width: 100%;
+}
+
+.input-focused label {
+  color: #0ba360;
+  transform: translateY(-2px);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Floating Label Effect */
+.auth-form .floating-label {
+  position: absolute;
+  pointer-events: none;
+  left: 18px;
+  top: 14px;
+  transition: 0.2s ease all;
+  color: #888;
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.auth-form input:focus ~ .floating-label,
+.auth-form input:not(:placeholder-shown) ~ .floating-label {
+  top: -20px;
+  left: 5px;
+  font-size: 0.85rem;
+  color: #0ba360;
+  opacity: 1;
+  font-weight: 600;
+}
+
+.auth-form input::placeholder {
+  color: transparent;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ripple Effect on Buttons */
+.auth-form .submit-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-form .submit-btn:after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition:
+    transform 0.5s,
+    opacity 1s;
+}
+
+.auth-form .submit-btn:active:after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* Input Validation Styles */
+.auth-form input:valid {
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(60, 186, 146, 0.08);
+}
+
+.auth-form input:invalid:not(:placeholder-shown) {
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-3px, 0, 0);
+  }
+  40%,
+  60% {
+    transform: translate3d(3px, 0, 0);
+  }
+}
+
+.auth-form input:invalid:not(:placeholder-shown) + .validation-message {
+  display: block;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.validation-message {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  display: none;
+  font-weight: 500;
+  padding-left: 5px;
+}
+
+/* Responsive Improvements */
+@media (max-width: 576px) {
+  .modal-content {
+    width: 95%;
+    padding: 25px;
+    margin: 10% auto;
+  }
+
+  .form-container h2 {
+    font-size: 1.6em;
+  }
+
+  .auth-form .submit-btn {
+    padding: 12px;
+  }
+}
+
+/* Placeholder Animation */
+@keyframes placeholderShimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.auth-form input.animating-placeholder {
+  background: linear-gradient(to right, #f0f5f3 8%, #e5efe9 18%, #f0f5f3 33%);
+  background-size: 800px 104px;
+  animation-duration: 1.5s;
+  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
+  animation-name: placeholderShimmer;
+  animation-timing-function: linear;
+}
+
+/* Password Toggle Icon Styles */
+.password-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: #3cba92;
+}
+
+.password-input-container input {
+  width: 100%;
+  padding-right: 45px;
 }

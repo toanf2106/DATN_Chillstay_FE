@@ -4,6 +4,7 @@ import about from '../views/AboutView.vue'
 import AdminDashboard from '../components/AdminDashboard.vue'
 import ThongKe from '../views/Admin/ThongKe.vue'
 import DatHomestay from '../views/Admin/DatHome.vue'
+import { useAuthStore } from '../stores/authStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,6 +56,7 @@ const router = createRouter({
         },
 
         // Quản lý Tiện nghi - Các tiện nghi cung cấp cho khách hàng
+  
         {
           path: 'homestay/tiennghi',
           name: 'admin-homestay-tiennghi',
@@ -136,38 +138,33 @@ const router = createRouter({
       path: '/thong-ke',
       redirect: { name: 'admin-thong-ke' },
     },
+
+
   ],
 })
 
 // Navigation guard để bảo vệ route admin
 router.beforeEach((to, from, next) => {
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-    try {
-      const userStr = localStorage.getItem('user')
-      console.log('User string from localStorage:', userStr)
+    // Sử dụng authStore thay vì truy cập trực tiếp localStorage
+    const authStore = useAuthStore()
 
-      if (!userStr) {
-        console.log('Không tìm thấy user trong localStorage')
-        next('/')
-        return
-      }
-
-      const user = JSON.parse(userStr)
-      console.log('User from localStorage:', user)
-      console.log('User accountTypeId:', user.accountTypeId)
-
-      // Kiểm tra xem user có tồn tại và có accountTypeId là 1 (NhanVien) hoặc 2 (Admin) không
-      if (user && (user.accountTypeId === 1 || user.accountTypeId === 2)) {
-        console.log('Có quyền truy cập, tiếp tục')
-        next()
-      } else {
-        console.log('Không có quyền truy cập, chuyển hướng về trang chủ')
-        next('/')
-      }
-    } catch (error) {
-      console.error('Lỗi khi kiểm tra quyền truy cập:', error)
+    // Kiểm tra trạng thái đăng nhập từ store
+    if (!authStore.isLoggedIn) {
+      console.log('Chưa đăng nhập, chuyển hướng về trang chủ')
       next('/')
+      return
     }
+
+    // Kiểm tra quyền admin từ store
+    if (to.meta.isAdmin && !authStore.hasAdminAccess) {
+      console.log('Không có quyền admin, chuyển hướng về trang chủ')
+      next('/')
+      return
+    }
+
+    // Nếu đã đăng nhập và có quyền phù hợp
+    next()
   } else {
     next()
   }

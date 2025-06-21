@@ -100,6 +100,34 @@ export const useNotificationStore = defineStore('notification', () => {
     return showNotification({ message, type: 'info', ...options })
   }
 
+  function confirm({ message }) {
+    return new Promise((resolve) => {
+      const confirmed = window.confirm(message)
+      resolve(confirmed)
+    })
+  }
+
+  function showToast(message, type = 'success', duration = 3000) {
+    const id = Date.now();
+    notifications.value.push({
+      id,
+      message,
+      type,
+      duration
+    });
+
+    setTimeout(() => {
+      removeToast(id);
+    }, duration);
+  }
+
+  function removeToast(id) {
+    const index = notifications.value.findIndex(n => n.id === id);
+    if (index > -1) {
+      notifications.value.splice(index, 1);
+    }
+  }
+
   return {
     notifications,
     showNotification,
@@ -110,6 +138,21 @@ export const useNotificationStore = defineStore('notification', () => {
     success,
     error,
     warning,
-    info
+    info,
+    confirm,
+    showToast,
+    removeToast
   }
 })
+
+// Composable để sử dụng trong các component
+export function useToast() {
+  const store = useNotificationStore();
+
+  return {
+    success: store.success.bind(store),
+    error: store.error.bind(store),
+    warning: store.warning.bind(store),
+    info: store.info.bind(store)
+  };
+}

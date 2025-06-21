@@ -44,7 +44,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="voucher in vouchers" :key="voucher.id">
+            <tr v-for="voucher in filteredVouchers" :key="voucher.id">
               <td>{{ voucher.maGiamGia }}</td>
               <td>{{ voucher.tenGiamGia }}</td>
               <td>{{ formatLoaiGiamGia(voucher.loaiGiamGia) }}</td>
@@ -104,18 +104,20 @@
   </div>
 
   <!-- Modal components for add/edit -->
-  <VoucherModal
-    v-if="showModal"
-    :voucher="selectedVoucher"
-    :isEdit="isEdit"
-    @close="closeModal"
-    @save="saveVoucher"
-  />
+  <div v-if="showModal" class="modal-container">
+    <VoucherModal
+      :voucher="selectedVoucher"
+      :isEdit="isEdit"
+      @close="closeModal"
+      @save="saveVoucher"
+    />
+  </div>
 </template>
 
 <script>
 import VoucherModal from './components/VoucherModal.vue';
 import { useVoucherManagement } from '@/Styles/JS/Voucher.js';
+import { onMounted } from 'vue';
 
 export default {
   name: 'QlyVoucher',
@@ -123,8 +125,14 @@ export default {
     VoucherModal
   },
   setup() {
+    const voucherManagement = useVoucherManagement();
+
+    onMounted(() => {
+      voucherManagement.loadVouchers();
+    });
+
     return {
-      ...useVoucherManagement()
+      ...voucherManagement
     };
   }
 };
@@ -132,4 +140,48 @@ export default {
 
 <style scoped>
 @import '@/Styles/CSS/Voucher.css';
+
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+.badge {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.badge-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-info {
+  color: white;
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.btn-info:hover {
+  background-color: #138496;
+  border-color: #117a8b;
+}
+
+.search-box {
+  min-width: 250px;
+}
+
+.status-filter {
+  min-width: 150px;
+}
 </style>

@@ -1,4 +1,4 @@
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useToast } from '@/stores/notificationStore'
 import axios from '@/utils/api'
 
@@ -14,9 +14,16 @@ export const useVoucherManagement = () => {
   const selectedVoucher = ref(null)
   const isEdit = ref(false)
   const selectedStatus = ref('all')
+  const isLoading = ref(false)
+
+  // Debug watcher for showModal
+  watch(showModal, (newVal) => {
+    console.log('showModal changed to:', newVal)
+  })
 
   // Computed property cho vouchers đã được lọc
   const filteredVouchers = computed(() => {
+    console.log('Computing filteredVouchers, total:', vouchers.value.length)
     const currentDate = new Date()
 
     return vouchers.value.filter(voucher => {
@@ -57,6 +64,8 @@ export const useVoucherManagement = () => {
   // Methods
   const loadVouchers = async () => {
     try {
+      isLoading.value = true
+      console.log('Loading vouchers...')
       let params = {
         page: currentPage.value,
         size: pageSize.value,
@@ -76,15 +85,21 @@ export const useVoucherManagement = () => {
 
       console.log('Response data:', response.data);
 
-      if (response.data.content) {
+      if (response.data && response.data.content) {
         vouchers.value = response.data.content;
         totalPages.value = response.data.totalPages;
         totalElements.value = response.data.totalElements;
-      } else {
+      } else if (Array.isArray(response.data)) {
         vouchers.value = response.data;
         totalElements.value = response.data.length;
         totalPages.value = Math.ceil(totalElements.value / pageSize.value);
+      } else {
+        console.error('Unexpected response format:', response.data);
+        vouchers.value = [];
+        totalElements.value = 0;
+        totalPages.value = 0;
       }
+      console.log('Loaded vouchers:', vouchers.value.length);
     } catch (error) {
       console.error('Lỗi khi tải danh sách voucher:', error);
       if (error.response) {
@@ -94,25 +109,21 @@ export const useVoucherManagement = () => {
       vouchers.value = [];
       totalPages.value = 0;
       totalElements.value = 0;
+      toast.error('Không thể tải danh sách voucher. Vui lòng thử lại sau.');
+    } finally {
+      isLoading.value = false
     }
   };
 
   const handleSearch = () => {
     // Thêm log để debug
-    console.log('Original search term:', searchTerm.value);
-
-    // Chuẩn hóa searchTerm trước khi gửi
-    if (searchTerm.value) {
-      const term = searchTerm.value.trim().toLowerCase();
-      console.log('Trimmed search term:', term);
-    }
-
-    // Tìm kiếm thông thường
+    console.log('Search term:', searchTerm.value);
     currentPage.value = 0;
     loadVouchers();
   };
 
   const handleStatusChange = (status) => {
+    console.log('Status changed to:', status);
     selectedStatus.value = status
     currentPage.value = 0
     loadVouchers()
@@ -131,24 +142,43 @@ export const useVoucherManagement = () => {
   }
 
   const openAddModal = () => {
-    isEdit.value = false
-    selectedVoucher.value = null
-    showModal.value = true
+    console.log('Opening add modal');
+    isEdit.value = false;
+    selectedVoucher.value = null;
+    showModal.value = true;
+    console.log('showModal after open:', showModal.value);
+
+    // Force a DOM update
+    setTimeout(() => {
+      console.log('showModal after timeout:', showModal.value);
+    }, 0);
   }
 
   const editVoucher = (voucher) => {
-    isEdit.value = true
-    selectedVoucher.value = { ...voucher }
-    showModal.value = true
+    console.log('Opening edit modal for voucher:', voucher);
+    isEdit.value = true;
+    selectedVoucher.value = { ...voucher };
+    showModal.value = true;
+    console.log('showModal after edit:', showModal.value);
+
+    // Force a DOM update
+    setTimeout(() => {
+      console.log('showModal after timeout:', showModal.value);
+    }, 0);
   }
 
   const closeModal = () => {
-    showModal.value = false
-    selectedVoucher.value = null
+    console.log('Closing modal');
+    showModal.value = false;
+    setTimeout(() => {
+      selectedVoucher.value = null;
+    }, 300); // Delay to allow animation to complete
+    console.log('showModal after close:', showModal.value);
   }
 
   const saveVoucher = async (voucherData) => {
     try {
+      console.log('Saving voucher data:', voucherData);
       if (isEdit.value) {
         const response = await axios.put(`/api/giamgia/${voucherData.id}`, voucherData)
         if (response.data) {
@@ -204,16 +234,19 @@ export const useVoucherManagement = () => {
   }
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('vi-VN')
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toLocaleDateString('vi-VN');
   }
 
+  // Load vouchers on mount
   onMounted(() => {
-    loadVouchers()
-  })
+    console.log('Voucher management mounted');
+    loadVouchers();
+  });
 
   return {
-    // State
-    vouchers: filteredVouchers,
+    vouchers,
     currentPage,
     pageSize,
     totalPages,
@@ -222,10 +255,11 @@ export const useVoucherManagement = () => {
     showModal,
     selectedVoucher,
     isEdit,
-    displayedPages,
     selectedStatus,
-
-    // Methods
+    isLoading,
+    filteredVouchers,
+    displayedPages,
+    loadVouchers,
     handleSearch,
     handleStatusChange,
     handlePageSizeChange,

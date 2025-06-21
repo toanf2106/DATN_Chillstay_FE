@@ -1,36 +1,28 @@
 <!-- VoucherModal.vue -->
 <template>
-  <div class="modal d-block" tabindex="-1">
-    <div class="modal-dialog">
+  <div class="modal-backdrop" @click.self="$emit('close')">
+    <div class="modal-wrapper">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">
             {{ isEdit ? 'Cập nhật mã giảm giá' : 'Thêm mã giảm giá mới' }}
           </h5>
-          <button type="button" class="btn-close" @click="$emit('close')"></button>
+          <button type="button" class="btn-close" @click="$emit('close')" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="handleSubmit">
-            <div class="mb-3" v-if="isEdit">
-              <label class="form-label">Mã giảm giá:</label>
-              <input
-                type="text"
-                class="form-control"
-                v-model="form.maGiamGia"
-                disabled
-              />
-            </div>
-
             <div class="mb-3">
               <label class="form-label">Tên giảm giá: <span class="text-danger">*</span></label>
               <input
                 type="text"
                 class="form-control"
-                v-model="form.tenGiamGia"
-                required
                 :class="{ 'is-invalid': errors.tenGiamGia }"
+                v-model="form.tenGiamGia"
+                placeholder="Nhập tên giảm giá"
               />
-              <div class="invalid-feedback">{{ errors.tenGiamGia }}</div>
+              <div class="invalid-feedback" v-if="errors.tenGiamGia">
+                {{ errors.tenGiamGia }}
+              </div>
             </div>
 
             <div class="mb-3">
@@ -38,13 +30,10 @@
               <select
                 class="form-select"
                 v-model="form.loaiGiamGia"
-                required
-                :class="{ 'is-invalid': errors.loaiGiamGia }"
               >
                 <option value="PhanTram">Phần trăm</option>
                 <option value="SoTien">Số tiền</option>
               </select>
-              <div class="invalid-feedback">{{ errors.loaiGiamGia }}</div>
             </div>
 
             <div class="mb-3">
@@ -55,14 +44,16 @@
               <input
                 type="number"
                 class="form-control"
-                v-model.number="form.giaTri"
-                required
-                :min="0"
-                :max="form.loaiGiamGia === 'PhanTram' ? 100 : null"
-                :step="form.loaiGiamGia === 'PhanTram' ? '0.1' : '1000'"
                 :class="{ 'is-invalid': errors.giaTri }"
+                v-model.number="form.giaTri"
+                min="0"
+                :max="form.loaiGiamGia === 'PhanTram' ? 100 : null"
+                :step="form.loaiGiamGia === 'PhanTram' ? 1 : 1000"
+                :placeholder="form.loaiGiamGia === 'PhanTram' ? 'Nhập % giảm giá' : 'Nhập số tiền giảm'"
               />
-              <div class="invalid-feedback">{{ errors.giaTri }}</div>
+              <div class="invalid-feedback" v-if="errors.giaTri">
+                {{ errors.giaTri }}
+              </div>
             </div>
 
             <div class="mb-3">
@@ -73,9 +64,8 @@
                 v-model.number="form.giaTriToiThieu"
                 min="0"
                 step="1000"
-                :class="{ 'is-invalid': errors.giaTriToiThieu }"
+                placeholder="Nhập giá trị tối thiểu để áp dụng"
               />
-              <div class="invalid-feedback">{{ errors.giaTriToiThieu }}</div>
               <small class="text-muted">Giá trị đơn hàng tối thiểu để áp dụng mã giảm giá</small>
             </div>
 
@@ -84,12 +74,13 @@
               <input
                 type="date"
                 class="form-control"
-                v-model="form.ngayBatDau"
-                required
-                :min="today"
                 :class="{ 'is-invalid': errors.ngayBatDau }"
+                v-model="form.ngayBatDau"
+                :min="today"
               />
-              <div class="invalid-feedback">{{ errors.ngayBatDau }}</div>
+              <div class="invalid-feedback" v-if="errors.ngayBatDau">
+                {{ errors.ngayBatDau }}
+              </div>
             </div>
 
             <div class="mb-3">
@@ -97,12 +88,13 @@
               <input
                 type="date"
                 class="form-control"
-                v-model="form.ngayKetThuc"
-                required
-                :min="form.ngayBatDau || today"
                 :class="{ 'is-invalid': errors.ngayKetThuc }"
+                v-model="form.ngayKetThuc"
+                :min="form.ngayBatDau || today"
               />
-              <div class="invalid-feedback">{{ errors.ngayKetThuc }}</div>
+              <div class="invalid-feedback" v-if="errors.ngayKetThuc">
+                {{ errors.ngayKetThuc }}
+              </div>
             </div>
 
             <div class="mb-3">
@@ -112,35 +104,36 @@
                 class="form-control"
                 v-model.number="form.soLuong"
                 min="0"
-                :class="{ 'is-invalid': errors.soLuong }"
+                placeholder="Để trống hoặc 0 nếu không giới hạn"
               />
-              <div class="invalid-feedback">{{ errors.soLuong }}</div>
               <small class="text-muted">Để trống hoặc 0 nếu không giới hạn số lượng</small>
             </div>
 
-            <div class="mb-3">
-              <div class="form-check">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  v-model="form.trangThai"
-                  id="trangThai"
-                />
-                <label class="form-check-label" for="trangThai">
-                  {{ form.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
-                </label>
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="$emit('close')">
-                Hủy
-              </button>
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-                {{ isSubmitting ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Thêm mới') }}
-              </button>
+            <div class="form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="trangThai"
+                v-model="form.trangThai"
+              />
+              <label class="form-check-label" for="trangThai">
+                {{ form.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
+              </label>
             </div>
           </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="$emit('close')">
+            Hủy
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="handleSubmit"
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Thêm mới') }}
+          </button>
         </div>
       </div>
     </div>
@@ -155,7 +148,7 @@ export default {
   props: {
     voucher: {
       type: Object,
-      required: true
+      default: () => ({})
     },
     isEdit: {
       type: Boolean,
@@ -165,16 +158,33 @@ export default {
   emits: ['close', 'save'],
   setup(props, { emit }) {
     const form = ref({
-      id: props.voucher?.id,
-      maGiamGia: props.voucher?.maGiamGia || '',
-      tenGiamGia: props.voucher?.tenGiamGia || '',
-      loaiGiamGia: props.voucher?.loaiGiamGia || 'PhanTram',
-      giaTri: props.voucher?.giaTri || 0,
-      giaTriToiThieu: props.voucher?.giaTriToiThieu || 0,
-      ngayBatDau: props.voucher?.ngayBatDau || null,
-      ngayKetThuc: props.voucher?.ngayKetThuc || null,
-      soLuong: props.voucher?.soLuong || 0,
-      trangThai: props.voucher?.trangThai ?? true
+      id: null,
+      maGiamGia: '',
+      tenGiamGia: '',
+      loaiGiamGia: 'PhanTram',
+      giaTri: 0,
+      giaTriToiThieu: 0,
+      ngayBatDau: null,
+      ngayKetThuc: null,
+      soLuong: 0,
+      trangThai: true
+    });
+
+    onMounted(() => {
+      if (props.isEdit && props.voucher) {
+        form.value = {
+          id: props.voucher.id,
+          maGiamGia: props.voucher.maGiamGia || '',
+          tenGiamGia: props.voucher.tenGiamGia || '',
+          loaiGiamGia: props.voucher.loaiGiamGia || 'PhanTram',
+          giaTri: props.voucher.giaTri || 0,
+          giaTriToiThieu: props.voucher.giaTriToiThieu || 0,
+          ngayBatDau: props.voucher.ngayBatDau ? new Date(props.voucher.ngayBatDau).toISOString().split('T')[0] : null,
+          ngayKetThuc: props.voucher.ngayKetThuc ? new Date(props.voucher.ngayKetThuc).toISOString().split('T')[0] : null,
+          soLuong: props.voucher.soLuong || 0,
+          trangThai: props.voucher.trangThai ?? true
+        };
+      }
     });
 
     const errors = ref({});
@@ -188,41 +198,27 @@ export default {
     const validateForm = () => {
       const newErrors = {};
 
-      if (!form.value.tenGiamGia.trim()) {
+      if (!form.value.tenGiamGia?.trim()) {
         newErrors.tenGiamGia = 'Tên giảm giá không được để trống';
       }
 
-      if (!form.value.loaiGiamGia) {
-        newErrors.loaiGiamGia = 'Vui lòng chọn loại giảm giá';
-      }
-
-      if (form.value.giaTri < 0) {
-        newErrors.giaTri = 'Giá trị giảm giá không được âm';
-      }
-
-      if (form.value.loaiGiamGia === 'PhanTram' && form.value.giaTri > 100) {
-        newErrors.giaTri = 'Giá trị phần trăm không được vượt quá 100%';
-      }
-
-      if (form.value.giaTriToiThieu < 0) {
-        newErrors.giaTriToiThieu = 'Giá trị tối thiểu không được âm';
+      if (!form.value.giaTri || form.value.giaTri <= 0) {
+        newErrors.giaTri = 'Giá trị phải lớn hơn 0';
+      } else if (form.value.loaiGiamGia === 'PhanTram' && form.value.giaTri > 100) {
+        newErrors.giaTri = 'Phần trăm giảm giá không được vượt quá 100%';
       }
 
       if (!form.value.ngayBatDau) {
-        newErrors.ngayBatDau = 'Vui lòng chọn ngày bắt đầu';
+        newErrors.ngayBatDau = 'Ngày bắt đầu không được để trống';
       }
 
       if (!form.value.ngayKetThuc) {
-        newErrors.ngayKetThuc = 'Vui lòng chọn ngày kết thúc';
+        newErrors.ngayKetThuc = 'Ngày kết thúc không được để trống';
       }
 
       if (form.value.ngayBatDau && form.value.ngayKetThuc &&
-          new Date(form.value.ngayBatDau) > new Date(form.value.ngayKetThuc)) {
+          new Date(form.value.ngayBatDau) >= new Date(form.value.ngayKetThuc)) {
         newErrors.ngayKetThuc = 'Ngày kết thúc phải sau ngày bắt đầu';
-      }
-
-      if (form.value.soLuong < 0) {
-        newErrors.soLuong = 'Số lượng không được âm';
       }
 
       errors.value = newErrors;
@@ -234,38 +230,14 @@ export default {
 
       isSubmitting.value = true;
       try {
-        // Create a new object with all necessary fields
-        const formData = {
-          ...form.value,
-          id: props.voucher?.id,
-          maGiamGia: props.isEdit ? props.voucher.maGiamGia : form.value.maGiamGia
-        };
-
-        // Convert dates to proper format
-        if (formData.ngayBatDau) {
-          formData.ngayBatDau = new Date(formData.ngayBatDau).toISOString().split('T')[0];
-        }
-        if (formData.ngayKetThuc) {
-          formData.ngayKetThuc = new Date(formData.ngayKetThuc).toISOString().split('T')[0];
-        }
-
-        await emit('save', formData);
+        await emit('save', { ...form.value });
+        emit('close');
+      } catch (error) {
+        console.error('Error submitting form:', error);
       } finally {
         isSubmitting.value = false;
       }
     };
-
-    onMounted(() => {
-      // Format dates if they exist
-      if (props.voucher?.ngayBatDau) {
-        form.value.ngayBatDau = new Date(props.voucher.ngayBatDau)
-          .toISOString().split('T')[0];
-      }
-      if (props.voucher?.ngayKetThuc) {
-        form.value.ngayKetThuc = new Date(props.voucher.ngayKetThuc)
-          .toISOString().split('T')[0];
-      }
-    });
 
     return {
       form,
@@ -279,19 +251,60 @@ export default {
 </script>
 
 <style scoped>
-.modal {
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal-wrapper {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 0.3rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .form-label {
   font-weight: 500;
 }
 
-.text-danger {
-  color: #dc3545;
-}
-
 .invalid-feedback {
   display: block;
+}
+
+.form-check {
+  margin-top: 1rem;
 }
 </style>

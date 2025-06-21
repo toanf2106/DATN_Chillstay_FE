@@ -1,7 +1,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Offcanvas } from 'bootstrap'
-import notification from '@/utils/notification'
+// import notification from '@/utils/notification'
 
 export function useAdminDashboard() {
   const router = useRouter()
@@ -73,24 +73,6 @@ export function useAdminDashboard() {
     }
   }
 
-  function logout() {
-    // Xóa toàn bộ thông tin đăng nhập
-    localStorage.removeItem('isAdmin')
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
-
-    // Thông báo đăng xuất thành công
-    notification.success('Đăng xuất thành công!', {
-      position: 'top-right',
-      duration: 2000,
-    })
-
-    // Đợi 1 giây sau đó làm mới trang và chuyển hướng về trang chủ
-    setTimeout(() => {
-      window.location.href = '/'
-    }, 1000)
-  }
-
   // Thêm Font Awesome
   function setupFontAwesome() {
     if (!document.getElementById('font-awesome')) {
@@ -143,6 +125,5 @@ export function useAdminDashboard() {
     navigateTo,
     toggleSubmenu,
     toggleSidebar,
-    logout,
   }
 }

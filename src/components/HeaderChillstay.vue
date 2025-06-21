@@ -1,5 +1,4 @@
 <script setup>
-import '@/Styles/JS/Header.js'
 import '@/Styles/CSS/Header.css'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -19,6 +18,25 @@ const currentUser = computed(() => authStore.user)
 const passwordVisible = ref(false)
 const signupPasswordVisible = ref(false)
 const confirmPasswordVisible = ref(false)
+
+// Biến toàn cục kiểm soát việc đóng modal
+window.isLoginProcessing = false
+
+// Function để đóng modal với animation - được sử dụng ở nhiều nơi trong component
+function closeModal(modal) {
+  // Thêm class để kích hoạt animation đóng
+  modal.classList.remove('modal-active')
+
+  // Đợi animation hoàn tất rồi mới ẩn modal
+  setTimeout(function () {
+    modal.style.display = 'none'
+    // Xóa class active khỏi forms
+    const loginForm = document.getElementById('loginForm')
+    const signupForm = document.getElementById('signupForm')
+    if (loginForm) loginForm.classList.remove('form-active')
+    if (signupForm) signupForm.classList.remove('form-active')
+  }, 300)
+}
 
 function setupModalListeners() {
   // Lấy các phần tử DOM
@@ -40,62 +58,186 @@ function setupModalListeners() {
     }
   }
 
+  // Function để mở modal với animation
+  function openModal(formToShow) {
+    // Hiển thị modal
+    modal.style.display = 'block'
+
+    // Thêm class để kích hoạt animation
+    setTimeout(function () {
+      modal.classList.add('modal-active')
+
+      // Hiển thị form tương ứng với animation
+      if (formToShow === 'login') {
+        loginForm.style.display = 'block'
+        signupForm.style.display = 'none'
+        loginForm.classList.add('form-active')
+
+        // Focus vào trường đầu tiên sau khi animation hoàn tất
+        setTimeout(function () {
+          const inputElem = loginForm.querySelector('input[type="text"]')
+          if (inputElem) inputElem.focus()
+        }, 300)
+      } else if (formToShow === 'signup') {
+        loginForm.style.display = 'none'
+        signupForm.style.display = 'block'
+        signupForm.classList.add('form-active')
+
+        // Focus vào trường đầu tiên sau khi animation hoàn tất
+        setTimeout(function () {
+          const inputElem = signupForm.querySelector('input[type="text"]')
+          if (inputElem) inputElem.focus()
+        }, 300)
+      }
+    }, 10)
+  }
+
+  // Function để chuyển đổi giữa các form với animation
+  function switchForm(fromForm, toForm) {
+    // Thêm class để kích hoạt animation ẩn
+    fromForm.classList.add('form-hiding')
+
+    // Đợi animation ẩn hoàn tất
+    setTimeout(function () {
+      fromForm.style.display = 'none'
+      fromForm.classList.remove('form-active')
+      fromForm.classList.remove('form-hiding')
+
+      // Hiển thị form mới
+      toForm.style.display = 'block'
+
+      // Kích hoạt animation hiển thị
+      setTimeout(function () {
+        toForm.classList.add('form-active')
+
+        // Focus vào trường đầu tiên
+        const inputElem = toForm.querySelector('input[type="text"]')
+        if (inputElem) inputElem.focus()
+      }, 10)
+    }, 200)
+  }
+
   if (loginBtn) {
     // Hiển thị modal khi nhấn nút đăng nhập
-    loginBtn.addEventListener('click', function () {
+    loginBtn.addEventListener('click', function (e) {
+      e.preventDefault()
       resetForms() // Reset form trước khi hiển thị
-      modal.style.display = 'block'
-      loginForm.style.display = 'block'
-      signupForm.style.display = 'none'
-      loginForm.classList.add('form-active')
-      signupForm.classList.remove('form-active')
+      openModal('login')
     })
   }
 
   if (signupBtn) {
     // Hiển thị modal khi nhấn nút đăng ký
-    signupBtn.addEventListener('click', function () {
+    signupBtn.addEventListener('click', function (e) {
+      e.preventDefault()
       resetForms() // Reset form trước khi hiển thị
-      modal.style.display = 'block'
-      loginForm.style.display = 'none'
-      signupForm.style.display = 'block'
-      signupForm.classList.add('form-active')
-      loginForm.classList.remove('form-active')
+      openModal('signup')
     })
   }
 
   // Đóng modal khi nhấn nút đóng
-  closeBtn.addEventListener('click', function () {
-    modal.style.display = 'none'
-    resetForms() // Reset form khi đóng modal
-  })
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function () {
+      if (!window.isLoginProcessing) {
+        closeModal(modal)
+        resetForms() // Reset form khi đóng modal
+      }
+    })
+  }
 
   // Chuyển đổi giữa form đăng nhập và đăng ký
-  showSignupLink.addEventListener('click', function (e) {
-    e.preventDefault()
-    resetForms() // Reset form khi chuyển đổi
-    loginForm.style.display = 'none'
-    signupForm.style.display = 'block'
-    signupForm.classList.add('form-active')
-    loginForm.classList.remove('form-active')
-  })
+  if (showSignupLink) {
+    showSignupLink.addEventListener('click', function (e) {
+      e.preventDefault()
+      resetForms() // Reset form khi chuyển đổi
+      switchForm(loginForm, signupForm)
+    })
+  }
 
-  showLoginLink.addEventListener('click', function (e) {
-    e.preventDefault()
-    resetForms() // Reset form khi chuyển đổi
-    loginForm.style.display = 'block'
-    signupForm.style.display = 'none'
-    loginForm.classList.add('form-active')
-    signupForm.classList.remove('form-active')
-  })
+  if (showLoginLink) {
+    showLoginLink.addEventListener('click', function (e) {
+      e.preventDefault()
+      resetForms() // Reset form khi chuyển đổi
+      switchForm(signupForm, loginForm)
+    })
+  }
 
   // Đóng modal khi nhấn bên ngoài
-  window.addEventListener('click', function (event) {
-    if (event.target == modal) {
-      modal.style.display = 'none'
+  window.onclick = function (event) {
+    // Chỉ đóng modal khi không trong quá trình đăng nhập
+    if (event.target == modal && !window.isLoginProcessing) {
+      closeModal(modal)
       resetForms() // Reset form khi đóng modal
     }
+  }
+
+  // Thêm hiệu ứng cho input fields
+  const inputFields = document.querySelectorAll('.auth-form input')
+  inputFields.forEach(function (input) {
+    // Thêm class khi focus
+    input.addEventListener('focus', function () {
+      this.parentNode.classList.add('input-focused')
+    })
+
+    // Xóa class khi blur nếu không có giá trị
+    input.addEventListener('blur', function () {
+      if (!this.value) {
+        this.parentNode.classList.remove('input-focused')
+      }
+    })
+
+    // Kiểm tra nếu đã có giá trị (ví dụ: autofill)
+    if (input.value) {
+      input.parentNode.classList.add('input-focused')
+    }
   })
+
+  // Xử lý form đăng ký (form không có v-model của Vue)
+  const signupFormEl = document.querySelector('#signupForm form')
+  if (signupFormEl) {
+    // Loại bỏ bất kỳ event handler nào đã được thêm trước đó
+    const signupFormClone = signupFormEl.cloneNode(true)
+    signupFormEl.parentNode.replaceChild(signupFormClone, signupFormEl)
+    const updatedSignupForm = signupFormClone
+
+    // Thêm sự kiện submit mới
+    updatedSignupForm.addEventListener('submit', function (e) {
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Hiển thị hiệu ứng loading khi submit
+      const submitBtn = this.querySelector('.submit-btn')
+      if (submitBtn) {
+        submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
+        submitBtn.disabled = true
+
+        // Giả lập xử lý form
+        setTimeout(function () {
+          // Đóng modal sau khi xử lý
+          closeModal(modal)
+
+          // Khôi phục nút submit
+          submitBtn.innerHTML = 'Đăng ký'
+          submitBtn.disabled = false
+        }, 1500)
+      }
+
+      // Ngăn chặn bất kỳ hành động submit mặc định nào
+      return false
+    })
+
+    // Cũng xử lý cho nút submit
+    const registerBtn = updatedSignupForm.querySelector('.submit-btn')
+    if (registerBtn) {
+      registerBtn.addEventListener('click', function (e) {
+        e.preventDefault()
+        e.stopPropagation()
+        // Trigger sự kiện submit của form
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
+        updatedSignupForm.dispatchEvent(submitEvent)
+      })
+    }
+  }
 }
 
 // Kiểm tra trạng thái đăng nhập khi component được tạo
@@ -153,44 +295,36 @@ async function handleLogin() {
     // Tạm thời vô hiệu hóa window.onclick
     window.onclick = null
 
-    // Đóng modal sử dụng hàm closeModal trong Header.js (tránh animation conflict)
+    // Đóng modal sử dụng hàm closeModal đã định nghĩa ở trên
     const modal = document.getElementById('authModal')
-    modal.classList.remove('modal-active')
+    closeModal(modal)
 
-    // Đợi animation hoàn tất rồi mới ẩn modal
-    setTimeout(() => {
-      modal.style.display = 'none'
-      // Xóa class active khỏi forms
-      document.getElementById('loginForm').classList.remove('form-active')
-      document.getElementById('signupForm').classList.remove('form-active')
+    // Reset form sau khi đăng nhập thành công
+    resetLoginForm()
 
-      // Reset form sau khi đăng nhập thành công
-      resetLoginForm()
+    // Hủy cờ đang xử lý đăng nhập
+    window.isLoginProcessing = false
 
-      // Hủy cờ đang xử lý đăng nhập
-      window.isLoginProcessing = false
+    // Hiển thị thông báo đăng nhập thành công
+    notification.success('Đăng nhập thành công!', {
+      position: 'top-right',
+      duration: 3000,
+    })
 
-      // Hiển thị thông báo đăng nhập thành công
-      notification.success('Đăng nhập thành công!', {
-        position: 'top-right',
-        duration: 3000,
-      })
+    // Kiểm tra loại tài khoản và chuyển hướng
+    const userData = result.userData
+    if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
+      // Nếu là nhân viên hoặc admin
+      console.log('Đăng nhập thành công với quyền admin/nhân viên')
+      router.push('/admin')
+    } else {
+      // Nếu là khách hàng
+      console.log('Đăng nhập thành công với quyền khách hàng')
+      router.push('/')
+    }
 
-      // Kiểm tra loại tài khoản và chuyển hướng
-      const userData = result.userData
-      if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
-        // Nếu là nhân viên hoặc admin
-        console.log('Đăng nhập thành công với quyền admin/nhân viên')
-        router.push('/admin')
-      } else {
-        // Nếu là khách hàng
-        console.log('Đăng nhập thành công với quyền khách hàng')
-        router.push('/')
-      }
-
-      // Khôi phục các event handlers sau khi đã xử lý xong
-      setupModalListeners()
-    }, 300)
+    // Khôi phục các event handlers sau khi đã xử lý xong
+    setupModalListeners()
   } catch (e) {
     console.error('Lỗi đăng nhập:', e)
     loginError.value = 'Sai tài khoản hoặc mật khẩu!'
@@ -218,19 +352,33 @@ async function handleLogin() {
 }
 
 function handleLogout() {
-  // Sử dụng authStore để đăng xuất
-  authStore.logout()
+  try {
+    console.log('Calling authStore.logout()...')
 
-  // Thông báo đăng xuất thành công
-  notification.success('Đăng xuất thành công!', {
-    position: 'top-right',
-    duration: 3000,
-  })
+    // Gọi logout từ store để xóa storage và reset state
+    authStore.logout()
 
-  // Đợi 1 giây sau đó làm mới trang
-  setTimeout(() => {
-    window.location.reload()
-  }, 1000)
+    console.log('authStore.logout() finished. isLoggedIn is now:', authStore.isLoggedIn)
+
+    // Thông báo đăng xuất thành công
+    notification.success('Đăng xuất thành công!', {
+      position: 'top-right',
+      duration: 2000,
+    })
+
+    // Sau khi store được cập nhật, Vue reactivity sẽ cập nhật UI.
+    // Nếu đang không ở trang chủ, chuyển về trang chủ.
+    if (router.currentRoute.value.path !== '/') {
+      router.push('/')
+    }
+    // Không cần reload. Giao diện sẽ tự cập nhật.
+  } catch (error) {
+    console.error('Lỗi khi đăng xuất:', error)
+    notification.error('Có lỗi xảy ra khi đăng xuất', {
+      position: 'top-right',
+      duration: 3000,
+    })
+  }
 }
 </script>
 <template>
@@ -257,7 +405,7 @@ function handleLogout() {
 
       <!-- Hiển thị tên người dùng và nút đăng xuất khi đã đăng nhập -->
       <div class="user-menu" v-else>
-        <span class="username">Xin chào, {{ currentUser.username }}</span>
+        <span class="username">Xin chào, {{ currentUser?.username }}</span>
         <button class="btn logout-btn" @click="handleLogout">Đăng Xuất</button>
       </div>
     </nav>

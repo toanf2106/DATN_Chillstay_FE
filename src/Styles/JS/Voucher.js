@@ -13,60 +13,113 @@ export const useVoucherManagement = () => {
   const showModal = ref(false)
   const selectedVoucher = ref(null)
   const isEdit = ref(false)
+  const selectedStatus = ref('all')
+
+  // Computed property cho vouchers đã được lọc
+  const filteredVouchers = computed(() => {
+    const currentDate = new Date()
+
+    return vouchers.value.filter(voucher => {
+      const endDate = new Date(voucher.ngayKetThuc)
+      const isExpired = endDate < currentDate
+      const isActive = voucher.trangThai
+
+      switch (selectedStatus.value) {
+        case 'valid':
+          return isActive && !isExpired
+        case 'expired':
+          return !isActive || isExpired
+        default:
+          return true
+      }
+    })
+  })
 
   // Computed property for displayed page numbers
   const displayedPages = computed(() => {
-    const pages = []
-    const maxPages = 5 // Maximum number of page links to show
-    let start = Math.max(1, currentPage.value - Math.floor(maxPages / 2))
-    let end = Math.min(totalPages.value, start + maxPages - 1)
+    const total = totalPages.value
+    const current = currentPage.value + 1
+    const range = 2
 
-    if (end - start + 1 < maxPages) {
-      start = Math.max(1, end - maxPages + 1)
+    let start = Math.max(1, current - range)
+    let end = Math.min(total, current + range)
+
+    if (current - range > 1) {
+      start = Math.max(1, end - (range * 2))
+    }
+    if (current + range < total) {
+      end = Math.min(total, start + (range * 2))
     }
 
-    for (let i = start; i <= end; i++) {
-      pages.push(i)
-    }
-    return pages
+    return Array.from({length: end - start + 1}, (_, i) => start + i)
   })
 
   // Methods
   const loadVouchers = async () => {
     try {
-      const params = {
+      let params = {
         page: currentPage.value,
-        size: pageSize.value
-      }
-      if (searchTerm.value) {
-        params.tenGiamGia = searchTerm.value
+        size: pageSize.value,
+        status: selectedStatus.value
+      };
+
+      // Chỉ thêm searchTerm vào params nếu có giá trị
+      if (searchTerm.value && searchTerm.value.trim() !== '') {
+        params.searchTerm = searchTerm.value.trim();
       }
 
-      const response = await axios.get('/api/giamgia', { params })
+      console.log('Sending request with params:', params);
+
+      const response = await axios.get('/api/giamgia', {
+        params: params
+      });
+
+      console.log('Response data:', response.data);
+
       if (response.data.content) {
-        // Paginated response
-        vouchers.value = response.data.content
-        totalPages.value = response.data.totalPages
-        totalElements.value = response.data.totalElements
+        vouchers.value = response.data.content;
+        totalPages.value = response.data.totalPages;
+        totalElements.value = response.data.totalElements;
       } else {
-        // List response
-        vouchers.value = response.data
-        totalPages.value = Math.ceil(response.data.length / pageSize.value)
-        totalElements.value = response.data.length
+        vouchers.value = response.data;
+        totalElements.value = response.data.length;
+        totalPages.value = Math.ceil(totalElements.value / pageSize.value);
       }
     } catch (error) {
-      toast.error('Lỗi khi tải danh sách mã giảm giá')
-      console.error('Error loading vouchers:', error)
+      console.error('Lỗi khi tải danh sách voucher:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Status code:', error.response.status);
+      }
+      vouchers.value = [];
+      totalPages.value = 0;
+      totalElements.value = 0;
     }
-  }
+  };
 
   const handleSearch = () => {
-    currentPage.value = 0 // Reset to first page when searching
+    // Thêm log để debug
+    console.log('Original search term:', searchTerm.value);
+
+    // Chuẩn hóa searchTerm trước khi gửi
+    if (searchTerm.value) {
+      const term = searchTerm.value.trim().toLowerCase();
+      console.log('Trimmed search term:', term);
+    }
+
+    // Tìm kiếm thông thường
+    currentPage.value = 0;
+    loadVouchers();
+  };
+
+  const handleStatusChange = (status) => {
+    selectedStatus.value = status
+    currentPage.value = 0
     loadVouchers()
   }
 
   const handlePageSizeChange = () => {
-    currentPage.value = 0 // Reset to first page when changing page size
+    currentPage.value = 0
     loadVouchers()
   }
 
@@ -78,23 +131,14 @@ export const useVoucherManagement = () => {
   }
 
   const openAddModal = () => {
-    selectedVoucher.value = {
-      tenGiamGia: '',
-      loaiGiamGia: 'PhanTram',
-      giaTri: 0,
-      giaTriToiThieu: 0,
-      ngayBatDau: null,
-      ngayKetThuc: null,
-      soLuong: 0,
-      trangThai: true
-    }
     isEdit.value = false
+    selectedVoucher.value = null
     showModal.value = true
   }
 
   const editVoucher = (voucher) => {
-    selectedVoucher.value = { ...voucher }
     isEdit.value = true
+    selectedVoucher.value = { ...voucher }
     showModal.value = true
   }
 
@@ -106,40 +150,25 @@ export const useVoucherManagement = () => {
   const saveVoucher = async (voucherData) => {
     try {
       if (isEdit.value) {
-        // Tạo object mới cho update request, loại bỏ maGiamGia
-        const { maGiamGia, ...updateData } = voucherData
-
-        // Log the data being sent
-        console.log('Updating voucher with data:', updateData)
-
-        const response = await axios.put(`/api/giamgia/${updateData.id}`, updateData)
+        const response = await axios.put(`/api/giamgia/${voucherData.id}`, voucherData)
         if (response.data) {
           toast.success('Cập nhật mã giảm giá thành công')
           closeModal()
-          await loadVouchers() // Refresh the list after successful update
-        } else {
-          throw new Error('Không nhận được phản hồi từ server')
+          await loadVouchers()
         }
       } else {
-        // Log the data being sent
-        console.log('Creating new voucher with data:', voucherData)
-
         const response = await axios.post('/api/giamgia', voucherData)
         if (response.data) {
           toast.success('Thêm mã giảm giá thành công')
           closeModal()
-          await loadVouchers() // Refresh the list after successful creation
-        } else {
-          throw new Error('Không nhận được phản hồi từ server')
+          await loadVouchers()
         }
       }
     } catch (error) {
       console.error('Error saving voucher:', error)
-      const errorMessage = error.response?.data?.message
-        || error.message
-        || 'Có lỗi xảy ra khi lưu mã giảm giá'
+      const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi lưu mã giảm giá'
       toast.error(errorMessage)
-      throw error // Re-throw to handle in the modal if needed
+      throw error
     }
   }
 
@@ -157,14 +186,21 @@ export const useVoucherManagement = () => {
   }
 
   const formatLoaiGiamGia = (loai) => {
-    return loai === 'PhanTram' ? 'Phần trăm' : 'Số tiền'
+    console.log('Formatting loaiGiamGia:', loai);
+    if (!loai) return '';
+    if (loai === 'Phần trăm' || loai === 'PhanTram') return 'Phần trăm';
+    if (loai === 'Số tiền' || loai === 'SoTien') return 'Số tiền';
+    return loai;
   }
 
   const formatGiaTri = (giaTri, loai) => {
-    if (loai === 'PhanTram') {
-      return `${giaTri}%`
+    if (loai === 'Phần trăm' || loai === 'PhanTram') {
+      return `${giaTri}%`;
     }
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(giaTri)
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(giaTri);
   }
 
   const formatDate = (date) => {
@@ -177,18 +213,21 @@ export const useVoucherManagement = () => {
 
   return {
     // State
-    vouchers,
+    vouchers: filteredVouchers,
     currentPage,
     pageSize,
     totalPages,
+    totalElements,
     searchTerm,
     showModal,
     selectedVoucher,
     isEdit,
     displayedPages,
+    selectedStatus,
 
     // Methods
     handleSearch,
+    handleStatusChange,
     handlePageSizeChange,
     changePage,
     openAddModal,

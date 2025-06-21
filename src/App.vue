@@ -1,13 +1,25 @@
 <script>
 import { RouterView } from 'vue-router'
+import { onMounted } from 'vue'
 import HeaderChillstay from './components/HeaderChillstay.vue'
 import FooterHome from './components/FooterHome.vue'
+import NotificationContainer from './components/notifications/NotificationContainer.vue'
+import { useAuthStore } from './stores/authStore'
 
 export default {
   components: {
     RouterView,
     HeaderChillstay,
     FooterHome,
+    NotificationContainer,
+  },
+  setup() {
+    const authStore = useAuthStore()
+
+    onMounted(() => {
+      // Khôi phục trạng thái đăng nhập khi ứng dụng khởi động
+      authStore.initAuth()
+    })
   },
   computed: {
     isAdminRoute() {
@@ -21,6 +33,7 @@ export default {
   <HeaderChillstay v-if="!isAdminRoute" />
   <RouterView />
   <FooterHome v-if="!isAdminRoute" />
+  <NotificationContainer />
 </template>
 
 <style>

@@ -79,11 +79,31 @@ const notification = {
    */
   confirm(options = {}) {
     return new Promise((resolve) => {
-      // Tạm thời dùng confirm mặc định của trình duyệt
-      const result = window.confirm(options.message || 'Xác nhận?');
-      resolve(result);
+      const store = useNotificationStore();
+      const id = store.showNotification({
+        ...options,
+        type: options.type || 'warning',
+        isModal: true,
+        showCancelButton: true,
+        title: options.title || 'Xác nhận',
+        confirmText: options.confirmText || 'Xác nhận',
+        cancelText: options.cancelText || 'Hủy'
+      });
 
-      // TODO: Implement confirm dialog with custom UI
+      // Theo dõi hành động từ store
+      const unsubscribe = store.$onAction(({ name, args, after }) => {
+        if (name === 'confirmNotification' && args[0] === id) {
+          after(() => {
+            unsubscribe();
+            resolve(true);
+          });
+        } else if (name === 'cancelNotification' && args[0] === id) {
+          after(() => {
+            unsubscribe();
+            resolve(false);
+          });
+        }
+      });
     });
   }
 };

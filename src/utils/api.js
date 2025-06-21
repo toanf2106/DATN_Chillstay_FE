@@ -1,14 +1,8 @@
 import axios from 'axios'
 
-// Lấy ID phiên từ authStore
+// Lấy ID phiên hiện tại từ sessionStorage
 const getSessionId = () => {
-  // Tìm ID phiên từ localStorage
-  const keys = Object.keys(localStorage)
-  const tokenKey = keys.find(key => key.startsWith('token_'))
-  if (tokenKey) {
-    return tokenKey.replace('token_', '')
-  }
-  return null
+  return sessionStorage.getItem('current_tab_id')
 }
 
 // Tạo instance axios với cấu hình mặc định

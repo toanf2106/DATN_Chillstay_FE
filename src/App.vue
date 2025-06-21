@@ -18,7 +18,21 @@ export default {
 
     onMounted(() => {
       // Khôi phục trạng thái đăng nhập khi ứng dụng khởi động
-      authStore.initAuth()
+      console.log('App mounted, initializing auth state...')
+      try {
+        // Khôi phục trạng thái đăng nhập từ localStorage nếu có
+        authStore.initAuth()
+
+        console.log('Auth state initialized:', {
+          isLoggedIn: authStore.isLoggedIn,
+          isAdmin: authStore.isAdmin,
+          hasUser: !!authStore.user,
+        })
+      } catch (error) {
+        console.error('Lỗi khi khởi tạo trạng thái đăng nhập:', error)
+        // Nếu có lỗi, đảm bảo trạng thái đã được đăng xuất
+        authStore.logout()
+      }
     })
   },
   computed: {

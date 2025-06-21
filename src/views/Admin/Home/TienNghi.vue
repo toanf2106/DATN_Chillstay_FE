@@ -12,9 +12,8 @@
           <option :value="true">Đang hoạt động</option>
           <option :value="false">Không hoạt động</option>
         </select>
-        <button class="btn btn-primary add-btn-custom d-flex align-items-center" @click="openAddModal"
-          title="Thêm tiện nghi">
-          <i class="bi bi-plus-lg me-2"></i> Thêm tiện nghi
+        <button class="btn-action btn-blue" @click="openAddModal" title="Thêm tiện nghi">
+          <i class="fas fa-plus"></i>
         </button>
       </div>
     </div>
@@ -40,19 +39,18 @@
               {{ item.trangThai ? 'Đang sử dụng' : 'Ngừng sử dụng' }}
             </span>
           </td>
-          <td>
-            <button class="icon-btn icon-btn-info me-1" @click="showDetail(item)" title="Chi tiết">
-              <i class="bi bi-info-circle"></i>
+          <td class="action-column">
+            <button class="btn-action btn-blue" @click="showDetail(item)" title="Chi tiết">
+              <i class="fas fa-eye"></i>
             </button>
-            <button v-if="item.trangThai" class="icon-btn icon-btn-warning me-1" @click="openEditModal(item)"
-              title="Sửa">
-              <i class="bi bi-pencil-square"></i>
+            <button v-if="item.trangThai" class="btn-action btn-yellow" @click="openEditModal(item)" title="Sửa">
+              <i class="fas fa-edit"></i>
             </button>
-            <button v-if="item.trangThai" class="icon-btn icon-btn-danger" @click="confirmDelete(item.id)" title="Xóa">
-              <i class="bi bi-trash"></i>
+            <button v-if="item.trangThai" class="btn-action btn-red" @click="confirmDelete(item.id)" title="Xóa">
+              <i class="fas fa-trash"></i>
             </button>
-            <button v-else class="icon-btn icon-btn-success" @click="restoreTienNghi(item.id)" title="Khôi phục">
-              <i class="bi bi-arrow-clockwise"></i>
+            <button v-else class="btn-action btn-green" @click="restoreTienNghi(item.id)" title="Khôi phục">
+              <i class="fas fa-redo"></i>
             </button>
           </td>
         </tr>
@@ -357,18 +355,58 @@ export default {
   width: 180px;
 }
 
-.add-btn-custom {
-  border-radius: 20px;
-  background: #2563eb;
+/* Nút hành động */
+.btn-action {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  font-weight: 500;
-  padding: 8px 24px;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
-  transition: background 0.2s;
+  margin: 0 3px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.add-btn-custom:hover {
-  background: #1d4ed8;
+.action-column {
+  white-space: nowrap;
+}
+
+.btn-blue {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn-blue:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-yellow {
+  background-color: #f59e42;
+  color: white;
+}
+
+.btn-yellow:hover {
+  background-color: #d97706;
+}
+
+.btn-red {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-red:hover {
+  background-color: #b91c1c;
+}
+
+.btn-green {
+  background-color: #22c55e;
+  color: white;
+}
+
+.btn-green:hover {
+  background-color: #15803d;
 }
 
 .pagination-wrapper {
@@ -405,56 +443,6 @@ export default {
   box-shadow: 0 0 0 2px #dbeafe;
 }
 
-.icon-btn {
-  border: none;
-  background: #f3f4f6;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  transition: background 0.2s, color 0.2s;
-  margin-right: 2px;
-}
-
-.icon-btn-info {
-  color: #2563eb;
-}
-
-.icon-btn-info:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.icon-btn-warning {
-  color: #f59e42;
-}
-
-.icon-btn-warning:hover {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.icon-btn-danger {
-  color: #ef4444;
-}
-
-.icon-btn-danger:hover {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.icon-btn-success {
-  color: #22c55e;
-}
-
-.icon-btn-success:hover {
-  background: #bbf7d0;
-  color: #15803d;
-}
-
 .table-footer {
   min-height: 56px;
   display: flex;
@@ -473,7 +461,6 @@ export default {
 
 .container {
   min-height: 600px;
-  /* hoặc tuỳ */
   display: flex;
   flex-direction: column;
 }

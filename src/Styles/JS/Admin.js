@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Offcanvas } from 'bootstrap'
+import notification from '@/utils/notification'
 
 export function useAdminDashboard() {
   const router = useRouter()
@@ -13,15 +14,20 @@ export function useAdminDashboard() {
   })
 
   const isUserMenuActive = computed(() => {
-    return isRouteActive('admin-nhan-vien') || isRouteActive('admin-khach-hang')
+    return ['admin-nhan-vien', 'admin-khach-hang'].includes(route.name)
   })
 
   const isBookingMenuActive = computed(() => {
-    return route.name && route.name.toString().startsWith('admin-dat-home')
+    return [
+      'admin-homestay',
+      'admin-homestay-dichvu',
+      'admin-homestay-loaiphong',
+      'admin-homestay-vattu',
+    ].includes(route.name)
   })
 
   const isContentMenuActive = computed(() => {
-    return isRouteActive('admin-tin-tuc') || isRouteActive('admin-danh-gia')
+    return ['admin-tin-tuc', 'admin-danh-gia'].includes(route.name)
   })
 
   function isRouteActive(routeName) {
@@ -74,10 +80,15 @@ export function useAdminDashboard() {
     localStorage.removeItem('token')
 
     // Thông báo đăng xuất thành công
-    alert('Đăng xuất thành công!')
+    notification.success('Đăng xuất thành công!', {
+      position: 'top-right',
+      duration: 2000,
+    })
 
-    // Chuyển hướng về trang chủ
-    router.push('/')
+    // Đợi 1 giây sau đó làm mới trang và chuyển hướng về trang chủ
+    setTimeout(() => {
+      window.location.href = '/'
+    }, 1000)
   }
 
   // Thêm Font Awesome

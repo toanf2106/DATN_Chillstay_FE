@@ -7,32 +7,36 @@
 
       <div class="card-body">
         <div class="row mb-3">
-          <!-- Tìm kiếm - compact on the left -->
+          <!-- Tìm kiếm - completely separated layout -->
+          <!-- Search input on the far left -->
           <div class="col-md-4">
-            <div class="search-container">
-              <div class="mb-2">
-                <select v-model="searchField" class="form-select form-select-sm">
-                  <option value="all">Tất cả trường</option>
-                  <option value="id">ID</option>
-                  <option value="maKhachHang">Mã khách hàng</option>
-                  <option value="hoTen">Họ tên</option>
-                  <option value="soDienThoai">Số điện thoại</option>
-                  <option value="email">Email</option>
-                </select>
-              </div>
-              <div class="input-group">
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Nhập từ khóa tìm kiếm..."
-                  v-model="searchTerm"
-                  @keyup.enter="searchKhachHang(0)"
-                />
-                <button class="btn btn-primary" @click="searchKhachHang(0)">
-                  <i class="fas fa-search"></i>
-                </button>
-              </div>
+            <div class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Nhập từ khóa tìm kiếm..."
+                v-model="searchTerm"
+                @keyup.enter="searchKhachHang(0)"
+              />
+              <button class="btn btn-primary" @click="searchKhachHang(0)">
+                <i class="fas fa-search"></i>
+              </button>
             </div>
+          </div>
+
+          <!-- Empty space in the middle -->
+          <div class="col-md-4"></div>
+
+          <!-- Field selector on the far right -->
+          <div class="col-md-4 text-end">
+            <select v-model="searchField" class="form-select" style="max-width: 200px; float: right;">
+              <option value="all">Tất cả trường</option>
+              <option value="id">ID</option>
+              <option value="maKhachHang">Mã khách hàng</option>
+              <option value="hoTen">Họ tên</option>
+              <option value="soDienThoai">Số điện thoại</option>
+              <option value="email">Email</option>
+            </select>
           </div>
         </div>
 

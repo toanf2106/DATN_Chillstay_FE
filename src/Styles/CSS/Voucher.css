@@ -95,7 +95,8 @@
   color: white;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   border-radius: 4px;
 }
 
@@ -249,7 +250,8 @@
 }
 
 /* Table action buttons */
-.btn-info:hover, .btn-danger:hover {
+.btn-info:hover,
+.btn-danger:hover {
   opacity: 0.9;
 }
 

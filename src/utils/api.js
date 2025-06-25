@@ -10,14 +10,20 @@ const api = axios.create({
   baseURL: 'http://localhost:8080', // URL API backend Spring Boot
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
+    'Accept': 'application/json; charset=utf-8',
+    'Accept-Charset': 'utf-8',
   },
 })
 
 // Interceptor để thêm token vào header của mỗi request
 api.interceptors.request.use(
   (config) => {
+    // Đảm bảo charset UTF-8 được thiết lập cho mọi request
+    if (!config.headers['Content-Type'] || config.headers['Content-Type'].includes('application/json')) {
+      config.headers['Content-Type'] = 'application/json; charset=utf-8'
+    }
+
     const sessionId = getSessionId()
     if (sessionId) {
       const token = localStorage.getItem(`token_${sessionId}`)
@@ -43,8 +49,12 @@ api.interceptors.request.use(
 // Interceptor để xử lý response
 api.interceptors.response.use(
   (response) => {
+
     // Log success response
     console.log(`API Response [${response.status}]:`, response.config.url)
+
+    // Đảm bảo xử lý dữ liệu UTF-8 đúng cách
+
     return response
   },
   (error) => {

@@ -61,6 +61,26 @@ body {
   padding-top: 0;
   background: #f4f6fb;
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family:
+    'Roboto',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+/* Đảm bảo hiển thị tiếng Việt đúng cho toàn bộ ứng dụng */
+* {
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Đặc biệt cho các input, textarea, select để hiển thị tiếng Việt đúng */
+input,
+textarea,
+select,
+button {
+  font-family: 'Roboto', sans-serif;
 }
 </style>

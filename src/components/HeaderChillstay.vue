@@ -283,6 +283,15 @@ async function handleLogin() {
     const result = await authStore.login(loginUsername.value, loginPassword.value)
 
     if (!result.success) {
+      // Kiểm tra xem có phải lỗi tài khoản bị khóa không
+      if (result.error && result.error.response && result.error.response.status === 403) {
+        loginError.value = 'Tài khoản đã bị khóa!'
+        notification.error('Tài khoản đã bị khóa!', {
+          position: 'top-right',
+          duration: 5000,
+        })
+        throw new Error('Tài khoản đã bị khóa')
+      }
       throw new Error('Đăng nhập thất bại')
     }
 
@@ -327,11 +336,13 @@ async function handleLogin() {
     setupModalListeners()
   } catch (e) {
     console.error('Lỗi đăng nhập:', e)
-    loginError.value = 'Sai tài khoản hoặc mật khẩu!'
-    notification.error('Sai tài khoản hoặc mật khẩu!', {
-      position: 'top-right',
-      duration: 5000,
-    })
+    if (!loginError.value) {
+      loginError.value = 'Sai tài khoản hoặc mật khẩu!'
+      notification.error('Sai tài khoản hoặc mật khẩu!', {
+        position: 'top-right',
+        duration: 5000,
+      })
+    }
 
     // Hủy cờ đang xử lý đăng nhập
     window.isLoginProcessing = false

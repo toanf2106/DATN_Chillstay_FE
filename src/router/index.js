@@ -56,7 +56,7 @@ const router = createRouter({
         },
 
         // Quản lý Tiện nghi - Các tiện nghi cung cấp cho khách hàng
-  
+
         {
           path: 'homestay/tiennghi',
           name: 'admin-homestay-tiennghi',

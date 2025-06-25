@@ -31,9 +31,17 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`
       }
     }
+
+    // Thêm log chi tiết cho request
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
+    if (config.data) {
+      console.log('Request data:', JSON.stringify(config.data, null, 2))
+    }
+
     return config
   },
   (error) => {
+    console.error('Request error:', error)
     return Promise.reject(error)
   },
 )
@@ -41,10 +49,30 @@ api.interceptors.request.use(
 // Interceptor để xử lý response
 api.interceptors.response.use(
   (response) => {
+
+    // Log success response
+    console.log(`API Response [${response.status}]:`, response.config.url)
+
     // Đảm bảo xử lý dữ liệu UTF-8 đúng cách
+
     return response
   },
   (error) => {
+    // Log detailed error information
+    console.error('API Error:', error.message)
+    if (error.response) {
+      console.error('Status:', error.response.status)
+      console.error('Data:', error.response.data)
+      console.error('Headers:', error.response.headers)
+      console.error('Request URL:', error.config.url)
+      console.error('Request Method:', error.config.method)
+      if (error.config.data) {
+        console.error('Request Data:', error.config.data)
+      }
+    } else if (error.request) {
+      console.error('No response received:', error.request)
+    }
+
     // Xử lý lỗi 401 Unauthorized
     if (error.response && error.response.status === 401) {
       console.log('Lỗi xác thực:', error.response.data)

@@ -14,6 +14,7 @@ export const useVoucherManagement = () => {
   const selectedVoucher = ref(null)
   const isEdit = ref(false)
   const selectedStatus = ref('all')
+  const selectedHomeStay = ref('')
   const isLoading = ref(false)
 
   // Debug watcher for showModal
@@ -27,18 +28,27 @@ export const useVoucherManagement = () => {
     const currentDate = new Date()
 
     return vouchers.value.filter(voucher => {
-      const endDate = new Date(voucher.ngayKetThuc)
-      const isExpired = endDate < currentDate
-      const isActive = voucher.trangThai
+      const endDate = new Date(voucher.ngayKetThuc);
+      const isExpired = endDate < currentDate;
+      const isActive = voucher.trangThai;
 
+      // Kiểm tra trạng thái (còn hạn / hết hạn)
+      let statusPass;
       switch (selectedStatus.value) {
         case 'valid':
-          return isActive && !isExpired
+          statusPass = isActive && !isExpired;
+          break;
         case 'expired':
-          return !isActive || isExpired
+          statusPass = !isActive || isExpired;
+          break;
         default:
-          return true
+          statusPass = true;
       }
+
+      // Kiểm tra bộ lọc homestay
+      const homestayPass = selectedHomeStay.value === '' || String(voucher.homeStayId) === String(selectedHomeStay.value);
+
+      return statusPass && homestayPass;
     })
   })
 
@@ -71,6 +81,10 @@ export const useVoucherManagement = () => {
         size: pageSize.value,
         status: selectedStatus.value
       };
+
+      if (selectedHomeStay.value !== '') {
+        params.homeStayId = selectedHomeStay.value;
+      }
 
       // Chỉ thêm searchTerm vào params nếu có giá trị
       if (searchTerm.value && searchTerm.value.trim() !== '') {
@@ -127,6 +141,13 @@ export const useVoucherManagement = () => {
     selectedStatus.value = status
     currentPage.value = 0
     loadVouchers()
+  }
+
+  const handleHomeStayChange = (homeStayId) => {
+    console.log('Homestay changed to:', homeStayId);
+    selectedHomeStay.value = homeStayId;
+    currentPage.value = 0;
+    loadVouchers();
   }
 
   const handlePageSizeChange = () => {
@@ -256,12 +277,14 @@ export const useVoucherManagement = () => {
     selectedVoucher,
     isEdit,
     selectedStatus,
+    selectedHomeStay,
     isLoading,
     filteredVouchers,
     displayedPages,
     loadVouchers,
     handleSearch,
     handleStatusChange,
+    handleHomeStayChange,
     handlePageSizeChange,
     changePage,
     openAddModal,

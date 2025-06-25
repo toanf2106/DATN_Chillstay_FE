@@ -109,16 +109,21 @@
               <small class="text-muted">Để trống hoặc 0 nếu không giới hạn số lượng</small>
             </div>
 
-            <div class="form-check">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                id="trangThai"
-                v-model="form.trangThai"
-              />
-              <label class="form-check-label" for="trangThai">
-                {{ form.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
-              </label>
+            <div class="mb-3">
+              <label class="form-label">Homestay áp dụng: <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                v-model="form.homeStayId"
+                required
+              >
+                <option value="">-- Chọn homestay --</option>
+                <option v-for="hs in homeStayList" :key="hs.id" :value="hs.id">
+                  {{ hs.tenHomeStay || hs.tenHomestay }}
+                </option>
+              </select>
+              <div class="invalid-feedback" v-if="errors.homeStayId">
+                {{ errors.homeStayId }}
+              </div>
             </div>
           </form>
         </div>
@@ -142,6 +147,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
+import { getAllHomeStay } from '@/Service/HomeStayService.js';
 
 export default {
   name: 'VoucherModal',
@@ -167,10 +173,19 @@ export default {
       ngayBatDau: null,
       ngayKetThuc: null,
       soLuong: 0,
-      trangThai: true
+      trangThai: true,
+      homeStayId: ''
     });
+    const homeStayList = ref([]);
 
-    onMounted(() => {
+    onMounted(async () => {
+      // Lấy danh sách homestay
+      try {
+        const res = await getAllHomeStay();
+        homeStayList.value = res.data;
+      } catch {
+        homeStayList.value = [];
+      }
       if (props.isEdit && props.voucher) {
         form.value = {
           id: props.voucher.id,
@@ -182,7 +197,8 @@ export default {
           ngayBatDau: props.voucher.ngayBatDau ? new Date(props.voucher.ngayBatDau).toISOString().split('T')[0] : null,
           ngayKetThuc: props.voucher.ngayKetThuc ? new Date(props.voucher.ngayKetThuc).toISOString().split('T')[0] : null,
           soLuong: props.voucher.soLuong || 0,
-          trangThai: props.voucher.trangThai ?? true
+          trangThai: props.voucher.trangThai ?? true,
+          homeStayId: props.voucher.homeStayId || ''
         };
       }
     });
@@ -221,6 +237,10 @@ export default {
         newErrors.ngayKetThuc = 'Ngày kết thúc phải sau ngày bắt đầu';
       }
 
+      if (!form.value.homeStayId) {
+        newErrors.homeStayId = 'Vui lòng chọn homestay áp dụng';
+      }
+
       errors.value = newErrors;
       return Object.keys(newErrors).length === 0;
     };
@@ -244,7 +264,8 @@ export default {
       errors,
       isSubmitting,
       today,
-      handleSubmit
+      handleSubmit,
+      homeStayList
     };
   }
 };

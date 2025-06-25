@@ -11,6 +11,7 @@
         >
       </div>
       <div class="d-flex align-items-center gap-3">
+
         <select
           v-model="selectedStatus"
           @change="handleStatusChange(selectedStatus)"
@@ -32,6 +33,7 @@
         <table class="table">
           <thead>
             <tr>
+              <th>STT</th>
               <th>Mã giảm giá</th>
               <th>Tên</th>
               <th>Loại</th>
@@ -39,12 +41,14 @@
               <th>Ngày bắt đầu</th>
               <th>Ngày kết thúc</th>
               <th>Số lượng</th>
+              <th>Homestay</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="voucher in filteredVouchers" :key="voucher.id">
+            <tr v-for="(voucher, index) in filteredVouchers" :key="voucher.id">
+              <td>{{ index + 1 }}</td>
               <td>{{ voucher.maGiamGia }}</td>
               <td>{{ voucher.tenGiamGia }}</td>
               <td>{{ formatLoaiGiamGia(voucher.loaiGiamGia) }}</td>
@@ -52,9 +56,10 @@
               <td>{{ formatDate(voucher.ngayBatDau) }}</td>
               <td>{{ formatDate(voucher.ngayKetThuc) }}</td>
               <td>{{ voucher.soLuong }}</td>
+              <td>{{ getHomeStayName(voucher.homeStayId) }}</td>
               <td>
-                <span :class="['badge', voucher.trangThai ? 'badge-success' : 'badge-danger']">
-                  {{ voucher.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
+                <span :class="['badge', isVoucherValid(voucher) ? 'badge-success' : 'badge-danger']">
+                  {{ isVoucherValid(voucher) ? 'Còn hạn' : 'Hết hạn' }}
                 </span>
               </td>
               <td>
@@ -117,7 +122,8 @@
 <script>
 import VoucherModal from './components/VoucherModal.vue';
 import { useVoucherManagement } from '@/Styles/JS/Voucher.js';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import { getAllHomeStay } from '@/Service/HomeStayService.js';
 
 export default {
   name: 'QlyVoucher',
@@ -126,13 +132,34 @@ export default {
   },
   setup() {
     const voucherManagement = useVoucherManagement();
+    const homeStayList = ref([]);
+    const getHomeStayName = (id) => {
+      const hs = homeStayList.value.find(h => h.id === id);
+      return hs ? (hs.tenHomestay || hs.tenHomeStay) : '';
+    };
 
-    onMounted(() => {
+    // Kiểm tra voucher còn hạn hay không
+    const isVoucherValid = (voucher) => {
+      const currentDate = new Date();
+      const endDate = new Date(voucher.ngayKetThuc);
+      return endDate >= currentDate && voucher.trangThai !== false;
+    };
+
+    onMounted(async () => {
+      try {
+        const res = await getAllHomeStay();
+        homeStayList.value = res.data;
+      } catch {
+        homeStayList.value = [];
+      }
       voucherManagement.loadVouchers();
     });
 
     return {
-      ...voucherManagement
+      ...voucherManagement,
+      homeStayList,
+      getHomeStayName,
+      isVoucherValid
     };
   }
 };

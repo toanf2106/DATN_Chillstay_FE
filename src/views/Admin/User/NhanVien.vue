@@ -320,6 +320,7 @@
                 <div class="form-group gender-group">
                   <label>Giới Tính</label>
                   <div class="form-check-group">
+                    <!-- Normal view mode gender labels -->
                     <div class="form-check">
                       <input
                         type="radio"
@@ -328,7 +329,12 @@
                         disabled
                         class="form-check-input"
                       />
-                      <label class="form-check-label" for="view-gender-male">Nam</label>
+                      <label
+                        class="form-check-label"
+                        for="view-gender-male"
+                        style="border-bottom: none !important"
+                        >Nam</label
+                      >
                     </div>
                     <div class="form-check">
                       <input
@@ -338,7 +344,12 @@
                         disabled
                         class="form-check-input"
                       />
-                      <label class="form-check-label" for="view-gender-female">Nữ</label>
+                      <label
+                        class="form-check-label"
+                        for="view-gender-female"
+                        style="border-bottom: none !important"
+                        >Nữ</label
+                      >
                     </div>
                   </div>
                 </div>
@@ -498,7 +509,12 @@
                         :value="true"
                         class="form-check-input"
                       />
-                      <label class="form-check-label" for="gender-male">Nam</label>
+                      <label
+                        class="form-check-label"
+                        for="gender-male"
+                        style="border-bottom: none !important"
+                        >Nam</label
+                      >
                     </div>
                     <div class="form-check">
                       <input
@@ -509,7 +525,12 @@
                         :value="false"
                         class="form-check-input"
                       />
-                      <label class="form-check-label" for="gender-female">Nữ</label>
+                      <label
+                        class="form-check-label"
+                        for="gender-female"
+                        style="border-bottom: none !important"
+                        >Nữ</label
+                      >
                     </div>
                   </div>
                 </div>
@@ -661,7 +682,12 @@
                         :value="true"
                         class="form-check-input"
                       />
-                      <label class="form-check-label" for="edit-gender-male">Nam</label>
+                      <label
+                        class="form-check-label"
+                        for="edit-gender-male"
+                        style="border-bottom: none !important"
+                        >Nam</label
+                      >
                     </div>
                     <div class="form-check">
                       <input
@@ -672,7 +698,12 @@
                         :value="false"
                         class="form-check-input"
                       />
-                      <label class="form-check-label" for="edit-gender-female">Nữ</label>
+                      <label
+                        class="form-check-label"
+                        for="edit-gender-female"
+                        style="border-bottom: none !important"
+                        >Nữ</label
+                      >
                     </div>
                   </div>
                 </div>
@@ -2293,37 +2324,83 @@ export default {
   max-width: 95%;
   max-height: 95vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modal-fade-in 0.3s ease;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.1),
+    0 6px 12px rgba(0, 0, 0, 0.08),
+    0 30px 60px -12px rgba(50, 50, 93, 0.25);
+  transform: translateY(0);
+  animation: modal-slide-down 0.4s ease;
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f8f9fa;
+@keyframes modal-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.modal-header h3 {
-  margin: 0;
+.add-staff-modal .modal-header,
+.staff-details-modal .modal-header {
+  background: linear-gradient(135deg, #0d6efd 0%, #0088ff 50%, #00a1ff 100%);
+  padding: 20px 30px;
+  border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-staff-modal .modal-header:before,
+.staff-details-modal .modal-header:before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+.add-staff-modal .modal-header h3,
+.staff-details-modal .modal-header h3 {
+  color: white;
   font-size: 1.8rem;
   font-weight: 700;
-  color: #343a40;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
 }
 
-.modal-body {
-  padding: 25px;
-}
-
-.modal-footer {
+.add-staff-modal .modal-header .close-button,
+.staff-details-modal .modal-header .close-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 25px;
-  border-top: 1px solid #e5e7eb;
-  margin-top: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-staff-modal .modal-header .close-button:hover,
+.staff-details-modal .modal-header .close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.add-staff-modal .modal-body {
+  padding: 30px 35px;
+  background-color: #fff;
 }
 
 /* Avatar Upload Section */
@@ -2334,11 +2411,12 @@ export default {
   padding: 20px;
 }
 
+/* Enhanced Avatar Upload Styling */
 .avatar-preview {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  border: 2px dashed #d1d5db;
+  border: 3px dashed #d1d5db;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2349,11 +2427,47 @@ export default {
   transition: all 0.3s ease;
   margin-bottom: 15px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  position: relative;
 }
 
 .avatar-preview:hover {
   border-color: #3b82f6;
-  transform: scale(1.05);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.avatar-preview::before {
+  content: '\f030';
+  font-family: 'Font Awesome 5 Free';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  color: white;
+  opacity: 0;
+  z-index: 2;
+  transition: opacity 0.3s ease;
+}
+
+.avatar-preview::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.avatar-preview:hover::after {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.avatar-preview:hover::before {
+  opacity: 1;
 }
 
 .avatar-placeholder {
@@ -2364,100 +2478,134 @@ export default {
   height: 100%;
   width: 100%;
   justify-content: center;
+  z-index: 0;
 }
 
 .avatar-placeholder i {
-  font-size: 50px;
-  margin-bottom: 10px;
+  font-size: 64px;
+  margin-bottom: 15px;
+  color: #adb5bd;
+  transition: all 0.3s ease;
 }
 
 .avatar-placeholder span {
-  font-size: 14px;
+  font-size: 16px;
   text-align: center;
+  max-width: 80%;
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.avatar-preview:hover .avatar-placeholder i {
+  color: #3b82f6;
 }
 
 .uploaded-avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: all 0.3s;
+  z-index: 0;
 }
 
-/* Form Styles */
-.form-group {
-  margin-bottom: 20px;
+.form-check-input:checked + .form-check-label:before {
+  border-color: #0d6efd;
+  background-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.2);
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #4b5563;
+.form-check-input:checked + .form-check-label:after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+  animation: pulse 0.3s ease;
 }
 
-.form-control {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-
-.form-control:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
-}
-
-.form-control.is-invalid {
-  border-color: #ef4444;
-}
-
-.invalid-feedback {
-  color: #ef4444;
-  font-size: 14px;
-  margin-top: 5px;
-}
-
-/* Gender Radio Group */
-.gender-group {
-  margin-bottom: 20px;
-}
-
-.form-check-group {
-  display: flex;
-  gap: 30px;
-  margin-top: 10px;
-}
-
-.form-check {
-  display: flex;
-  align-items: center;
-}
-
-.form-check-input {
-  margin-right: 8px;
-  width: 18px;
-  height: 18px;
-}
-
-.form-check-label {
-  font-size: 16px;
-  color: #4b5563;
-  cursor: pointer;
-}
-
-@keyframes modal-fade-in {
-  from {
+@keyframes pulse {
+  0% {
+    transform: translateY(-50%) scale(0);
     opacity: 0;
-    transform: translateY(-20px);
   }
-  to {
+  50% {
+    transform: translateY(-50%) scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
     opacity: 1;
-    transform: translateY(0);
   }
+}
+
+/* Textarea styling */
+textarea.form-control {
+  height: auto;
+  min-height: 100px;
+  resize: none;
+  line-height: 1.5;
+  transition: all 0.3s;
+}
+
+/* Modal footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px 35px 30px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+}
+
+.modal-footer .btn {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-footer .btn-secondary {
+  background-color: #f1f3f5;
+  color: #495057;
+  border: none;
+  min-width: 120px;
+}
+
+.modal-footer .btn-secondary:hover {
+  background-color: #e9ecef;
+  color: #212529;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.modal-footer .btn-primary {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  border: none;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+  min-width: 150px;
+}
+
+.modal-footer .btn-primary:hover {
+  background: linear-gradient(45deg, #0b5ed7, #0084ff);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-footer .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+}
+
+.modal-footer .btn-primary:disabled {
+  background: linear-gradient(45deg, #6c757d, #adb5bd);
+  box-shadow: none;
+  opacity: 0.8;
 }
 
 /* Staff details modal styling */
@@ -2465,12 +2613,56 @@ export default {
   position: relative;
   background-color: #fff;
   border-radius: 16px;
-  width: 700px;
+  width: 800px;
   max-width: 95%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modal-fade-in 0.3s ease;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.1),
+    0 6px 12px rgba(0, 0, 0, 0.08),
+    0 30px 60px -12px rgba(50, 50, 93, 0.25);
+  transform: translateY(0);
+  animation: modal-slide-down 0.4s ease;
+}
+
+.staff-details-modal .modal-header {
+  background: linear-gradient(90deg, #0d6efd 0%, #0099ff 100%);
+  padding: 20px 30px;
+  border-bottom: none;
+}
+
+.staff-details-modal .modal-header h3 {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.staff-details-modal .modal-header .close-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.staff-details-modal .modal-header .close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.staff-details-modal .modal-body {
+  padding: 30px 35px;
+  background-color: #fff;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
 }
 
 .staff-avatar-display {
@@ -2485,21 +2677,26 @@ export default {
   height: 150px;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-bottom: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .staff-avatar-display .avatar-preview:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
 }
 
 .staff-avatar-display h4 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 600;
   margin-top: 0.8rem;
   margin-bottom: 0.3rem;
+  color: #333;
 }
 
 .staff-avatar-display .staff-id {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  color: #6c757d;
 }
 
 .status-badge {
@@ -2516,7 +2713,9 @@ export default {
 
 .status-badge .badge {
   font-size: 0.9rem;
-  padding: 6px 12px;
+  padding: 8px 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .staff-info {
@@ -2528,58 +2727,210 @@ export default {
   background-color: #f9fafb;
   border-color: #e5e7eb;
   cursor: text;
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 0.95rem;
-}
-
-/* Thêm margin cho các form group trong modal chi tiết */
-.staff-info .form-group {
-  margin-bottom: 12px;
-}
-
-.staff-info label {
-  font-size: 0.9rem;
-  margin-bottom: 5px;
-}
-
-/* Điều chỉnh kích thước của textarea */
-.staff-info textarea.form-control {
-  resize: none;
-  height: 70px;
-}
-
-/* Đảm bảo hiển thị tiếng Việt đúng */
-.staff-details-modal input,
-.staff-details-modal textarea,
-.staff-details-modal label,
-.staff-details-modal span,
-.staff-details-modal h3,
-.staff-details-modal h4,
-.staff-details-modal p {
-  font-family: 'Roboto', sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.form-control {
-  font-family: 'Roboto', sans-serif !important;
-  font-size: 0.95rem;
-}
-
-/* Đảm bảo font chữ tiếng Việt hiển thị đúng trong modal */
-.modal-header h3,
-.modal-body h4,
-.modal-body label,
-.modal-body p,
-.modal-body span {
-  font-family: 'Roboto', sans-serif !important;
-}
-
-/* Điều chỉnh chi tiết cho từng label trong form */
-.form-group label {
-  font-weight: 500;
   color: #333;
-  margin-bottom: 6px;
+}
+
+/* Enhanced form elements */
+.form-group label {
   display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #3a3a3a;
+  font-size: 15px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.form-group label::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #0d6efd, #00c6ff);
+  transition: width 0.3s ease;
+}
+
+.form-group:focus-within label::after {
+  width: 30px;
+}
+
+.form-group:focus-within label {
+  color: #0d6efd;
+}
+
+/* Enhanced input focus effects */
+.form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.18);
+  background-color: #fff;
+}
+
+/* Animated validation states */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.form-control.is-invalid {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Add animation to form elements */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-staff-modal .form-group,
+.staff-details-modal .form-group {
+  animation: fadeInUp 0.4s ease backwards;
+}
+
+.add-staff-modal .form-group:nth-child(1),
+.staff-details-modal .form-group:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.add-staff-modal .form-group:nth-child(2),
+.staff-details-modal .form-group:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.add-staff-modal .form-group:nth-child(3),
+.staff-details-modal .form-group:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.add-staff-modal .form-group:nth-child(4),
+.staff-details-modal .form-group:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.add-staff-modal .form-group:nth-child(5),
+.staff-details-modal .form-group:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.add-staff-modal .form-group:nth-child(6),
+.staff-details-modal .form-group:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+/* Better Fixed Gender Radio Button Styling */
+.form-check {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-left: 0;
+  margin-bottom: 0;
+  margin-right: 0;
+  text-decoration: none;
+  border-bottom: none;
+}
+
+.form-check-input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.form-check-label {
+  font-size: 16px;
+  color: #4b5563;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+  padding-left: 30px;
+  position: relative;
+  text-decoration: none !important;
+  border-bottom: none !important;
+  display: inline-block;
+}
+
+.form-check-label::after {
+  display: none !important;
+}
+
+.form-check-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #c1c1c1;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.form-check-input:checked + .form-check-label {
+  color: #0d6efd;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+.form-check-input:checked + .form-check-label::before {
+  border: none;
+  background-color: #0d6efd;
+}
+
+.form-check-input:checked + .form-check-label::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+  display: block !important;
+}
+
+/* Override any global underlines */
+.form-check a,
+.form-check-label a,
+.form-check span,
+.form-check-label span {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* Specific fix for the gender labels */
+.gender-group .form-check-label {
+  border-bottom: none !important;
+  text-decoration: none !important;
+}
+
+.gender-group .form-check-label:after {
+  display: none !important;
+}
+
+.gender-group .form-check-input:checked + .form-check-label::after {
+  display: block !important;
 }
 </style>

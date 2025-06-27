@@ -1,18 +1,18 @@
 <!-- VoucherModal.vue -->
 <template>
-  <div class="modal-backdrop" @click.self="$emit('close')">
-    <div class="modal-wrapper">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">
+      <h3 class="modal-title">
             {{ isEdit ? 'Cập nhật mã giảm giá' : 'Thêm mã giảm giá mới' }}
-          </h5>
-          <button type="button" class="btn-close" @click="$emit('close')" aria-label="Close"></button>
+      </h3>
+      <button type="button" class="close-button" @click="$emit('close')" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="handleSubmit">
-            <div class="mb-3">
-              <label class="form-label">Tên giảm giá: <span class="text-danger">*</span></label>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label">Tên giảm giá <span class="text-danger">*</span></label>
               <input
                 type="text"
                 class="form-control"
@@ -25,20 +25,37 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Loại giảm giá: <span class="text-danger">*</span></label>
-              <select
-                class="form-select"
+            <div class="form-group">
+              <label class="form-label">Loại giảm giá <span class="text-danger">*</span></label>
+              <div class="form-check-group">
+                <div class="form-check">
+                  <input
+                    type="radio"
+                    id="loai-phan-tram"
+                    name="loai-giam-gia"
+                    v-model="form.loaiGiamGia"
+                    value="PhanTram"
+                    class="form-check-input"
+                  />
+                  <label class="form-check-label" for="loai-phan-tram">Phần trăm</label>
+                </div>
+                <div class="form-check">
+                  <input
+                    type="radio"
+                    id="loai-tien"
+                    name="loai-giam-gia"
                 v-model="form.loaiGiamGia"
-              >
-                <option value="PhanTram">Phần trăm</option>
-                <option value="SoTien">Số tiền</option>
-              </select>
+                    value="SoTien"
+                    class="form-check-input"
+                  />
+                  <label class="form-check-label" for="loai-tien">Số tiền</label>
+                </div>
+              </div>
             </div>
 
-            <div class="mb-3">
+            <div class="form-group">
               <label class="form-label">
-                Giá trị: <span class="text-danger">*</span>
+                Giá trị <span class="text-danger">*</span>
                 <small v-if="form.loaiGiamGia === 'PhanTram'">(0-100%)</small>
               </label>
               <input
@@ -56,8 +73,8 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Giá trị tối thiểu:</label>
+            <div class="form-group">
+              <label class="form-label">Giá trị tối thiểu</label>
               <input
                 type="number"
                 class="form-control"
@@ -68,9 +85,10 @@
               />
               <small class="text-muted">Giá trị đơn hàng tối thiểu để áp dụng mã giảm giá</small>
             </div>
-
-            <div class="mb-3">
-              <label class="form-label">Ngày bắt đầu: <span class="text-danger">*</span></label>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
               <input
                 type="date"
                 class="form-control"
@@ -83,8 +101,8 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Ngày kết thúc: <span class="text-danger">*</span></label>
+            <div class="form-group">
+              <label class="form-label">Ngày kết thúc <span class="text-danger">*</span></label>
               <input
                 type="date"
                 class="form-control"
@@ -97,8 +115,8 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Số lượng:</label>
+            <div class="form-group">
+              <label class="form-label">Số lượng</label>
               <input
                 type="number"
                 class="form-control"
@@ -109,11 +127,12 @@
               <small class="text-muted">Để trống hoặc 0 nếu không giới hạn số lượng</small>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Homestay áp dụng: <span class="text-danger">*</span></label>
+            <div class="form-group">
+              <label class="form-label">Homestay áp dụng <span class="text-danger">*</span></label>
               <select
                 class="form-select"
                 v-model="form.homeStayId"
+                :class="{ 'is-invalid': errors.homeStayId }"
                 required
               >
                 <option value="">-- Chọn homestay --</option>
@@ -125,6 +144,8 @@
                 {{ errors.homeStayId }}
               </div>
             </div>
+          </div>
+        </div>
           </form>
         </div>
         <div class="modal-footer">
@@ -137,10 +158,14 @@
             @click="handleSubmit"
             :disabled="isSubmitting"
           >
-            {{ isSubmitting ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Thêm mới') }}
+        <span
+          v-if="isSubmitting"
+          class="spinner-border spinner-border-sm"
+          role="status"
+          aria-hidden="true"
+        ></span>
+        <span v-else>{{ isEdit ? 'Cập nhật' : 'Thêm mới' }}</span>
           </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -248,12 +273,11 @@ export default {
     const handleSubmit = async () => {
       if (!validateForm()) return;
 
-      isSubmitting.value = true;
       try {
-        await emit('save', { ...form.value });
-        emit('close');
+        isSubmitting.value = true;
+        await emit('save', form.value);
       } catch (error) {
-        console.error('Error submitting form:', error);
+        console.error('Error submitting voucher form:', error);
       } finally {
         isSubmitting.value = false;
       }
@@ -261,71 +285,217 @@ export default {
 
     return {
       form,
+      homeStayList,
       errors,
       isSubmitting,
       today,
-      handleSubmit,
-      homeStayList
+      handleSubmit
     };
   }
 };
 </script>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.modal-wrapper {
-  width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
 .modal-content {
-  background-color: white;
-  border-radius: 0.3rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  position: relative;
+  width: 800px;
+  max-width: 95%;
+  max-height: 95vh;
+  overflow-y: auto;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #dee2e6;
+  padding: 20px 25px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8f9fa;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #343a40;
+}
+
+.close-button {
+  position: relative;
+  top: 0;
+  right: 0;
+  background: #f1f5f9;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #64748b;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
 }
 
 .modal-body {
-  padding: 1rem;
+  padding: 25px;
 }
 
 .modal-footer {
-  padding: 1rem;
-  border-top: 1px solid #dee2e6;
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 10px;
+  padding: 15px 25px;
+  border-top: 1px solid #e5e7eb;
 }
 
-.form-label {
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
   font-weight: 500;
+  color: #4b5563;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  outline: none;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #ef4444;
 }
 
 .invalid-feedback {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.text-muted {
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 5px;
   display: block;
 }
 
+/* Gender Radio Group */
+.form-check-group {
+  display: flex;
+  gap: 30px;
+  margin-top: 10px;
+}
+
 .form-check {
-  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.form-check-input {
+  margin-right: 8px;
+  width: 18px;
+  height: 18px;
+}
+
+.form-check-label {
+  font-size: 16px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+/* Button styles */
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  background: linear-gradient(45deg, #0a58ca, #0077cc);
+}
+
+.btn-secondary {
+  background-color: #e2e8f0;
+  color: #475569;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background-color: #cbd5e1;
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+  }
+
+  .form-check-group {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 </style>

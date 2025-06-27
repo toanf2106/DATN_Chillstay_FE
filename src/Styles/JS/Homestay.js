@@ -21,8 +21,8 @@ export function useHomestayManagement() {
       homestays.value = hsRes.data || [];
       loaiList.value = loaiRes.data || [];
       chuList.value = chuRes.data || [];
-    } catch (err) {
-      console.error('Lỗi khi tải dữ liệu homestay:', err);
+    } catch {
+      // Xử lý lỗi trong thầm lặng - hiện không có UI hiển thị thông báo lỗi
     }
   };
 

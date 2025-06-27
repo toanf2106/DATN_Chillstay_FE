@@ -17,6 +17,11 @@ export const useVoucherManagement = () => {
   const selectedHomeStay = ref('')
   const isLoading = ref(false)
 
+  // Biến cho modal chi tiết voucher
+  const showDetailModal = ref(false)
+  const detailVoucher = ref(null)
+  const loadingDetail = ref(false)
+
   // Debug watcher for showModal
   watch(showModal, (newVal) => {
     console.log('showModal changed to:', newVal)
@@ -260,6 +265,34 @@ export const useVoucherManagement = () => {
     return d.toLocaleDateString('vi-VN');
   }
 
+  // Mở modal chi tiết voucher
+  const viewVoucherDetail = async (voucher) => {
+    try {
+      loadingDetail.value = true
+      detailVoucher.value = {...voucher} // Hiển thị dữ liệu cơ bản trước
+      showDetailModal.value = true
+
+      // Gọi API để lấy chi tiết đầy đủ
+      const response = await axios.get(`/api/giamgia/detail/${voucher.id}`)
+      if (response.data && response.data.success) {
+        detailVoucher.value = response.data.voucher
+      }
+    } catch (error) {
+      console.error('Error fetching voucher details:', error)
+      toast.error('Không thể tải thông tin chi tiết voucher')
+    } finally {
+      loadingDetail.value = false
+    }
+  }
+
+  // Đóng modal chi tiết
+  const closeDetailModal = () => {
+    showDetailModal.value = false
+    setTimeout(() => {
+      detailVoucher.value = null
+    }, 300)
+  }
+
   // Load vouchers on mount
   onMounted(() => {
     console.log('Voucher management mounted');
@@ -294,6 +327,12 @@ export const useVoucherManagement = () => {
     deleteVoucher,
     formatLoaiGiamGia,
     formatGiaTri,
-    formatDate
+    formatDate,
+    // Thêm các biến và phương thức mới
+    showDetailModal,
+    detailVoucher,
+    loadingDetail,
+    viewVoucherDetail,
+    closeDetailModal
   }
 }

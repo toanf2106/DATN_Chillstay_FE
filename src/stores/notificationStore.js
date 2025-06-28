@@ -13,13 +13,23 @@ export const useNotificationStore = defineStore('notification', () => {
    * @param {number} notification.duration - Thời gian hiển thị (ms)
    * @param {string} notification.position - Vị trí (top-right, top-left, bottom-right, bottom-left, top-center, bottom-center)
    * @param {boolean} notification.dismissible - Có thể đóng thủ công không
+   * @param {boolean} notification.isModal - Có phải là modal không
+   * @param {boolean} notification.showCancelButton - Hiển thị nút hủy
+   * @param {string} notification.title - Tiêu đề thông báo
+   * @param {string} notification.confirmText - Nội dung nút xác nhận
+   * @param {string} notification.cancelText - Nội dung nút hủy
    */
   function showNotification({
     message,
     type = 'info',
     duration = 5000,
     position = 'top-right',
-    dismissible = true
+    dismissible = true,
+    isModal = false,
+    showCancelButton = false,
+    title = '',
+    confirmText = 'OK',
+    cancelText = 'Hủy'
   }) {
     const id = nextId.value++
 
@@ -29,12 +39,17 @@ export const useNotificationStore = defineStore('notification', () => {
       type,
       position,
       dismissible,
-      visible: true
+      visible: true,
+      isModal,
+      showCancelButton,
+      title,
+      confirmText,
+      cancelText
     }
 
     notifications.value.push(notification)
 
-    if (duration > 0) {
+    if (!isModal && duration > 0) {
       setTimeout(() => {
         dismissNotification(id)
       }, duration)
@@ -54,6 +69,14 @@ export const useNotificationStore = defineStore('notification', () => {
         notifications.value = notifications.value.filter(n => n.id !== id)
       }, 300) // Thời gian animation
     }
+  }
+
+  function confirmNotification(id) {
+    dismissNotification(id)
+  }
+
+  function cancelNotification(id) {
+    dismissNotification(id)
   }
 
   function clearAll() {
@@ -77,14 +100,59 @@ export const useNotificationStore = defineStore('notification', () => {
     return showNotification({ message, type: 'info', ...options })
   }
 
+  function confirm({ message }) {
+    return new Promise((resolve) => {
+      const confirmed = window.confirm(message)
+      resolve(confirmed)
+    })
+  }
+
+  function showToast(message, type = 'success', duration = 3000) {
+    const id = Date.now();
+    notifications.value.push({
+      id,
+      message,
+      type,
+      duration
+    });
+
+    setTimeout(() => {
+      removeToast(id);
+    }, duration);
+  }
+
+  function removeToast(id) {
+    const index = notifications.value.findIndex(n => n.id === id);
+    if (index > -1) {
+      notifications.value.splice(index, 1);
+    }
+  }
+
   return {
     notifications,
     showNotification,
     dismissNotification,
+    confirmNotification,
+    cancelNotification,
     clearAll,
     success,
     error,
     warning,
-    info
+    info,
+    confirm,
+    showToast,
+    removeToast
   }
 })
+
+// Composable để sử dụng trong các component
+export function useToast() {
+  const store = useNotificationStore();
+
+  return {
+    success: store.success.bind(store),
+    error: store.error.bind(store),
+    warning: store.warning.bind(store),
+    info: store.info.bind(store)
+  };
+}

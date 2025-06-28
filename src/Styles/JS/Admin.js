@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Offcanvas } from 'bootstrap'
+// import notification from '@/utils/notification'
 
 export function useAdminDashboard() {
   const router = useRouter()
@@ -13,15 +14,20 @@ export function useAdminDashboard() {
   })
 
   const isUserMenuActive = computed(() => {
-    return isRouteActive('admin-nhan-vien') || isRouteActive('admin-khach-hang')
+    return ['admin-nhan-vien', 'admin-khach-hang'].includes(route.name)
   })
 
   const isBookingMenuActive = computed(() => {
-    return route.name && route.name.toString().startsWith('admin-dat-home')
+    return [
+      'admin-homestay',
+      'admin-homestay-dichvu',
+      'admin-homestay-loaiphong',
+      'admin-homestay-vattu',
+    ].includes(route.name)
   })
 
   const isContentMenuActive = computed(() => {
-    return isRouteActive('admin-tin-tuc') || isRouteActive('admin-danh-gia')
+    return ['admin-tin-tuc', 'admin-danh-gia'].includes(route.name)
   })
 
   function isRouteActive(routeName) {
@@ -65,19 +71,6 @@ export function useAdminDashboard() {
       const bsOffcanvas = Offcanvas.getInstance(sidebarEl) || new Offcanvas(sidebarEl)
       bsOffcanvas.toggle()
     }
-  }
-
-  function logout() {
-    // Xóa toàn bộ thông tin đăng nhập
-    localStorage.removeItem('isAdmin')
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
-
-    // Thông báo đăng xuất thành công
-    alert('Đăng xuất thành công!')
-
-    // Chuyển hướng về trang chủ
-    router.push('/')
   }
 
   // Thêm Font Awesome
@@ -132,6 +125,5 @@ export function useAdminDashboard() {
     navigateTo,
     toggleSubmenu,
     toggleSidebar,
-    logout,
   }
 }

@@ -18,7 +18,7 @@
           <img src="https://via.placeholder.com/40" alt="Admin" />
           <span>Admin</span>
         </div>
-        <button class="logout-btn" @click="logout">Đăng xuất</button>
+        <button class="logout-btn" @click="handleLogout">Đăng xuất</button>
       </div>
     </header>
 
@@ -206,6 +206,8 @@
 <script>
 import 'bootstrap/dist/css/bootstrap.min.css'
 import { useAdminDashboard } from '../Styles/JS/Admin.js'
+import { useAuthStore } from '@/stores/authStore'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'AdminDashboard',
@@ -219,8 +221,15 @@ export default {
       navigateTo,
       toggleSubmenu,
       toggleSidebar,
-      logout,
     } = useAdminDashboard()
+
+    const authStore = useAuthStore()
+    const router = useRouter()
+
+    const handleLogout = () => {
+      authStore.logout()
+      router.push('/')
+    }
 
     return {
       isSubmenuOpen,
@@ -231,7 +240,7 @@ export default {
       navigateTo,
       toggleSubmenu,
       toggleSidebar,
-      logout,
+      handleLogout,
     }
   },
 }

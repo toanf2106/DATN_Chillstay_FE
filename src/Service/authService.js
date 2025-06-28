@@ -1,6 +1,7 @@
 import api from '@/utils/api'
 
 export function login(username, password) {
+  console.log('Sending login request with:', { username, password })
   return api.post('/api/login', { username, password })
 }
 

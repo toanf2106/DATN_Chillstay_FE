@@ -2,21 +2,21 @@ import api from '@/utils/api'
 
 // Lấy danh sách khách hàng
 export function getAllKhachHang() {
-  return api.get('/api/khach-hang/hien-thi')
+  return api.get('/api/khach-hang/all')
 }
 
 // Lấy danh sách khách hàng có phân trang
-export function getKhachHangPaginated(page, size = 10) {
-  return api.get(`/api/khach-hang/hien-thi/page?page=${page}&size=${size}`)
+export function getKhachHangPaginated(page) {
+  return api.get(`/api/khach-hang/page?page=${page}`)
 }
 
 // Tìm kiếm khách hàng với nhiều tiêu chí
-export function searchKhachHangAPI(searchParams, page = 0, size = 10) {
+export function searchKhachHangAPI(searchParams, page = 0) {
   // Xây dựng query params từ các trường tìm kiếm
-  let queryParams = `page=${page}&size=${size}`
+  let queryParams = `page=${page}`
 
   // Log the request parameters
-  console.log('DEBUG - searchKhachHangAPI called with:', { searchParams, page, size })
+  console.log('DEBUG - searchKhachHangAPI called with:', { searchParams, page })
 
   // Only include parameters that actually have values
   if (searchParams.id && searchParams.id.trim() !== '') {
@@ -25,8 +25,8 @@ export function searchKhachHangAPI(searchParams, page = 0, size = 10) {
   if (searchParams.maKhachHang && searchParams.maKhachHang.trim() !== '') {
     queryParams += `&maKhachHang=${encodeURIComponent(searchParams.maKhachHang.trim())}`
   }
-  if (searchParams.hoTen && searchParams.hoTen.trim() !== '') {
-    queryParams += `&hoTen=${encodeURIComponent(searchParams.hoTen.trim())}`
+  if (searchParams.tenKhachHang && searchParams.tenKhachHang.trim() !== '') {
+    queryParams += `&tenKhachHang=${encodeURIComponent(searchParams.tenKhachHang.trim())}`
   }
   if (searchParams.soDienThoai && searchParams.soDienThoai.trim() !== '') {
     queryParams += `&soDienThoai=${encodeURIComponent(searchParams.soDienThoai.trim())}`
@@ -36,24 +36,16 @@ export function searchKhachHangAPI(searchParams, page = 0, size = 10) {
   }
 
   // Log the full URL that will be called
-  console.log('DEBUG - Search URL:', `/api/khach-hang/tim-kiem?${queryParams}`)
+  console.log('DEBUG - Search URL:', `/api/khach-hang/search?${queryParams}`)
 
-  // Try the main search endpoint
-  return api.get(`/api/khach-hang/tim-kiem?${queryParams}`)
+  // Try the controller search endpoint
+  return api.get(`/api/khach-hang/search?${queryParams}`)
     .catch(error => {
-      console.log('DEBUG - Primary search endpoint failed:', error.message);
+      console.log('DEBUG - Search endpoint failed:', error.message);
+      console.log('DEBUG - Falling back to all data approach...');
 
-      // If the primary endpoint fails, try an alternative endpoint
-      // (some backends use different naming conventions)
-      console.log('DEBUG - Trying alternative endpoint...');
-      return api.get(`/api/khach-hang/search?${queryParams}`);
-    })
-    .catch(error => {
-      console.log('DEBUG - Alternative search endpoint failed:', error.message);
-      console.log('DEBUG - Falling back to filtered list approach...');
-
-      // If both search endpoints fail, fallback to getting all data and filtering manually
-      return api.get('/api/khach-hang/hien-thi').then(response => {
+      // If search fails, fallback to getting all data
+      return getAllKhachHang().then(response => {
         if (response && response.data && Array.isArray(response.data)) {
           // Filter the data manually based on searchParams
           let filteredData = response.data;
@@ -66,9 +58,11 @@ export function searchKhachHangAPI(searchParams, page = 0, size = 10) {
             filteredData = filteredData.filter(item =>
               item.maKhachHang && item.maKhachHang.toLowerCase().includes(searchParams.maKhachHang.toLowerCase()));
           }
-          if (searchParams.hoTen) {
+          if (searchParams.tenKhachHang) {
+            const searchTerm = searchParams.tenKhachHang.toLowerCase();
             filteredData = filteredData.filter(item =>
-              item.hoTen && item.hoTen.toLowerCase().includes(searchParams.hoTen.toLowerCase()));
+              (item.tenKhachHang && item.tenKhachHang.toLowerCase().includes(searchTerm)) ||
+              (item.hoTen && item.hoTen.toLowerCase().includes(searchTerm)));
           }
           if (searchParams.soDienThoai) {
             filteredData = filteredData.filter(item =>
@@ -79,22 +73,7 @@ export function searchKhachHangAPI(searchParams, page = 0, size = 10) {
               item.email && item.email.toLowerCase().includes(searchParams.email.toLowerCase()));
           }
 
-          // Create a pseudo-paginated response
-          const totalElements = filteredData.length;
-          const totalPages = Math.ceil(totalElements / size);
-          const startIndex = page * size;
-          const endIndex = Math.min(startIndex + size, totalElements);
-          const content = filteredData.slice(startIndex, endIndex);
-
-          return {
-            data: {
-              content: content,
-              totalElements: totalElements,
-              totalPages: totalPages,
-              number: page,
-              size: size
-            }
-          };
+          return { data: filteredData };
         }
 
         // If all else fails, return the original response

@@ -6,54 +6,49 @@
       </div>
 
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <!-- Tìm kiếm - Compact version -->
-          <div class="d-flex" style="max-width: 400px;">
-            <select class="form-select form-select-sm me-1" style="max-width: 85px;" v-model="searchField">
-              <option value="all">Tất cả</option>
-              <option value="id">ID</option>
-              <option value="maKhachHang">Mã</option>
-              <option value="tenKhachHang">Tên</option>
-              <option value="soDienThoai">SĐT</option>
-              <option value="email">Email</option>
-            </select>
-            <div class="input-group input-group-sm">
+        <div class="row mb-3">
+          <!-- Tìm kiếm - completely separated layout -->
+          <!-- Search input on the far left -->
+          <div class="col-md-4">
+            <div class="input-group">
               <input
                 type="text"
-                class="form-control form-control-sm"
-                placeholder="Tìm kiếm..."
+                class="form-control"
+                placeholder="Nhập từ khóa tìm kiếm..."
                 v-model="searchTerm"
                 @keyup.enter="searchKhachHang(0)"
               />
-              <button class="btn btn-primary btn-sm" @click="searchKhachHang(0)">
+              <button class="btn btn-primary" @click="searchKhachHang(0)">
                 <i class="fas fa-search"></i>
               </button>
             </div>
-
-            <!-- Button to load all data -->
-            <button class="btn btn-success btn-sm ms-1" @click="loadAllKhachHang">
-              <i class="fas fa-sync-alt"></i>
-            </button>
           </div>
-        </div>
 
-        <!-- Loading indicator -->
-        <div v-if="loading" class="text-center my-3">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Đang tải...</span>
+          <!-- Empty space in the middle -->
+          <div class="col-md-4"></div>
+
+          <!-- Field selector on the far right -->
+          <div class="col-md-4 text-end">
+            <select v-model="searchField" class="form-select" style="max-width: 200px; float: right;">
+              <option value="all">Tất cả trường</option>
+              <option value="id">ID</option>
+              <option value="maKhachHang">Mã khách hàng</option>
+              <option value="hoTen">Họ tên</option>
+              <option value="soDienThoai">Số điện thoại</option>
+              <option value="email">Email</option>
+            </select>
           </div>
-          <p class="mt-2">Đang tải dữ liệu khách hàng...</p>
         </div>
 
         <!-- Bảng khách hàng -->
-        <div v-else class="table-responsive">
+        <div class="table-responsive">
           <table class="table table-hover">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Tài khoản</th>
+                <th>TK ID</th>
                 <th>Mã khách hàng</th>
-                <th>Tên khách hàng</th>
+                <th>Họ và tên</th>
                 <th>Số điện thoại</th>
                 <th>Email</th>
                 <th>Giới tính</th>
@@ -65,29 +60,28 @@
             <tbody>
               <tr v-for="khachHang in displayedKhachHang" :key="khachHang.id">
                 <td>{{ khachHang.id }}</td>
-                <td>{{ khachHang.taikhoanID }}</td>
+                <td>{{ khachHang.taiKhoan?.id || khachHang.taikhoanID }}</td>
                 <td>{{ khachHang.maKhachHang }}</td>
-                <td>{{ khachHang.tenKhachHang || khachHang.hoTen }}</td>
+                <td>{{ khachHang.hoTen }}</td>
                 <td>{{ khachHang.soDienThoai }}</td>
                 <td>{{ khachHang.email }}</td>
-                <td>{{ (khachHang.gioiTinh === 1 || khachHang.gioiTinh === true) ? 'Nam' : 'Nữ' }}</td>
+                <td>{{ khachHang.gioiTinh ? 'Nam' : 'Nữ' }}</td>
                 <td>{{ formatDate(khachHang.ngayTao) }}</td>
                 <td>
                   <span
                     :class="{
                       'badge rounded-pill': true,
-                      'bg-success': khachHang.trangThai === 1 || khachHang.trangThai === true,
-                      'bg-danger': khachHang.trangThai === 0 || khachHang.trangThai === false,
+                      'bg-success': khachHang.trangThai,
+                      'bg-danger': !khachHang.trangThai,
                     }"
                   >
-                    {{ (khachHang.trangThai === 1 || khachHang.trangThai === true) ? 'Hoạt động' : 'Không hoạt động' }}
+                    {{ khachHang.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
                   </span>
                 </td>
                 <td>
                   <button
-                    class="btn btn-sm btn-info me-1"
+                    class="btn btn-sm btn-info"
                     @click="openViewModal(khachHang)"
-                    title="Xem chi tiết"
                   >
                     <i class="fas fa-eye"></i>
                   </button>
@@ -102,11 +96,11 @@
           </table>
         </div>
 
-        <!-- Phân trang -->
-        <div v-if="!loading && displayedKhachHang.length > 0" class="pagination-container mt-3">
+        <!-- Phân trang - Moved to bottom with even spacing -->
+        <div class="pagination-container mt-3">
           <div class="pagination-info">
-            Hiển thị {{ displayedKhachHang.length > 0 ? 1 : 0 }} đến
-            {{ displayedKhachHang.length }} trong số {{ totalElements }} khách hàng
+            Hiển thị {{ displayedKhachHang.length > 0 ? startIndex + 1 : 0 }} đến
+            {{ endIndex }} trong số {{ totalElements }} khách hàng
           </div>
           <div class="pagination-controls">
             <ul class="pagination mb-0">
@@ -148,7 +142,7 @@
       </div>
     </div>
 
-    <!-- Modal Xem chi tiết -->
+    <!-- Modal Xem chi tiết - Custom modal implementation -->
     <div v-if="showViewModal" class="custom-modal">
       <div class="custom-modal-backdrop" @click="closeViewModal"></div>
       <div class="custom-modal-dialog">
@@ -161,24 +155,24 @@
             <div class="row mb-3">
               <div class="col-md-6">
                 <p><strong>ID:</strong> {{ viewedKhachHang.id }}</p>
-                <p><strong>Tài khoản:</strong> {{ viewedKhachHang.taikhoanID }}</p>
+                <p><strong>TK ID:</strong> {{ viewedKhachHang.taiKhoan?.id || viewedKhachHang.taikhoanID }}</p>
                 <p><strong>Mã khách hàng:</strong> {{ viewedKhachHang.maKhachHang }}</p>
-                <p><strong>Họ tên:</strong> {{ viewedKhachHang.tenKhachHang || viewedKhachHang.hoTen }}</p>
+                <p><strong>Họ tên:</strong> {{ viewedKhachHang.hoTen }}</p>
               </div>
               <div class="col-md-6">
                 <p><strong>Email:</strong> {{ viewedKhachHang.email }}</p>
                 <p><strong>Số điện thoại:</strong> {{ viewedKhachHang.soDienThoai }}</p>
-                <p><strong>Giới tính:</strong> {{ (viewedKhachHang.gioiTinh === 1 || viewedKhachHang.gioiTinh === true) ? 'Nam' : 'Nữ' }}</p>
+                <p><strong>Giới tính:</strong> {{ viewedKhachHang.gioiTinh ? 'Nam' : 'Nữ' }}</p>
                 <p><strong>Ngày tạo:</strong> {{ formatDate(viewedKhachHang.ngayTao) }}</p>
                 <p><strong>Trạng thái:</strong>
                   <span
                     :class="{
                       'badge rounded-pill': true,
-                      'bg-success': viewedKhachHang.trangThai === 1 || viewedKhachHang.trangThai === true,
-                      'bg-danger': viewedKhachHang.trangThai === 0 || viewedKhachHang.trangThai === false,
+                      'bg-success': viewedKhachHang.trangThai,
+                      'bg-danger': !viewedKhachHang.trangThai,
                     }"
                   >
-                    {{ (viewedKhachHang.trangThai === 1 || viewedKhachHang.trangThai === true) ? 'Hoạt động' : 'Không hoạt động' }}
+                    {{ viewedKhachHang.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
                   </span>
                 </p>
               </div>
@@ -197,7 +191,7 @@
 
 <script>
 import { onMounted, ref, computed } from 'vue'
-import { getKhachHangPaginated, searchKhachHangAPI, getAllKhachHang, getKhachHangById } from '@/Service/khachHangService'
+import { getKhachHangPaginated, searchKhachHangAPI, getAllKhachHang } from '@/Service/khachHangService'
 import notification from '@/utils/notification'
 
 export default {
@@ -209,9 +203,12 @@ export default {
     const searchTerm = ref('')
     const searchField = ref('all')
     const currentPage = ref(0) // 0-based for API
+    const itemsPerPage = ref(10)
     const showViewModal = ref(false)
     const totalPages = ref(0)
     const totalElements = ref(0)
+    const startIndex = ref(0)
+    const endIndex = ref(0)
     const loading = ref(false)
 
     // Computed pagination items to show
@@ -257,29 +254,25 @@ export default {
     const loadAllKhachHang = async () => {
       try {
         loading.value = true
-        notification.info('Đang tải tất cả dữ liệu khách hàng...')
+        notification.info('Đang tải dữ liệu khách hàng...')
 
         const response = await getAllKhachHang()
         console.log('Loaded all customer data:', response)
 
         if (response && response.data) {
-          displayedKhachHang.value = Array.isArray(response.data) ? response.data : [response.data]
-          totalElements.value = displayedKhachHang.value.length
-          totalPages.value = 1 // Single page for all data
-          currentPage.value = 0
-
-          notification.success(`Đã tải ${displayedKhachHang.value.length} khách hàng thành công`)
-        } else {
-          notification.warning('Không có dữ liệu khách hàng')
-          displayedKhachHang.value = []
-          totalElements.value = 0
-          totalPages.value = 0
+          // If data is directly in response.data (not paginated)
+          displayedKhachHang.value = response.data
+          totalElements.value = response.data.length
+          // Set up basic pagination
+          totalPages.value = Math.ceil(totalElements.value / itemsPerPage.value)
+          updatePaginationInfo()
         }
 
         loading.value = false
+        notification.success('Đã tải dữ liệu khách hàng thành công')
       } catch (error) {
         console.error('Error loading all customers:', error)
-        notification.error(`Không thể tải dữ liệu khách hàng: ${error.message || 'Lỗi không xác định'}`)
+        notification.error('Không thể tải dữ liệu khách hàng')
         loading.value = false
       }
     }
@@ -289,8 +282,8 @@ export default {
         loading.value = true
         notification.info('Đang tải dữ liệu khách hàng...')
 
-        console.log(`DEBUG - Loading page ${page}`)
-        const response = await getKhachHangPaginated(page)
+        console.log(`DEBUG - Loading page ${page} with ${itemsPerPage.value} items per page`)
+        const response = await getKhachHangPaginated(page, itemsPerPage.value)
         console.log('DEBUG - Pagination API response:', response)
 
         if (!response || !response.data) {
@@ -300,28 +293,96 @@ export default {
           return
         }
 
-        // Handle different response formats
-        if (Array.isArray(response.data)) {
-          // Direct array response
-          displayedKhachHang.value = response.data
-          totalElements.value = response.data.length
-          totalPages.value = 1
-          currentPage.value = 0
-        }
-        else if (response.data.content && Array.isArray(response.data.content)) {
-          // Spring Data pagination format
+        // Log the raw data for debugging
+        console.log('DEBUG - Response data structure:', {
+          isArray: Array.isArray(response.data),
+          dataType: typeof response.data,
+          hasContent: !!response.data.content,
+          contentType: response.data.content ? typeof response.data.content : 'N/A',
+          contentIsArray: response.data.content ? Array.isArray(response.data.content) : false
+        })
+
+        // Handle Spring Data format (the most common)
+        if (response.data.content && Array.isArray(response.data.content)) {
+          console.log('DEBUG - Using Spring Data pagination format')
           displayedKhachHang.value = response.data.content
-          totalElements.value = response.data.totalElements || response.data.content.length
-          totalPages.value = response.data.totalPages || 1
+          totalPages.value = response.data.totalPages || 0
+          totalElements.value = response.data.totalElements || 0
           currentPage.value = response.data.number || 0
         }
-        else {
-          // Fallback to using the data as is
-          displayedKhachHang.value = [response.data]
-          totalElements.value = 1
-          totalPages.value = 1
-          currentPage.value = 0
+        // Handle custom format with data array
+        else if (response.data.data && Array.isArray(response.data.data)) {
+          console.log('DEBUG - Using custom pagination with data array')
+          displayedKhachHang.value = response.data.data
+          totalPages.value = response.data.totalPages || 0
+          totalElements.value = response.data.totalElements || 0
+          currentPage.value = page
         }
+        // Handle direct array response
+        else if (Array.isArray(response.data)) {
+          console.log('DEBUG - Using direct array response')
+          // If no pagination is provided, we paginate the data ourselves
+          const allData = response.data
+          const totalItems = allData.length
+          const totalPgs = Math.ceil(totalItems / itemsPerPage.value) || 1
+          const startIdx = page * itemsPerPage.value
+          const endIdx = Math.min(startIdx + itemsPerPage.value, totalItems)
+
+          displayedKhachHang.value = allData.slice(startIdx, endIdx)
+          totalElements.value = totalItems
+          totalPages.value = totalPgs
+          currentPage.value = page
+        }
+        // Handle unexpected formats - try to salvage whatever data possible
+        else {
+          console.log('DEBUG - Unexpected response format, attempting to recover data')
+
+          // If we don't have any expected format, fallback to getting all data
+          const allDataResponse = await getAllKhachHang()
+          console.log('DEBUG - Fallback getAllKhachHang response:', allDataResponse)
+
+          if (allDataResponse && allDataResponse.data) {
+            const allData = Array.isArray(allDataResponse.data)
+              ? allDataResponse.data
+              : Array.isArray(allDataResponse.data.content)
+                ? allDataResponse.data.content
+                : []
+
+            const totalItems = allData.length
+            const totalPgs = Math.ceil(totalItems / itemsPerPage.value) || 1
+            const startIdx = page * itemsPerPage.value
+            const endIdx = Math.min(startIdx + itemsPerPage.value, totalItems)
+
+            displayedKhachHang.value = allData.slice(startIdx, endIdx)
+            totalElements.value = totalItems
+            totalPages.value = totalPgs
+            currentPage.value = page
+
+            console.log('DEBUG - Recovered with manual pagination:', {
+              total: totalItems,
+              pages: totalPgs,
+              currentItems: displayedKhachHang.value.length
+            })
+          } else {
+            console.log('DEBUG - Could not recover data')
+            displayedKhachHang.value = []
+            totalElements.value = 0
+            totalPages.value = 0
+            currentPage.value = 0
+            notification.warning('Không thể tải dữ liệu khách hàng')
+          }
+        }
+
+        // Update pagination info regardless of which path was taken
+        updatePaginationInfo()
+
+        // Log the success outcome
+        console.log('DEBUG - Final data state after loading:', {
+          items: displayedKhachHang.value.length,
+          totalElements: totalElements.value,
+          totalPages: totalPages.value,
+          currentPage: currentPage.value
+        })
 
         if (displayedKhachHang.value.length > 0) {
           notification.success(`Đã tải ${displayedKhachHang.value.length} khách hàng`)
@@ -332,12 +393,42 @@ export default {
         loading.value = false
       } catch (error) {
         console.error('ERROR - Loading customers failed:', error)
-        displayedKhachHang.value = []
-        totalElements.value = 0
-        totalPages.value = 0
-        notification.error(`Không thể tải dữ liệu: ${error.message || 'Lỗi không xác định'}`)
+        console.log('DEBUG - Error details:', error.response?.data || error.message)
+
+        // Try recovery with getAllKhachHang
+        try {
+          console.log('DEBUG - Attempting recovery with getAllKhachHang')
+          const recovery = await getAllKhachHang()
+
+          if (recovery && recovery.data) {
+            const allData = Array.isArray(recovery.data) ? recovery.data : []
+            displayedKhachHang.value = allData
+            totalElements.value = allData.length
+            totalPages.value = 1
+            currentPage.value = 0
+            updatePaginationInfo()
+            notification.warning('Đã tải dữ liệu, nhưng phân trang không khả dụng')
+          } else {
+            displayedKhachHang.value = []
+            totalElements.value = 0
+            totalPages.value = 0
+            notification.error('Không thể tải dữ liệu khách hàng')
+          }
+        } catch (recoveryError) {
+          console.error('ERROR - Recovery attempt failed:', recoveryError)
+          displayedKhachHang.value = []
+          totalElements.value = 0
+          totalPages.value = 0
+          notification.error(`Không thể tải dữ liệu: ${error.message || 'Lỗi không xác định'}`)
+        }
+
         loading.value = false
       }
+    }
+
+    const updatePaginationInfo = () => {
+      startIndex.value = currentPage.value * itemsPerPage.value
+      endIndex.value = Math.min(startIndex.value + displayedKhachHang.value.length, totalElements.value)
     }
 
     const goToPage = (page) => {
@@ -360,116 +451,111 @@ export default {
         loading.value = true
         notification.info('Đang tìm kiếm khách hàng...')
 
-        // Apply the search term to the selected search field or all fields
+        // Create search params based on selected field
         const searchParams = {}
 
+        // Simplified search logic - only search in the selected field
         if (searchField.value === 'all') {
-          // Search in all fields
+          // When "all" is selected, try to apply the same term to all searchable fields
+          searchParams.maKhachHang = searchValue
+          searchParams.hoTen = searchValue
+          searchParams.soDienThoai = searchValue
+          searchParams.email = searchValue
+
+          // Only add ID if the search term is a number
           if (!isNaN(searchValue)) {
             searchParams.id = searchValue
           }
-          searchParams.maKhachHang = searchValue
-          searchParams.tenKhachHang = searchValue
-          searchParams.soDienThoai = searchValue
-          searchParams.email = searchValue
         } else {
-          // Search in selected field only
+          // For specific field searches
           searchParams[searchField.value] = searchValue
         }
 
         console.log(`DEBUG - Search request:`)
-        console.log(`- Search term: ${searchValue}`)
         console.log(`- Search field: ${searchField.value}`)
-        console.log(`- Page: ${page}`)
+        console.log(`- Search term: ${searchValue}`)
+        console.log(`- Page: ${page}, Size: ${itemsPerPage.value}`)
         console.log(`- Params:`, searchParams)
 
-        const response = await searchKhachHangAPI(searchParams, page)
+        // Check base URL from API configuration
+        console.log(`DEBUG - Base URL: ${import.meta.env.VITE_API_URL || 'Not configured - check api.js'}`);
+
+        const response = await searchKhachHangAPI(searchParams, page, itemsPerPage.value)
         console.log('DEBUG - Search response:', response)
 
         if (response && response.data) {
-          if (Array.isArray(response.data)) {
-            // Direct array result
+          // Check what kind of data structure we received
+          console.log('DEBUG - Response data type:', Array.isArray(response.data) ? 'Array' : typeof response.data)
+
+          if (response.data.content) {
+            console.log('DEBUG - Using Spring Data pagination format')
+            displayedKhachHang.value = response.data.content
+            totalPages.value = response.data.totalPages || 0
+            totalElements.value = response.data.totalElements || 0
+            currentPage.value = response.data.number || 0
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            console.log('DEBUG - Using custom pagination format with data array')
+            displayedKhachHang.value = response.data.data
+            totalPages.value = response.data.totalPages || 0
+            totalElements.value = response.data.totalElements || 0
+            currentPage.value = page
+          } else if (Array.isArray(response.data)) {
+            console.log('DEBUG - Using direct array response')
             displayedKhachHang.value = response.data
             totalElements.value = response.data.length
-            totalPages.value = 1
+            totalPages.value = Math.ceil(totalElements.value / itemsPerPage.value)
             currentPage.value = 0
-          }
-          else if (response.data.content && Array.isArray(response.data.content)) {
-            // Paginated result
-            displayedKhachHang.value = response.data.content
-            totalElements.value = response.data.totalElements || response.data.content.length
-            totalPages.value = response.data.totalPages || 1
-            currentPage.value = response.data.number || 0
-          }
-          else {
-            // Single object result
-            displayedKhachHang.value = [response.data]
-            totalElements.value = 1
-            totalPages.value = 1
-            currentPage.value = 0
+          } else {
+            console.log('DEBUG - Unexpected data format:', response.data)
+            displayedKhachHang.value = []
+            totalElements.value = 0
+            totalPages.value = 0
           }
 
+          // Log the final state
+          console.log('DEBUG - After search:')
+          console.log(`- Items: ${displayedKhachHang.value.length}`)
+          console.log(`- Total elements: ${totalElements.value}`)
+          console.log(`- Total pages: ${totalPages.value}`)
+          console.log(`- Current page: ${currentPage.value}`)
+
+          updatePaginationInfo()
+
           if (displayedKhachHang.value.length > 0) {
-            notification.success(`Tìm thấy ${displayedKhachHang.value.length} khách hàng`)
+            notification.success(`Tìm thấy ${totalElements.value} khách hàng`)
           } else {
             notification.info('Không tìm thấy khách hàng nào phù hợp')
           }
         } else {
+          console.log('DEBUG - Empty or invalid response')
           notification.warning('Không có dữ liệu trả về từ server')
           displayedKhachHang.value = []
           totalElements.value = 0
           totalPages.value = 0
+          updatePaginationInfo()
         }
 
         loading.value = false
       } catch (error) {
         console.error('Error searching customers:', error)
+        console.log('DEBUG - Error details:', error.response?.data || error.message)
         notification.error(`Không thể tìm kiếm khách hàng: ${error.message || 'Lỗi không xác định'}`)
         loading.value = false
-        displayedKhachHang.value = []
-        totalElements.value = 0
-        totalPages.value = 0
       }
     }
 
-    const openViewModal = async (khachHang) => {
-      try {
-        // Attempt to get detailed info if only a basic record is available
-        if (!khachHang.taiKhoan && khachHang.id) {
-          const response = await getKhachHangById(khachHang.id)
-          if (response && response.data) {
-            viewedKhachHang.value = response.data
-          } else {
-            viewedKhachHang.value = { ...khachHang }
-          }
-        } else {
-          // Use the data we already have
-          viewedKhachHang.value = { ...khachHang }
-        }
-
-        // Show modal
-        showViewModal.value = true
-        // Disable body scroll
-        document.body.style.overflow = 'hidden'
-
-        // Thêm class để ngăn scroll
-        document.documentElement.classList.add('modal-open')
-      } catch (error) {
-        console.error('Error fetching customer details:', error)
-        notification.error('Không thể tải thông tin chi tiết khách hàng')
-        viewedKhachHang.value = { ...khachHang } // Fall back to what we have
-        showViewModal.value = true
-        document.body.style.overflow = 'hidden'
-        document.documentElement.classList.add('modal-open')
-      }
+    const openViewModal = (khachHang) => {
+      // Set the viewed customer data
+      viewedKhachHang.value = { ...khachHang }
+      // Show modal
+      showViewModal.value = true
+      // Disable body scroll
+      document.body.style.overflow = 'hidden'
     }
 
     const closeViewModal = () => {
       showViewModal.value = false
-      // Ensure body overflow is restored
-      document.body.style.overflow = 'auto'
-      // Xóa class ngăn scroll
-      document.documentElement.classList.remove('modal-open')
+      document.body.style.overflow = ''
     }
 
     const formatDate = (dateStr) => {
@@ -489,9 +575,9 @@ export default {
 
     // Lifecycle hooks
     onMounted(() => {
-      console.log('KhachHang component mounted, loading all data...')
-      // Load all data immediately
-      loadAllKhachHang()
+      console.log('KhachHang component mounted, loading data...')
+      // Try to load paginated data first
+      loadKhachHangPage(0)
     })
 
     return {
@@ -502,6 +588,8 @@ export default {
       currentPage,
       totalPages,
       totalElements,
+      startIndex,
+      endIndex,
       showViewModal,
       paginationItems,
       loading,
@@ -516,14 +604,6 @@ export default {
   },
 }
 </script>
-
-<style>
-/* Global styles - needed for modal */
-:global(.modal-open) {
-  overflow: hidden;
-  padding-right: 17px; /* Để tránh nhảy layout khi scroll biến mất */
-}
-</style>
 
 <style scoped>
 .khach-hang-container {
@@ -596,7 +676,6 @@ export default {
   border-radius: 0.3rem;
   outline: 0;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
-  z-index: 2002;
 }
 
 .custom-modal-header {
@@ -615,31 +694,10 @@ export default {
   line-height: 1.5;
 }
 
-.btn-close {
-  box-sizing: content-box;
-  width: 1em;
-  height: 1em;
-  padding: 0.25em 0.25em;
-  color: #000;
-  background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
-  border: 0;
-  border-radius: 0.25rem;
-  opacity: 0.5;
-  cursor: pointer;
-}
-
-.btn-close:hover {
-  color: #000;
-  text-decoration: none;
-  opacity: 0.75;
-}
-
 .custom-modal-body {
   position: relative;
   flex: 1 1 auto;
   padding: 1rem;
-  max-height: 70vh;
-  overflow-y: auto;
 }
 
 .custom-modal-footer {

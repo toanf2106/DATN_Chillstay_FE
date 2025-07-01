@@ -8,7 +8,7 @@ const getSessionId = () => {
 // Tạo instance axios với cấu hình mặc định
 const api = axios.create({
   baseURL: 'http://localhost:8080', // URL API backend Spring Boot
-  timeout: 10000,
+  timeout: 30000, // Tăng timeout lên 30 giây
   headers: {
     'Content-Type': 'application/json; charset=utf-8',
     'Accept': 'application/json; charset=utf-8',

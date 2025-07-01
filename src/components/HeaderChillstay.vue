@@ -4,33 +4,42 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import notification from '@/utils/notification'
 import { useAuthStore } from '@/stores/authStore'
+import api from '@/utils/api'
 
 const loginUsername = ref('')
 const loginPassword = ref('')
 const loginError = ref('')
+
+// Biến cho form đăng ký
+const tenDangNhap = ref('')
+const email = ref('')
+const soDienThoai = ref('')
+const matKhau = ref('')
+const xacNhanMatKhau = ref('')
+const gioiTinh = ref(true) // Mặc định là Nam (true trong UI, false trong DB)
+const signupError = ref('')
+
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Sử dụng computed properties để lấy dữ liệu từ store
+// Computed properties để lấy dữ liệu từ store
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const currentUser = computed(() => authStore.user)
 
+// Trạng thái hiển thị mật khẩu
 const passwordVisible = ref(false)
 const signupPasswordVisible = ref(false)
 const confirmPasswordVisible = ref(false)
 
 // Biến toàn cục kiểm soát việc đóng modal
 window.isLoginProcessing = false
+window.isRegisterProcessing = false
 
-// Function để đóng modal với animation - được sử dụng ở nhiều nơi trong component
+// Function để đóng modal với animation
 function closeModal(modal) {
-  // Thêm class để kích hoạt animation đóng
   modal.classList.remove('modal-active')
-
-  // Đợi animation hoàn tất rồi mới ẩn modal
   setTimeout(function () {
     modal.style.display = 'none'
-    // Xóa class active khỏi forms
     const loginForm = document.getElementById('loginForm')
     const signupForm = document.getElementById('signupForm')
     if (loginForm) loginForm.classList.remove('form-active')
@@ -43,37 +52,32 @@ function setupModalListeners() {
   const modal = document.getElementById('authModal')
   const loginForm = document.getElementById('loginForm')
   const signupForm = document.getElementById('signupForm')
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm')
   const loginBtn = document.querySelector('.login-btn')
   const signupBtn = document.querySelector('.signup-btn')
   const closeBtn = document.querySelector('.close-button')
   const showSignupLink = document.getElementById('showSignup')
   const showLoginLink = document.getElementById('showLogin')
+  const showForgotPasswordLink = document.getElementById('forgotPassword')
+  const showLoginFromForgotLink = document.getElementById('showLoginFromForgot')
 
   // Function để reset form
   function resetForms() {
     resetLoginForm()
-    // Reset signup form
-    if (signupForm.querySelector('form')) {
-      signupForm.querySelector('form').reset()
-    }
+    resetSignupForm()
+    resetForgotPasswordForm()
   }
 
   // Function để mở modal với animation
   function openModal(formToShow) {
-    // Hiển thị modal
     modal.style.display = 'block'
-
-    // Thêm class để kích hoạt animation
     setTimeout(function () {
       modal.classList.add('modal-active')
-
-      // Hiển thị form tương ứng với animation
       if (formToShow === 'login') {
         loginForm.style.display = 'block'
         signupForm.style.display = 'none'
+        forgotPasswordForm.style.display = 'none'
         loginForm.classList.add('form-active')
-
-        // Focus vào trường đầu tiên sau khi animation hoàn tất
         setTimeout(function () {
           const inputElem = loginForm.querySelector('input[type="text"]')
           if (inputElem) inputElem.focus()
@@ -81,75 +85,71 @@ function setupModalListeners() {
       } else if (formToShow === 'signup') {
         loginForm.style.display = 'none'
         signupForm.style.display = 'block'
+        forgotPasswordForm.style.display = 'none'
         signupForm.classList.add('form-active')
-
-        // Focus vào trường đầu tiên sau khi animation hoàn tất
         setTimeout(function () {
           const inputElem = signupForm.querySelector('input[type="text"]')
+          if (inputElem) inputElem.focus()
+        }, 300)
+      } else if (formToShow === 'forgot') {
+        loginForm.style.display = 'none'
+        signupForm.style.display = 'none'
+        forgotPasswordForm.style.display = 'block'
+        forgotPasswordForm.classList.add('form-active')
+        setTimeout(function () {
+          const inputElem = forgotPasswordForm.querySelector('input[type="email"]')
           if (inputElem) inputElem.focus()
         }, 300)
       }
     }, 10)
   }
 
-  // Function để chuyển đổi giữa các form với animation
+  // Function để chuyển đổi giữa các form
   function switchForm(fromForm, toForm) {
-    // Thêm class để kích hoạt animation ẩn
     fromForm.classList.add('form-hiding')
-
-    // Đợi animation ẩn hoàn tất
     setTimeout(function () {
       fromForm.style.display = 'none'
       fromForm.classList.remove('form-active')
       fromForm.classList.remove('form-hiding')
-
-      // Hiển thị form mới
       toForm.style.display = 'block'
-
-      // Kích hoạt animation hiển thị
       setTimeout(function () {
         toForm.classList.add('form-active')
-
-        // Focus vào trường đầu tiên
         const inputElem = toForm.querySelector('input[type="text"]')
         if (inputElem) inputElem.focus()
       }, 10)
     }, 200)
   }
 
+  // Các event handlers
   if (loginBtn) {
-    // Hiển thị modal khi nhấn nút đăng nhập
     loginBtn.addEventListener('click', function (e) {
       e.preventDefault()
-      resetForms() // Reset form trước khi hiển thị
+      resetForms()
       openModal('login')
     })
   }
 
   if (signupBtn) {
-    // Hiển thị modal khi nhấn nút đăng ký
     signupBtn.addEventListener('click', function (e) {
       e.preventDefault()
-      resetForms() // Reset form trước khi hiển thị
+      resetForms()
       openModal('signup')
     })
   }
 
-  // Đóng modal khi nhấn nút đóng
   if (closeBtn) {
     closeBtn.addEventListener('click', function () {
-      if (!window.isLoginProcessing) {
+      if (!window.isLoginProcessing && !window.isRegisterProcessing) {
         closeModal(modal)
-        resetForms() // Reset form khi đóng modal
+        resetForms()
       }
     })
   }
 
-  // Chuyển đổi giữa form đăng nhập và đăng ký
   if (showSignupLink) {
     showSignupLink.addEventListener('click', function (e) {
       e.preventDefault()
-      resetForms() // Reset form khi chuyển đổi
+      resetForms()
       switchForm(loginForm, signupForm)
     })
   }
@@ -157,87 +157,51 @@ function setupModalListeners() {
   if (showLoginLink) {
     showLoginLink.addEventListener('click', function (e) {
       e.preventDefault()
-      resetForms() // Reset form khi chuyển đổi
+      resetForms()
       switchForm(signupForm, loginForm)
     })
   }
 
-  // Đóng modal khi nhấn bên ngoài
+  if (showForgotPasswordLink) {
+    showForgotPasswordLink.addEventListener('click', function (e) {
+      e.preventDefault()
+      resetForms()
+      switchForm(loginForm, forgotPasswordForm)
+    })
+  }
+
+  if (showLoginFromForgotLink) {
+    showLoginFromForgotLink.addEventListener('click', function (e) {
+      e.preventDefault()
+      resetForms()
+      switchForm(forgotPasswordForm, loginForm)
+    })
+  }
+
   window.onclick = function (event) {
-    // Chỉ đóng modal khi không trong quá trình đăng nhập
-    if (event.target == modal && !window.isLoginProcessing) {
+    if (event.target == modal && !window.isLoginProcessing && !window.isRegisterProcessing) {
       closeModal(modal)
-      resetForms() // Reset form khi đóng modal
+      resetForms()
     }
   }
 
   // Thêm hiệu ứng cho input fields
   const inputFields = document.querySelectorAll('.auth-form input')
   inputFields.forEach(function (input) {
-    // Thêm class khi focus
     input.addEventListener('focus', function () {
       this.parentNode.classList.add('input-focused')
     })
 
-    // Xóa class khi blur nếu không có giá trị
     input.addEventListener('blur', function () {
       if (!this.value) {
         this.parentNode.classList.remove('input-focused')
       }
     })
 
-    // Kiểm tra nếu đã có giá trị (ví dụ: autofill)
     if (input.value) {
       input.parentNode.classList.add('input-focused')
     }
   })
-
-  // Xử lý form đăng ký (form không có v-model của Vue)
-  const signupFormEl = document.querySelector('#signupForm form')
-  if (signupFormEl) {
-    // Loại bỏ bất kỳ event handler nào đã được thêm trước đó
-    const signupFormClone = signupFormEl.cloneNode(true)
-    signupFormEl.parentNode.replaceChild(signupFormClone, signupFormEl)
-    const updatedSignupForm = signupFormClone
-
-    // Thêm sự kiện submit mới
-    updatedSignupForm.addEventListener('submit', function (e) {
-      e.preventDefault()
-      e.stopPropagation()
-
-      // Hiển thị hiệu ứng loading khi submit
-      const submitBtn = this.querySelector('.submit-btn')
-      if (submitBtn) {
-        submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
-        submitBtn.disabled = true
-
-        // Giả lập xử lý form
-        setTimeout(function () {
-          // Đóng modal sau khi xử lý
-          closeModal(modal)
-
-          // Khôi phục nút submit
-          submitBtn.innerHTML = 'Đăng ký'
-          submitBtn.disabled = false
-        }, 1500)
-      }
-
-      // Ngăn chặn bất kỳ hành động submit mặc định nào
-      return false
-    })
-
-    // Cũng xử lý cho nút submit
-    const registerBtn = updatedSignupForm.querySelector('.submit-btn')
-    if (registerBtn) {
-      registerBtn.addEventListener('click', function (e) {
-        e.preventDefault()
-        e.stopPropagation()
-        // Trigger sự kiện submit của form
-        const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
-        updatedSignupForm.dispatchEvent(submitEvent)
-      })
-    }
-  }
 }
 
 // Kiểm tra trạng thái đăng nhập khi component được tạo
@@ -250,6 +214,16 @@ function resetLoginForm() {
   loginPassword.value = ''
   loginError.value = ''
   passwordVisible.value = false
+}
+
+function resetSignupForm() {
+  tenDangNhap.value = ''
+  email.value = ''
+  soDienThoai.value = ''
+  matKhau.value = ''
+  xacNhanMatKhau.value = ''
+  gioiTinh.value = true
+  signupError.value = ''
   signupPasswordVisible.value = false
   confirmPasswordVisible.value = false
 }
@@ -266,24 +240,116 @@ function toggleConfirmPasswordVisibility() {
   confirmPasswordVisible.value = !confirmPasswordVisible.value
 }
 
-async function handleLogin() {
-  try {
-    // Đánh dấu đang trong quá trình đăng nhập để ngăn đóng modal
-    window.isLoginProcessing = true
+// Hàm xử lý quên mật khẩu
+function goToForgotPassword() {
+  const modal = document.getElementById('authModal')
+  if (modal) {
+    closeModal(modal)
+    resetLoginForm()
+  }
+  // Sử dụng setTimeout để đảm bảo modal đã đóng trước khi chuyển hướng
+  setTimeout(() => {
+    window.location.href = window.location.origin + '/quen-mat-khau'
+  }, 300)
+}
 
-    // Hiển thị trạng thái loading
-    const submitBtn = document.querySelector('#loginForm .submit-btn')
+// Biến cho form quên mật khẩu
+const forgotEmail = ref('')
+const forgotEmailError = ref('')
+const forgotEmailSuccess = ref('')
+const isEmailProcessing = ref(false)
+
+// Hàm xử lý quên mật khẩu trong modal
+async function handleForgotPassword() {
+  try {
+    // Reset thông báo
+    forgotEmailError.value = ''
+    forgotEmailSuccess.value = ''
+
+    // Validate email
+    if (!forgotEmail.value) {
+      forgotEmailError.value = 'Vui lòng nhập email của bạn'
+      return
+    }
+
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!regexEmail.test(forgotEmail.value)) {
+      forgotEmailError.value = 'Email không hợp lệ'
+      return
+    }
+
+    isEmailProcessing.value = true
+    const submitBtn = document.querySelector('#forgotPasswordForm .submit-btn')
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
     submitBtn.disabled = true
 
-    loginError.value = ''
-    console.log('Đang đăng nhập với:', loginUsername.value)
+    // Đảm bảo email được format đúng trước khi gửi đi
+    const trimmedEmail = forgotEmail.value.trim().toLowerCase()
 
-    // Sử dụng authStore để đăng nhập
+        // Gọi API quên mật khẩu từ authService
+    const { forgotPassword } = await import('@/Service/authService')
+    await forgotPassword(trimmedEmail)
+
+    forgotEmailSuccess.value = 'Vui lòng kiểm tra email của bạn để đặt lại mật khẩu'
+    notification.success('Vui lòng kiểm tra email của bạn để đặt lại mật khẩu', {
+      position: 'top-right',
+      duration: 5000
+    })
+
+    // Reset form sau khi thành công
+    setTimeout(() => {
+      const modal = document.getElementById('authModal')
+      closeModal(modal)
+      resetForgotPasswordForm()
+    }, 2000)
+
+  } catch (error) {
+    console.error('Lỗi quên mật khẩu:', error)
+
+    // Hiển thị message lỗi từ API nếu có
+    if (error.response && error.response.data) {
+      if (typeof error.response.data === 'string') {
+        forgotEmailError.value = error.response.data
+      } else if (error.response.data.message) {
+        forgotEmailError.value = error.response.data.message
+      } else {
+        forgotEmailError.value = 'Có lỗi xảy ra khi xử lý yêu cầu'
+      }
+    } else {
+      forgotEmailError.value = 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
+    }
+
+    notification.error(forgotEmailError.value, {
+      position: 'top-right',
+      duration: 5000
+    })
+  } finally {
+    isEmailProcessing.value = false
+    const submitBtn = document.querySelector('#forgotPasswordForm .submit-btn')
+    if (submitBtn) {
+      submitBtn.innerHTML = 'Gửi yêu cầu'
+      submitBtn.disabled = false
+    }
+  }
+}
+
+function resetForgotPasswordForm() {
+  forgotEmail.value = ''
+  forgotEmailError.value = ''
+  forgotEmailSuccess.value = ''
+}
+
+async function handleLogin() {
+  try {
+    window.isLoginProcessing = true
+    const submitBtn = document.querySelector('#loginForm .submit-btn')
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
+    submitBtn.disabled = true
+    loginError.value = ''
+
     const result = await authStore.login(loginUsername.value, loginPassword.value)
 
     if (!result.success) {
-      // Kiểm tra xem có phải lỗi tài khoản bị khóa không
       if (result.error && result.error.response && result.error.response.status === 403) {
         loginError.value = 'Tài khoản đã bị khóa!'
         notification.error('Tài khoản đã bị khóa!', {
@@ -295,44 +361,28 @@ async function handleLogin() {
       throw new Error('Đăng nhập thất bại')
     }
 
-    // Gỡ bỏ sự kiện onclick để tránh xung đột
     const closeBtn = document.querySelector('.close-button')
     if (closeBtn) {
       closeBtn.onclick = null
     }
-
-    // Tạm thời vô hiệu hóa window.onclick
     window.onclick = null
-
-    // Đóng modal sử dụng hàm closeModal đã định nghĩa ở trên
     const modal = document.getElementById('authModal')
     closeModal(modal)
-
-    // Reset form sau khi đăng nhập thành công
     resetLoginForm()
-
-    // Hủy cờ đang xử lý đăng nhập
     window.isLoginProcessing = false
 
-    // Hiển thị thông báo đăng nhập thành công
     notification.success('Đăng nhập thành công!', {
       position: 'top-right',
       duration: 3000,
     })
 
-    // Kiểm tra loại tài khoản và chuyển hướng
     const userData = result.userData
     if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
-      // Nếu là nhân viên hoặc admin
-      console.log('Đăng nhập thành công với quyền admin/nhân viên')
       router.push('/admin')
     } else {
-      // Nếu là khách hàng
-      console.log('Đăng nhập thành công với quyền khách hàng')
       router.push('/')
     }
 
-    // Khôi phục các event handlers sau khi đã xử lý xong
     setupModalListeners()
   } catch (e) {
     console.error('Lỗi đăng nhập:', e)
@@ -344,15 +394,11 @@ async function handleLogin() {
       })
     }
 
-    // Hủy cờ đang xử lý đăng nhập
     window.isLoginProcessing = false
-
-    // Khôi phục nút submit
     const submitBtn = document.querySelector('#loginForm .submit-btn')
     submitBtn.innerHTML = 'Đăng nhập'
     submitBtn.disabled = false
 
-    // Bảo đảm modal vẫn hiển thị
     const modal = document.getElementById('authModal')
     if (modal) {
       modal.style.display = 'block'
@@ -362,27 +408,161 @@ async function handleLogin() {
   }
 }
 
+// Kiểm tra các trường trong form đăng ký
+function validateForm() {
+  let isValid = true;
+  signupError.value = '';
+
+  // Kiểm tra tên đăng nhập
+  if (tenDangNhap.value === '') {
+    signupError.value = 'Tên đăng nhập không được để trống!';
+    isValid = false;
+  }
+
+  // Kiểm tra email
+  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (email.value === '') {
+    signupError.value = 'Email không được để trống!';
+    isValid = false;
+  } else if (!regexEmail.test(email.value)) {
+    signupError.value = 'Email không hợp lệ!';
+    isValid = false;
+  }
+
+  // Kiểm tra số điện thoại
+  const regexSdt = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+  if (soDienThoai.value === '') {
+    signupError.value = 'Số điện thoại không được để trống!';
+    isValid = false;
+  } else if (!regexSdt.test(soDienThoai.value)) {
+    signupError.value = 'Số điện thoại không hợp lệ!';
+    isValid = false;
+  }
+
+  // Kiểm tra mật khẩu
+  const regexMatKhau = /^.{8,}$/;
+  if (matKhau.value === '') {
+    signupError.value = 'Mật khẩu không được để trống!';
+    isValid = false;
+  } else if (!regexMatKhau.test(matKhau.value)) {
+    signupError.value = 'Mật khẩu phải có ít nhất 8 ký tự!';
+    isValid = false;
+  }
+
+  // Kiểm tra mật khẩu nhập lại
+  if (xacNhanMatKhau.value === '') {
+    signupError.value = 'Vui lòng nhập lại mật khẩu!';
+    isValid = false;
+  } else if (xacNhanMatKhau.value !== matKhau.value) {
+    signupError.value = 'Mật khẩu nhập lại không khớp!';
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+// Hàm xử lý đăng ký
+async function handleRegister() {
+  try {
+    window.isRegisterProcessing = true
+    signupError.value = ''
+
+    const submitBtn = document.querySelector('#signupForm .submit-btn')
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
+    submitBtn.disabled = true
+
+    // Kiểm tra các trường hợp lệ
+    if (!validateForm()) {
+      submitBtn.innerHTML = 'Đăng ký'
+      submitBtn.disabled = false
+      window.isRegisterProcessing = false
+      return
+    }
+
+    // Tạo đối tượng chứa thông tin đăng ký
+    const taiKhoan = {
+      tenDangNhap: tenDangNhap.value,
+      matKhau: matKhau.value,
+      email: email.value,
+      soDienThoai: soDienThoai.value,
+      gioiTinh: !gioiTinh.value // Chuyển đổi: true trong UI = Nam = false trong DB
+    }
+
+    // Gọi API đăng ký
+    await api.post('/api/register', taiKhoan)
+
+    // Xử lý thành công
+    notification.success('Đăng ký tài khoản thành công!', {
+      position: 'top-right',
+      duration: 3000,
+    })
+
+    // Đóng modal
+    const modal = document.getElementById('authModal')
+    closeModal(modal)
+
+    // Reset form
+    resetSignupForm()
+
+    // Hủy cờ đăng ký
+    window.isRegisterProcessing = false
+
+    // Chuyển sang form đăng nhập sau khi đăng ký thành công
+    setTimeout(() => {
+      const loginForm = document.getElementById('loginForm')
+      const signupForm = document.getElementById('signupForm')
+      if (loginForm && signupForm) {
+        loginForm.style.display = 'block'
+        signupForm.style.display = 'none'
+        loginForm.classList.add('form-active')
+        loginUsername.value = tenDangNhap.value // Tự động điền tên đăng nhập
+      }
+    }, 500)
+
+  } catch (error) {
+    console.error('Lỗi đăng ký:', error)
+
+    // Xử lý các lỗi từ server
+    let errorMessage = 'Đăng ký thất bại!'
+
+    if (error.response && error.response.data) {
+      errorMessage = error.response.data
+
+      if (errorMessage.includes('Tài khoản đã tồn tại')) {
+        errorMessage = 'Tên đăng nhập đã tồn tại!'
+      } else if (errorMessage.includes('Email đã tồn tại')) {
+        errorMessage = 'Email đã được sử dụng!'
+      } else if (errorMessage.includes('Số điện thoại đã tồn tại')) {
+        errorMessage = 'Số điện thoại đã được sử dụng!'
+      }
+    }
+
+    signupError.value = errorMessage
+    notification.error(errorMessage, {
+      position: 'top-right',
+      duration: 5000,
+    })
+
+    // Hủy cờ đăng ký
+    window.isRegisterProcessing = false
+
+    // Khôi phục nút submit
+    const submitBtn = document.querySelector('#signupForm .submit-btn')
+    submitBtn.innerHTML = 'Đăng ký'
+    submitBtn.disabled = false
+  }
+}
+
 function handleLogout() {
   try {
-    console.log('Calling authStore.logout()...')
-
-    // Gọi logout từ store để xóa storage và reset state
     authStore.logout()
-
-    console.log('authStore.logout() finished. isLoggedIn is now:', authStore.isLoggedIn)
-
-    // Thông báo đăng xuất thành công
     notification.success('Đăng xuất thành công!', {
       position: 'top-right',
       duration: 2000,
     })
-
-    // Sau khi store được cập nhật, Vue reactivity sẽ cập nhật UI.
-    // Nếu đang không ở trang chủ, chuyển về trang chủ.
     if (router.currentRoute.value.path !== '/') {
       router.push('/')
     }
-    // Không cần reload. Giao diện sẽ tự cập nhật.
   } catch (error) {
     console.error('Lỗi khi đăng xuất:', error)
     notification.error('Có lỗi xảy ra khi đăng xuất', {
@@ -392,6 +572,7 @@ function handleLogout() {
   }
 }
 </script>
+
 <template>
   <header>
     <nav class="navbar">
@@ -452,30 +633,56 @@ function handleLogout() {
               </div>
             </div>
             <button type="submit" class="btn submit-btn">Đăng nhập</button>
-            <div v-if="loginError" style="color: red">{{ loginError }}</div>
+            <div v-if="loginError" class="form-error">{{ loginError }}</div>
           </form>
-          <p class="form-switcher">Chưa có tài khoản? <a href="#" id="showSignup">Đăng ký</a></p>
+          <div class="form-links">
+            <p class="forgot-password">
+              <a href="#" id="forgotPassword">Quên mật khẩu?</a>
+            </p>
+            <p class="form-switcher">Chưa có tài khoản? <a href="#" id="showSignup">Đăng ký</a></p>
+          </div>
         </div>
 
-        <!-- Signup Form -->
+        <!-- Signup Form theo thiết kế mới -->
         <div id="signupForm" class="auth-form" style="display: none">
           <h2>Đăng ký</h2>
-          <form>
+          <form @submit.prevent="handleRegister" class="signup-form-container">
             <div class="input-group">
-              <label for="signupUsername">Tên đăng nhập</label>
-              <input type="text" id="signupUsername" name="signupUsername" required />
+              <label for="tenDangNhap">Tên đăng nhập</label>
+              <input type="text" id="tenDangNhap" v-model="tenDangNhap" required />
             </div>
+
             <div class="input-group">
-              <label for="signupEmail">Email</label>
-              <input type="email" id="signupEmail" name="signupEmail" required />
+              <label for="email">Email</label>
+              <input type="email" id="email" v-model="email" required />
             </div>
+
             <div class="input-group">
-              <label for="signupPassword">Mật khẩu</label>
+              <label for="soDienThoai">Số điện thoại</label>
+              <input type="text" id="soDienThoai" v-model="soDienThoai" required />
+            </div>
+
+            <div class="input-group radio-group-container">
+              <label>Giới tính</label>
+              <div class="radio-group">
+                <div class="radio-option">
+                  <input type="radio" id="radioNam" :value="true" v-model="gioiTinh" checked />
+                  <label for="radioNam">Nam</label>
+                </div>
+                <div class="radio-option">
+                  <input type="radio" id="radioNu" :value="false" v-model="gioiTinh" />
+                  <label for="radioNu">Nữ</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="matKhau">Mật khẩu</label>
               <div class="password-input-container">
                 <input
                   :type="signupPasswordVisible ? 'text' : 'password'"
-                  id="signupPassword"
-                  name="signupPassword"
+                  id="matKhau"
+                  v-model="matKhau"
                   required
                 />
                 <span class="password-toggle" @click="toggleSignupPasswordVisibility">
@@ -485,13 +692,14 @@ function handleLogout() {
                 </span>
               </div>
             </div>
+
             <div class="input-group">
-              <label for="confirmPassword">Xác nhận mật khẩu</label>
+              <label for="xacNhanMatKhau">Xác nhận mật khẩu</label>
               <div class="password-input-container">
                 <input
                   :type="confirmPasswordVisible ? 'text' : 'password'"
-                  id="confirmPassword"
-                  name="confirmPassword"
+                  id="xacNhanMatKhau"
+                  v-model="xacNhanMatKhau"
                   required
                 />
                 <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
@@ -501,9 +709,49 @@ function handleLogout() {
                 </span>
               </div>
             </div>
-            <button type="submit" class="btn submit-btn">Đăng ký</button>
+
+            <button type="submit" class="btn submit-btn">ĐĂNG KÝ</button>
+            <div v-if="signupError" class="form-error error-message">{{ signupError }}</div>
           </form>
           <p class="form-switcher">Đã có tài khoản? <a href="#" id="showLogin">Đăng nhập</a></p>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div id="forgotPasswordForm" class="auth-form" style="display: none">
+          <h2>Quên mật khẩu</h2>
+          <p class="text-center text-muted mb-4">
+            Nhập email của bạn để nhận hướng dẫn khôi phục mật khẩu
+          </p>
+          <form @submit.prevent="handleForgotPassword">
+            <div class="input-group">
+              <label for="forgotEmail">Email</label>
+              <input
+                type="email"
+                id="forgotEmail"
+                v-model="forgotEmail"
+                class="form-control"
+                placeholder="Nhập email của bạn"
+                :disabled="isEmailProcessing"
+              />
+            </div>
+
+            <div v-if="forgotEmailError" class="form-error">
+              {{ forgotEmailError }}
+            </div>
+
+            <div v-if="forgotEmailSuccess" class="alert-success">
+              {{ forgotEmailSuccess }}
+            </div>
+
+            <button
+              type="submit"
+              class="btn submit-btn"
+              :disabled="isEmailProcessing"
+            >
+              {{ isEmailProcessing ? 'Đang xử lý...' : 'Gửi yêu cầu' }}
+            </button>
+          </form>
+          <p class="form-switcher">Quay lại <a href="#" id="showLoginFromForgot">Đăng nhập</a></p>
         </div>
       </div>
     </div>
@@ -511,6 +759,124 @@ function handleLogout() {
 </template>
 
 <style scoped>
+/* Cập nhật CSS để giống với thiết kế trong ảnh */
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  max-width: 500px;
+  padding: 30px;
+  position: relative;
+}
+
+.modal h2 {
+  color: #2a7d4f;
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 30px;
+  font-weight: bold;
+  border-bottom: 2px solid #2a7d4f;
+  padding-bottom: 10px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.input-group input[type="text"],
+.input-group input[type="email"],
+.input-group input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.radio-group-container {
+  margin-bottom: 15px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 30px;
+  margin-top: 5px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+}
+
+.radio-option input[type="radio"] {
+  margin-right: 5px;
+}
+
+.radio-option label {
+  color: #2a7d4f;
+  font-weight: 500;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background-color: #2a7d4f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+.submit-btn:hover {
+  background-color: #216b42;
+}
+
+.form-switcher {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.form-switcher a {
+  color: #2a7d4f;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.form-error {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.error-message {
+  margin: 10px 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+.password-input-container {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+}
+
 /* Thêm CSS cho user menu */
 .user-menu {
   display: flex;
@@ -535,5 +901,35 @@ function handleLogout() {
 
 .logout-btn:hover {
   background-color: #ff1a1a;
+}
+
+.form-links {
+  margin-top: 15px;
+}
+
+.forgot-password {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.forgot-password a {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.forgot-password a:hover {
+  color: #2a7d4f;
+  text-decoration: underline;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 10px 0;
+  font-size: 14px;
 }
 </style>

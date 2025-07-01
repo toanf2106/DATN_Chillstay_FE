@@ -57,7 +57,9 @@
             <th>Ngày bắt đầu</th>
             <th>Ngày kết thúc</th>
             <th>Số lượng</th>
+
             <th>Số lượng</th>
+
             <th>Homestay</th>
             <th>Trạng thái</th>
             <th>Thao tác</th>

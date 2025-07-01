@@ -12,3 +12,15 @@ export function getAccountInfo(username) {
 export function verifyAccount(username, password) {
   return api.post('/api/account/verify', { username, password })
 }
+
+export function forgotPassword(email) {
+  return api.post('/api/quen-mat-khau', { email })
+}
+
+export function resetPassword(token, matKhauMoi) {
+  return api.post('/api/dat-lai-mat-khau', { token, matKhauMoi })
+}
+
+export function checkResetToken(token) {
+  return api.get(`/api/kiem-tra-token?token=${token}`)
+}

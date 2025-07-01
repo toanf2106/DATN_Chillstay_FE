@@ -57,6 +57,9 @@
             <th>Ngày bắt đầu</th>
             <th>Ngày kết thúc</th>
             <th>Số lượng</th>
+
+            <th>Số lượng</th>
+
             <th>Homestay</th>
             <th>Trạng thái</th>
             <th>Thao tác</th>
@@ -76,6 +79,7 @@
             <td class="text-center">{{ formatDate(voucher.ngayBatDau) }}</td>
             <td class="text-center">{{ formatDate(voucher.ngayKetThuc) }}</td>
             <td class="text-center">{{ voucher.soLuong }}</td>
+            <td class="text-center">{{ voucher.giamToiDa }} đ</td>
             <td class="text-center">{{ getHomeStayName(voucher.homeStayId) }}</td>
             <td class="text-center">
               <span :class="`badge ${isVoucherValid(voucher) ? 'bg-success' : 'bg-danger'}`">

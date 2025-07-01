@@ -577,13 +577,13 @@ function handleLogout() {
   <header>
     <nav class="navbar">
       <div class="logo">
-        <a href="#"
-          ><img src="@/assets/icon/chillLogo.png" alt="Chillstay Logo" /><span>Chillstay</span></a
-        >
+        <router-link to="/">
+          <img src="@/assets/icon/chillLogo.png" alt="Chillstay Logo" />
+          <span>Chillstay</span>
+        </router-link>
       </div>
       <ul class="nav-links">
-        <li><a href="#">Trang Chủ</a></li>
-        <li><a href="#">Bookings</a></li>
+        <li><router-link to="/">Trang Chủ</router-link></li>
         <li><a href="#">Dịch Vụ</a></li>
         <li><a href="#">Tin Tức</a></li>
         <li><a href="#">Giảm Giá</a></li>
@@ -619,16 +619,10 @@ function handleLogout() {
             <div class="input-group">
               <label for="loginPassword">Mật khẩu</label>
               <div class="password-input-container">
-                <input
-                  :type="passwordVisible ? 'text' : 'password'"
-                  id="loginPassword"
-                  v-model="loginPassword"
-                  required
-                />
+                <input :type="passwordVisible ? 'text' : 'password'" id="loginPassword" v-model="loginPassword"
+                  required />
                 <span class="password-toggle" @click="togglePasswordVisibility">
-                  <font-awesome-icon
-                    :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
-                  />
+                  <font-awesome-icon :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
               </div>
             </div>
@@ -679,16 +673,19 @@ function handleLogout() {
             <div class="input-group">
               <label for="matKhau">Mật khẩu</label>
               <div class="password-input-container">
+
                 <input
                   :type="signupPasswordVisible ? 'text' : 'password'"
                   id="matKhau"
                   v-model="matKhau"
                   required
                 />
+
+                <input :type="signupPasswordVisible ? 'text' : 'password'" id="signupPassword" name="signupPassword"
+                  required />
+
                 <span class="password-toggle" @click="toggleSignupPasswordVisibility">
-                  <font-awesome-icon
-                    :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
-                  />
+                  <font-awesome-icon :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
               </div>
             </div>
@@ -696,16 +693,19 @@ function handleLogout() {
             <div class="input-group">
               <label for="xacNhanMatKhau">Xác nhận mật khẩu</label>
               <div class="password-input-container">
+
                 <input
                   :type="confirmPasswordVisible ? 'text' : 'password'"
                   id="xacNhanMatKhau"
                   v-model="xacNhanMatKhau"
                   required
                 />
+
+                <input :type="confirmPasswordVisible ? 'text' : 'password'" id="confirmPassword" name="confirmPassword"
+                  required />
+
                 <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
-                  <font-awesome-icon
-                    :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
-                  />
+                  <font-awesome-icon :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
               </div>
             </div>

@@ -69,7 +69,9 @@
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="loaiHomestay">Loại Homestay <span class="text-danger">*</span></label>
+                      <label for="loaiHomestay"
+                        >Loại Homestay <span class="text-danger">*</span></label
+                      >
                       <select
                         id="loaiHomestay"
                         v-model="formData.idLoaiHomeStay"
@@ -112,7 +114,9 @@
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="dienTich">Diện tích (m²) <span class="text-danger">*</span></label>
+                      <label for="dienTich"
+                        >Diện tích (m²) <span class="text-danger">*</span></label
+                      >
                       <input
                         id="dienTich"
                         v-model="formData.dienTich"
@@ -131,7 +135,9 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="giaCaHomestay">Giá (VND) <span class="text-danger">*</span></label>
+                      <label for="giaCaHomestay"
+                        >Giá (VND) <span class="text-danger">*</span></label
+                      >
                       <input
                         id="giaCaHomestay"
                         v-model.number="formData.giaCaHomestay"
@@ -167,7 +173,12 @@
                   <div class="col-md-6">
                     <div class="form-group">
                       <label for="tinhTrang">Tình trạng</label>
-                      <select id="tinhTrang" v-model="formData.tinhTrang" class="form-select" required>
+                      <select
+                        id="tinhTrang"
+                        v-model="formData.tinhTrang"
+                        class="form-select"
+                        required
+                      >
                         <option value="Còn phòng">Còn phòng</option>
                         <option value="Hết phòng">Hết phòng</option>
                       </select>
@@ -176,7 +187,12 @@
                   <div class="col-md-6">
                     <div class="form-group">
                       <label for="trangThai">Trạng thái</label>
-                      <select id="trangThai" v-model="formData.trangThai" class="form-select" required>
+                      <select
+                        id="trangThai"
+                        v-model="formData.trangThai"
+                        class="form-select"
+                        required
+                      >
                         <option :value="true">Hoạt động</option>
                         <option :value="false">Khóa</option>
                       </select>
@@ -239,7 +255,12 @@
 
                 <div class="form-group">
                   <label>Địa chỉ</label>
-                  <textarea class="form-control" rows="3" :value="formData.diaChi" readonly></textarea>
+                  <textarea
+                    class="form-control"
+                    rows="3"
+                    :value="formData.diaChi"
+                    readonly
+                  ></textarea>
                 </div>
 
                 <div class="row">
@@ -311,7 +332,7 @@
                   ></span>
                   <span v-else>
                     <i class="fas" :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-save'"></i>
-                    {{ isSubmitting ? 'Đang lưu...' : (isEdit ? 'Cập nhật' : 'Lưu') }}
+                    {{ isSubmitting ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Lưu' }}
                   </span>
                 </button>
               </div>
@@ -324,31 +345,31 @@
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed } from 'vue'
 
 export default {
   name: 'HomestayModal',
   props: {
     homestay: {
       type: Object,
-      default: null
+      default: null,
     },
     loaiList: {
       type: Array,
-      required: true
+      required: true,
     },
     chuList: {
       type: Array,
-      required: true
+      required: true,
     },
     isEdit: {
       type: Boolean,
-      default: false
+      default: false,
     },
     isViewMode: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   emits: ['save', 'close', 'edit'],
   setup(props, { emit }) {
@@ -364,216 +385,205 @@ export default {
       hinhAnh: '',
       maHomestay: '',
       ngayTao: null,
-      ngayUpdate: null
-    });
+      ngayUpdate: null,
+    })
 
-    const isSubmitting = ref(false);
-    const errors = ref({});
-    const fileInput = ref(null);
-    const previewImage = ref(null);
-    const selectedFile = ref(null);
+    const isSubmitting = ref(false)
+    const errors = ref({})
+    const fileInput = ref(null)
+    const previewImage = ref(null)
+    const selectedFile = ref(null)
 
     // Computed property for modal title based on mode
     const modalTitle = computed(() => {
-      if (props.isViewMode) return "Chi tiết Homestay";
-      return props.isEdit ? "Chỉnh sửa Homestay" : "Thêm mới Homestay";
-    });
+      if (props.isViewMode) return 'Chi tiết Homestay'
+      return props.isEdit ? 'Chỉnh sửa Homestay' : 'Thêm mới Homestay'
+    })
 
     const validateForm = () => {
-      const newErrors = {};
+      const newErrors = {}
 
       if (!formData.value.tenHomestay?.trim()) {
-        newErrors.tenHomestay = 'Tên Homestay không được để trống';
+        newErrors.tenHomestay = 'Tên Homestay không được để trống'
       }
 
       if (!formData.value.idLoaiHomeStay) {
-        newErrors.idLoaiHomeStay = 'Vui lòng chọn loại Homestay';
+        newErrors.idLoaiHomeStay = 'Vui lòng chọn loại Homestay'
       }
 
       if (!formData.value.idChuHomeStay) {
-        newErrors.idChuHomeStay = 'Vui lòng chọn chủ sở hữu';
+        newErrors.idChuHomeStay = 'Vui lòng chọn chủ sở hữu'
       }
 
       // Kiểm tra diện tích là số hợp lệ và lớn hơn 0
-      const dienTich = parseFloat(formData.value.dienTich);
+      const dienTich = parseFloat(formData.value.dienTich)
       if (isNaN(dienTich) || dienTich <= 0) {
-        newErrors.dienTich = 'Diện tích phải là số dương lớn hơn 0';
+        newErrors.dienTich = 'Diện tích phải là số dương lớn hơn 0'
       }
 
       if (!formData.value.giaCaHomestay || formData.value.giaCaHomestay <= 0) {
-        newErrors.giaCaHomestay = 'Giá phải lớn hơn 0';
+        newErrors.giaCaHomestay = 'Giá phải lớn hơn 0'
       }
 
       if (!formData.value.diaChi?.trim()) {
-        newErrors.diaChi = 'Địa chỉ không được để trống';
+        newErrors.diaChi = 'Địa chỉ không được để trống'
       }
 
-      errors.value = newErrors;
-      return Object.keys(newErrors).length === 0;
-    };
+      errors.value = newErrors
+      return Object.keys(newErrors).length === 0
+    }
 
     const getImageUrl = (img) => {
-      if (!img) return '';
+      if (!img) return '/images/placeholder-house.jpg'
 
-      // Nếu img là chuỗi Base64 đầy đủ, trả về trực tiếp
-      if (img && (img.startsWith('data:image') || img.startsWith('data:application'))) {
-        return img;
-      }
+      // Nếu là URL GCS hoặc URL đầy đủ
+      if (img.startsWith('http')) return img
 
-      // Nếu chỉ là chuỗi Base64 không có prefix, thêm prefix vào
-      if (img.length > 100 && !img.startsWith('http')) {
-        // Giả định là ảnh PNG nếu không biết định dạng
-        return `data:image/png;base64,${img}`;
-      }
-
-      // Nếu là URL đầy đủ
-      if (img.startsWith('http://') || img.startsWith('https://')) {
-        return img;
-      }
-
-      // Nếu không, giả định là đường dẫn tương đối
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-      return baseUrl ? `${baseUrl}/resources/images/homestay/${img}` : `/resources/images/homestay/${img}`;
-    };
+      return img
+    }
 
     // Helper functions for view mode
     const getLoaiName = (id) => {
-      const loai = props.loaiList.find(l => l.id === id);
-      return loai ? (loai.tenLoaiHomestay || loai.tenLoai) : 'Không xác định';
-    };
+      const loai = props.loaiList.find((l) => l.id === id)
+      return loai ? loai.tenLoaiHomestay || loai.tenLoai : 'Không xác định'
+    }
 
     const getChuName = (id) => {
-      const chu = props.chuList.find(c => c.id === id);
-      return chu ? (chu.hotenChuHomestay || chu.hoTen) : 'Không xác định';
-    };
+      const chu = props.chuList.find((c) => c.id === id)
+      return chu ? chu.hotenChuHomestay || chu.hoTen : 'Không xác định'
+    }
 
     const formatCurrency = (value) => {
-      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-    };
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
+    }
 
     const formatDate = (dateString) => {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN');
-    };
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('vi-VN')
+    }
 
     const triggerFileInput = () => {
-      if (props.isViewMode) return;
-      fileInput.value.click();
-    };
+      if (props.isViewMode) return
+      fileInput.value.click()
+    }
 
     const handleImageError = (event) => {
       // Use default avatar image if loading fails
-      event.target.src = '/images/default-avatar.png';
-    };
+      event.target.src = '/images/default-avatar.png'
+    }
 
     const handleFileUpload = (event) => {
-      const file = event.target.files[0];
+      const file = event.target.files[0]
       if (file) {
         try {
           // Lưu file đã chọn
-          selectedFile.value = file;
+          selectedFile.value = file
 
           // Hiển thị preview trước khi upload
-          const reader = new FileReader();
+          const reader = new FileReader()
           reader.onload = (e) => {
-            previewImage.value = e.target.result;
-          };
-          reader.readAsDataURL(file);
+            previewImage.value = e.target.result
+          }
+          reader.readAsDataURL(file)
 
           // Lưu tên file cho hiển thị
-          formData.value.hinhAnh = file.name;
+          formData.value.hinhAnh = file.name
         } catch (error) {
-          console.error('Lỗi xử lý ảnh:', error);
-          alert('Có lỗi xảy ra khi xử lý ảnh. Vui lòng thử lại hoặc chọn ảnh khác.');
+          console.error('Lỗi xử lý ảnh:', error)
+          alert('Có lỗi xảy ra khi xử lý ảnh. Vui lòng thử lại hoặc chọn ảnh khác.')
         }
       }
-    };
+    }
 
     const handleSubmit = async () => {
       if (!validateForm()) {
-        return;
+        return
       }
 
-      isSubmitting.value = true;
+      isSubmitting.value = true
       try {
         // Tạo FormData để gửi dữ liệu và file
-        const formDataToSend = new FormData();
+        const formDataToSend = new FormData()
 
         // Thêm file ảnh nếu có
         if (selectedFile.value) {
-          formDataToSend.append('file', selectedFile.value);
+          formDataToSend.append('file', selectedFile.value)
         }
 
         // Chuyển đổi dữ liệu homestay thành JSON string
-        const homestayData = { ...formData.value };
+        const homestayData = { ...formData.value }
 
         // Đảm bảo các trường số được chuyển đổi đúng
         if (homestayData.dienTich) {
-          homestayData.dienTich = parseFloat(homestayData.dienTich);
+          homestayData.dienTich = parseFloat(homestayData.dienTich)
         }
 
         if (homestayData.giaCaHomestay) {
-          homestayData.giaCaHomestay = parseFloat(homestayData.giaCaHomestay);
+          homestayData.giaCaHomestay = parseFloat(homestayData.giaCaHomestay)
         }
 
         // Nếu là chỉnh sửa, đảm bảo có ID
         if (props.isEdit && props.homestay && props.homestay.id) {
-          homestayData.id = parseInt(props.homestay.id, 10);
+          homestayData.id = parseInt(props.homestay.id, 10)
         }
 
         // Đảm bảo idLoaiHomeStay và idChuHomeStay là số nguyên
         if (homestayData.idLoaiHomeStay) {
-          homestayData.idLoaiHomeStay = parseInt(homestayData.idLoaiHomeStay, 10);
+          homestayData.idLoaiHomeStay = parseInt(homestayData.idLoaiHomeStay, 10)
         }
 
         if (homestayData.idChuHomeStay) {
-          homestayData.idChuHomeStay = parseInt(homestayData.idChuHomeStay, 10);
+          homestayData.idChuHomeStay = parseInt(homestayData.idChuHomeStay, 10)
         }
 
         // Thêm dữ liệu homestay dạng JSON
-        formDataToSend.append('homestay', JSON.stringify(homestayData));
+        formDataToSend.append('homestay', JSON.stringify(homestayData))
 
         // Gọi hàm lưu từ component cha
-        await emit('save', formDataToSend);
+        await emit('save', formDataToSend)
       } catch {
         // Lỗi được xử lý bởi component cha
       } finally {
-        isSubmitting.value = false;
+        isSubmitting.value = false
       }
-    };
+    }
 
     // Nếu là chỉnh sửa, điền dữ liệu hiện có
-    watch(() => props.homestay, (newVal) => {
-      if (newVal) {
-        // Copy dữ liệu từ props vào form
-        formData.value = { ...newVal };
+    watch(
+      () => props.homestay,
+      (newVal) => {
+        if (newVal) {
+          // Copy dữ liệu từ props vào form
+          formData.value = { ...newVal }
 
-        // Chỉ reset preview image khi mở một homestay mới hoặc thêm mới
-        if (!props.isEdit || selectedFile.value === null) {
-          previewImage.value = null;
-          selectedFile.value = null;
+          // Chỉ reset preview image khi mở một homestay mới hoặc thêm mới
+          if (!props.isEdit || selectedFile.value === null) {
+            previewImage.value = null
+            selectedFile.value = null
+          }
+        } else {
+          // Reset form khi thêm mới
+          formData.value = {
+            tenHomestay: '',
+            idLoaiHomeStay: null,
+            idChuHomeStay: null,
+            dienTich: 0,
+            giaCaHomestay: 0,
+            diaChi: '',
+            tinhTrang: 'Còn phòng',
+            trangThai: true,
+            hinhAnh: '',
+            maHomestay: '',
+            ngayTao: null,
+            ngayUpdate: null,
+          }
+          previewImage.value = null
+          selectedFile.value = null
         }
-      } else {
-        // Reset form khi thêm mới
-        formData.value = {
-          tenHomestay: '',
-          idLoaiHomeStay: null,
-          idChuHomeStay: null,
-          dienTich: 0,
-          giaCaHomestay: 0,
-          diaChi: '',
-          tinhTrang: 'Còn phòng',
-          trangThai: true,
-          hinhAnh: '',
-          maHomestay: '',
-          ngayTao: null,
-          ngayUpdate: null
-        };
-        previewImage.value = null;
-        selectedFile.value = null;
-      }
-    }, { immediate: true });
+      },
+      { immediate: true },
+    )
 
     return {
       formData,
@@ -591,10 +601,10 @@ export default {
       getLoaiName,
       getChuName,
       formatCurrency,
-      formatDate
-    };
-  }
-};
+      formatDate,
+    }
+  },
+}
 </script>
 
 <style scoped>
@@ -779,22 +789,27 @@ export default {
   color: #4b5563;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   width: 100%;
   padding: 12px 15px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 16px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
   outline: none;
 }
 
-.form-control.is-invalid, .form-select.is-invalid {
+.form-control.is-invalid,
+.form-select.is-invalid {
   border-color: #ef4444;
 }
 

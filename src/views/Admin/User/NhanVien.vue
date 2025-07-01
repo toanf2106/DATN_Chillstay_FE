@@ -93,12 +93,12 @@
                   <div class="spinner-border spinner-border-sm text-primary"></div>
                 </div>
                 <img
-                  v-if="(nhanVien.anhBase64 || nhanVien.anh) && !imageErrors[nhanVien.id]"
-                  :src="processImageUrl(nhanVien.anhBase64 || nhanVien.anh)"
+                  v-if="nhanVien.anh && !imageErrors[nhanVien.id]"
+                  :src="processImageUrl(nhanVien.anh)"
                   :alt="`Ảnh ${nhanVien.hoTen}`"
                   class="staff-avatar"
                   :class="{ loading: imageLoadingStates[nhanVien.id] }"
-                  @click="openImagePreview(nhanVien.anhBase64 || nhanVien.anh, nhanVien.hoTen)"
+                  @click="openImagePreview(nhanVien.anh, nhanVien.hoTen)"
                   @load="handleImageLoad(nhanVien.id)"
                   @error="handleImageError(nhanVien.id)"
                 />
@@ -268,8 +268,8 @@
               <div class="staff-avatar-display">
                 <div class="avatar-preview">
                   <img
-                    v-if="selectedStaff.anhBase64 || selectedStaff.anh"
-                    :src="processImageUrl(selectedStaff.anhBase64 || selectedStaff.anh)"
+                    v-if="selectedStaff.anh"
+                    :src="processImageUrl(selectedStaff.anh)"
                     :alt="`Ảnh ${selectedStaff.hoTen}`"
                     @error="handleProfileImageError"
                     class="uploaded-avatar"
@@ -591,11 +591,8 @@
               <div class="staff-avatar-display">
                 <div class="avatar-preview" @click="triggerEditFileInput">
                   <img
-                    v-if="editPreviewAvatar || selectedStaff.anhBase64 || selectedStaff.anh"
-                    :src="
-                      editPreviewAvatar ||
-                      processImageUrl(selectedStaff.anhBase64 || selectedStaff.anh)
-                    "
+                    v-if="editPreviewAvatar || selectedStaff.anh"
+                    :src="editPreviewAvatar || processImageUrl(selectedStaff.anh)"
                     alt="Avatar Preview"
                     class="uploaded-avatar"
                   />
@@ -834,18 +831,7 @@ export default {
     const processImageUrl = (imagePath) => {
       if (!imagePath) return null
 
-      // Nếu là chuỗi Base64 đầy đủ
-      if (imagePath.startsWith('data:')) {
-        return imagePath
-      }
-
-      // Nếu chỉ là chuỗi Base64 không có prefix, thêm prefix vào
-      if (imagePath.length > 100 && !imagePath.startsWith('http')) {
-        // Giả định là ảnh PNG nếu không biết định dạng
-        return `data:image/png;base64,${imagePath}`
-      }
-
-      // Nếu là URL đầy đủ từ database
+      // Nếu là URL đầy đủ từ GCS hoặc khác
       if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
         return imagePath
       }

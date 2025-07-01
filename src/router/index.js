@@ -4,6 +4,7 @@ import about from '../views/AboutView.vue'
 import AdminDashboard from '../components/AdminDashboard.vue'
 import ThongKe from '../views/Admin/ThongKe.vue'
 import DatHomestay from '../views/Admin/DatHome.vue'
+import BookingView from '../views/BookingView.vue'
 import { useAuthStore } from '../stores/authStore'
 
 const router = createRouter({
@@ -11,6 +12,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/about', name: 'about', component: about },
+    { path: '/booking', name: 'booking', component: BookingView },
 
     // Các route cho Admin
     {

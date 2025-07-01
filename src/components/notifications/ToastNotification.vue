@@ -1,41 +1,9 @@
 <template>
-
-  <div
-    class="toast-notification"
-    :class="[
-      `toast-${notification.type}`,
-      `toast-${notification.position || 'top-right'}`,
-      { 'show': notification.visible }
-    ]"
-    role="alert"
-    aria-live="assertive"
-    aria-atomic="true"
-  >
-    <div class="toast-header">
-      <i class="toast-icon" :class="iconClass"></i>
-      <strong class="toast-title">{{ notification.title || typeTitle }}</strong>
-      <div class="spacer"></div>
-      <button
-        v-if="notification.dismissible !== false"
-        type="button"
-        class="toast-close"
-        @click="dismiss"
-      >
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    <div class="toast-body">
-      {{ notification.message }}
-    </div>
-
+  <!-- Toast Container -->
   <div class="toast-container" :class="positionClass">
     <transition-group name="toast">
-      <div
-        v-for="notification in positionNotifications"
-        :key="notification.id"
-        class="toast"
-        :class="[`toast-${notification.type}`, { 'toast-visible': notification.visible }]"
-      >
+      <div v-for="notification in positionNotifications" :key="notification.id" class="toast"
+        :class="[`toast-${notification.type}`, { 'toast-visible': notification.visible }]">
         <div class="toast-icon">
           <i class="material-icons">{{ getIconForType(notification.type) }}</i>
         </div>
@@ -43,48 +11,31 @@
           <div v-if="notification.title" class="toast-title">{{ notification.title }}</div>
           <div class="toast-message">{{ notification.message }}</div>
         </div>
-        <button
-          v-if="notification.dismissible"
-          class="toast-close"
-          @click="dismiss(notification.id)"
-        >
+        <button v-if="notification.dismissible" class="toast-close" @click="dismiss(notification.id)">
           <i class="material-icons">close</i>
         </button>
       </div>
     </transition-group>
-
   </div>
 
   <!-- Modal Notifications -->
   <teleport to="body">
     <transition-group name="modal-fade">
-      <div
-        v-for="notification in modalNotifications"
-        :key="notification.id"
-        class="modal-overlay"
-        @click="notification.dismissible && dismiss(notification.id)"
-      >
+      <div v-for="notification in modalNotifications" :key="notification.id" class="modal-overlay"
+        @click="notification.dismissible && dismiss(notification.id)">
         <div class="modal-container" :class="`modal-${notification.type}`" @click.stop>
           <div class="modal-icon">
             <i class="material-icons">{{ getIconForType(notification.type) }}</i>
           </div>
-
           <h3 class="modal-title" v-if="notification.title">{{ notification.title }}</h3>
           <div class="modal-content">{{ notification.message }}</div>
-
           <div class="modal-actions">
-            <button
-              v-if="notification.showCancelButton"
-              class="modal-btn modal-btn-cancel"
-              @click="cancel(notification.id)"
-            >
+            <button v-if="notification.showCancelButton" class="modal-btn modal-btn-cancel"
+              @click="cancel(notification.id)">
               {{ notification.cancelText }}
             </button>
-            <button
-              class="modal-btn modal-btn-confirm"
-              :class="`modal-btn-${notification.type}`"
-              @click="confirm(notification.id)"
-            >
+            <button class="modal-btn modal-btn-confirm" :class="`modal-btn-${notification.type}`"
+              @click="confirm(notification.id)">
               {{ notification.confirmText }}
             </button>
           </div>
@@ -93,51 +44,6 @@
     </transition-group>
   </teleport>
 </template>
-
-<<<<<<
-<script>
-import { computed } from 'vue';
-import { useNotificationStore } from '@/stores/notificationStore';
-
-export default {
-  name: 'ToastNotification',
-  props: {
-    notification: {
-      type: Object,
-      required: true
-    }
-  },
-  setup(props) {
-    const store = useNotificationStore();
-
-    const iconClass = computed(() => {
-      switch(props.notification.type) {
-        case 'success': return 'fas fa-check-circle';
-        case 'error': return 'fas fa-exclamation-circle';
-        case 'warning': return 'fas fa-exclamation-triangle';
-        default: return 'fas fa-info-circle';
-      }
-    });
-
-    const typeTitle = computed(() => {
-      switch(props.notification.type) {
-        case 'success': return 'Thành công';
-        case 'error': return 'Lỗi';
-        case 'warning': return 'Cảnh báo';
-        default: return 'Thông tin';
-      }
-    });
-
-    const dismiss = () => {
-      store.dismissNotification(props.notification.id);
-    };
-
-    return {
-      iconClass,
-      typeTitle,
-      dismiss
-    };
-  }
 
 <script setup>
 import { computed } from 'vue'
@@ -199,12 +105,10 @@ function confirm(id) {
 
 function cancel(id) {
   store.cancelNotification(id)
-
 }
 </script>
 
 <style scoped>
-
 .toast-notification {
   min-width: 300px;
   max-width: 450px;
@@ -300,8 +204,12 @@ function cancel(id) {
 }
 
 /* Position styles */
-.toast-top-right, .toast-top-left, .toast-top-center,
-.toast-bottom-right, .toast-bottom-left, .toast-bottom-center {
+.toast-top-right,
+.toast-top-left,
+.toast-top-center,
+.toast-bottom-right,
+.toast-bottom-left,
+.toast-bottom-center {
   position: fixed;
   z-index: 1060;
 }
@@ -344,6 +252,7 @@ function cancel(id) {
 
 .toast-notification.toast-bottom-center.show {
   transform: translateX(-50%);
+}
 
 /* Import Material Icons */
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');

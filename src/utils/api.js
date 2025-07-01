@@ -79,25 +79,44 @@ api.interceptors.response.use(
       // Kiểm tra xem lỗi có phải từ đường dẫn login hay không
       const isLoginRequest = error.config && error.config.url && error.config.url.includes('/api/login')
 
-      // Nếu không phải lỗi từ request login thì mới logout và redirect
-      if (!isLoginRequest) {
-        console.log('Token hết hạn hoặc không hợp lệ, đăng xuất...')
+      // Biến cờ static để đảm bảo chỉ redirect một lần
+      if (!api.isRedirecting) {
+        // Nếu không phải lỗi từ request login và không phải ở trang login/home thì mới logout và redirect
+        if (!isLoginRequest) {
+          console.log('Token hết hạn hoặc không hợp lệ, đăng xuất...')
 
-        // Xóa dữ liệu localStorage cho phiên hiện tại
-        const sessionId = getSessionId()
-        if (sessionId) {
-          localStorage.removeItem(`token_${sessionId}`)
-          localStorage.removeItem(`user_${sessionId}`)
-          localStorage.removeItem(`isAdmin_${sessionId}`)
+          // Kiểm tra đường dẫn hiện tại
+          const currentPath = window.location.pathname
+          const isHomePage = currentPath === '/' || currentPath === '/home'
+          const isLoginPage = currentPath === '/login'
+
+          // Xóa dữ liệu localStorage cho phiên hiện tại
+          const sessionId = getSessionId()
+          if (sessionId) {
+            localStorage.removeItem(`token_${sessionId}`)
+            localStorage.removeItem(`user_${sessionId}`)
+            localStorage.removeItem(`isAdmin_${sessionId}`)
+          }
+
+          // Chỉ redirect nếu không ở trang chủ hoặc trang login
+          if (!isHomePage && !isLoginPage) {
+            api.isRedirecting = true // Đánh dấu đang redirect
+
+            // Tăng thời gian chờ để tránh reload quá nhanh
+            setTimeout(() => {
+              window.location.href = '/'
+              // Reset biến cờ sau khi đã redirect
+              setTimeout(() => {
+                api.isRedirecting = false
+              }, 1000)
+            }, 500)
+          }
+        } else {
+          // Nếu là lỗi đăng nhập, chỉ log ra console và không redirect
+          console.log('Đăng nhập thất bại: Sai tên đăng nhập hoặc mật khẩu')
         }
-
-        // Reload trang để App.vue có thể khởi tạo lại trạng thái
-        setTimeout(() => {
-          window.location.href = '/'
-        }, 100)
       } else {
-        // Nếu là lỗi đăng nhập, chỉ log ra console và không redirect
-        console.log('Đăng nhập thất bại: Sai tên đăng nhập hoặc mật khẩu')
+        console.log('Đã có redirect đang xử lý, bỏ qua...')
       }
     }
     return Promise.reject(error)

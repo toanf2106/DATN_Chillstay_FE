@@ -22,7 +22,11 @@
       </div>
 
       <div class="right-controls">
-        <select class="form-select status-filter" v-model="selectedStatus" @change="handleStatusChange(selectedStatus)">
+        <select
+          class="form-select status-filter"
+          v-model="selectedStatus"
+          @change="handleStatusChange(selectedStatus)"
+        >
           <option value="all">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
           <option value="inactive">Đã khóa</option>
@@ -179,238 +183,248 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
-import { getAllHomeStay, getLoaiHomeStay, getChuHomeStay, createHomestay, updateHomestay, deleteHomestayAPI } from '@/Service/HomeStayService';
-import HomestayModal from '../components/HomestayModal.vue';
-import { useToast } from '@/stores/notificationStore';
+import { ref, computed, onMounted } from 'vue'
+import {
+  getAllHomeStay,
+  getLoaiHomeStay,
+  getChuHomeStay,
+  createHomestay,
+  updateHomestay,
+  deleteHomestayAPI,
+} from '@/Service/HomeStayService'
+import HomestayModal from '../components/HomestayModal.vue'
+import { useToast } from '@/stores/notificationStore'
 
 export default {
   name: 'QlyHomestay',
   components: {
-    HomestayModal
+    HomestayModal,
   },
   setup() {
-    const toast = useToast();
-    const homestays = ref([]);
-    const loaiList = ref([]);
-    const chuList = ref([]);
-    const searchTerm = ref('');
-    const apiError = ref(false);
-    const apiErrorMessage = ref('');
-    const selectedStatus = ref('all');
-    const loading = ref(false);
+    const toast = useToast()
+    const homestays = ref([])
+    const loaiList = ref([])
+    const chuList = ref([])
+    const searchTerm = ref('')
+    const apiError = ref(false)
+    const apiErrorMessage = ref('')
+    const selectedStatus = ref('all')
+    const loading = ref(false)
 
     // Pagination
-    const currentPage = ref(0);
-    const pageSize = ref(10);
-    const totalPages = ref(1);
+    const currentPage = ref(0)
+    const pageSize = ref(10)
+    const totalPages = ref(1)
 
     // State for modal
-    const showModal = ref(false);
-    const selectedHomestay = ref(null);
-    const isEdit = ref(false);
-    const isViewMode = ref(false);
+    const showModal = ref(false)
+    const selectedHomestay = ref(null)
+    const isEdit = ref(false)
+    const isViewMode = ref(false)
 
     // API calls
     const fetchData = async () => {
       try {
-        loading.value = true;
+        loading.value = true
         const [hsRes, loaiRes, chuRes] = await Promise.all([
           getAllHomeStay(),
           getLoaiHomeStay(),
-          getChuHomeStay()
-        ]);
-        homestays.value = hsRes.data || [];
-        loaiList.value = loaiRes.data || [];
-        chuList.value = chuRes.data || [];
-        apiError.value = false;
+          getChuHomeStay(),
+        ])
+        homestays.value = hsRes.data || []
+        loaiList.value = loaiRes.data || []
+        chuList.value = chuRes.data || []
+        apiError.value = false
 
         // Cập nhật thông tin phân trang
-        totalPages.value = Math.ceil(homestays.value.length / pageSize.value) || 1;
+        totalPages.value = Math.ceil(homestays.value.length / pageSize.value) || 1
       } catch (e) {
-        apiError.value = true;
+        apiError.value = true
 
         // Kiểm tra lỗi cụ thể để hiển thị thông báo phù hợp
         if (e.response && e.response.status === 404) {
-          apiErrorMessage.value = 'Không thể kết nối đến API chủ homestay. Vui lòng kiểm tra đường dẫn API hoặc khởi động lại server.';
+          apiErrorMessage.value =
+            'Không thể kết nối đến API chủ homestay. Vui lòng kiểm tra đường dẫn API hoặc khởi động lại server.'
         } else {
-          apiErrorMessage.value = 'Không thể tải dữ liệu. Vui lòng thử lại sau.';
+          apiErrorMessage.value = 'Không thể tải dữ liệu. Vui lòng thử lại sau.'
         }
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    };
+    }
 
     // Helpers
     const getLoaiName = (id) => {
-      const loai = loaiList.value.find(l => l.id === id);
-      return loai?.tenLoaiHomestay || 'Không xác định';
-    };
+      const loai = loaiList.value.find((l) => l.id === id)
+      return loai?.tenLoaiHomestay || 'Không xác định'
+    }
 
     const getChuName = (id) => {
-      const chu = chuList.value.find(c => c.id === id);
-      if (!chu) return 'Không xác định';
-      return chu.hotenChuHomestay || 'Không xác định';
-    };
+      const chu = chuList.value.find((c) => c.id === id)
+      if (!chu) return 'Không xác định'
+      return chu.hotenChuHomestay || 'Không xác định'
+    }
 
-    const formatCurrency = (num) => new Intl.NumberFormat('vi-VN').format(num);
+    const formatCurrency = (num) => new Intl.NumberFormat('vi-VN').format(num)
     const getImageUrl = (img) => {
-      // Nếu img là chuỗi Base64 đầy đủ, trả về trực tiếp
-      if (img && (img.startsWith('data:image') || img.startsWith('data:application'))) {
-        return img;
-      }
-      // Nếu không, giả định là đường dẫn tương đối
-      return img ? `/resources/images/homestay/${img}` : '';
-    };
+      // Nếu không có ảnh
+      if (!img) return '/images/placeholder-house.jpg'
+
+      // Nếu là URL GCS hoặc URL đầy đủ
+      if (img.startsWith('http')) return img
+
+      return img
+    }
 
     const filteredHomestays = computed(() => {
-      let filtered = homestays.value;
+      let filtered = homestays.value
 
       // Lọc theo từ khóa tìm kiếm
       if (searchTerm.value) {
-        const key = searchTerm.value.toLowerCase();
-        filtered = filtered.filter(h =>
-          h.tenHomestay?.toLowerCase().includes(key) ||
-          h.diaChi?.toLowerCase().includes(key)
-        );
+        const key = searchTerm.value.toLowerCase()
+        filtered = filtered.filter(
+          (h) =>
+            h.tenHomestay?.toLowerCase().includes(key) || h.diaChi?.toLowerCase().includes(key),
+        )
       }
 
       // Lọc theo trạng thái
       if (selectedStatus.value !== 'all') {
-        const isActive = selectedStatus.value === 'active';
-        filtered = filtered.filter(h => h.trangThai === isActive);
+        const isActive = selectedStatus.value === 'active'
+        filtered = filtered.filter((h) => h.trangThai === isActive)
       }
 
-      return filtered;
-    });
+      return filtered
+    })
 
     // Computed properties cho phân trang
     const paginatedHomestays = computed(() => {
-      const start = currentPage.value * pageSize.value;
-      const end = start + pageSize.value;
-      return filteredHomestays.value.slice(start, end);
-    });
+      const start = currentPage.value * pageSize.value
+      const end = start + pageSize.value
+      return filteredHomestays.value.slice(start, end)
+    })
 
-    const totalItems = computed(() => filteredHomestays.value.length);
+    const totalItems = computed(() => filteredHomestays.value.length)
 
     const startItem = computed(() => {
-      return totalItems.value === 0 ? 0 : currentPage.value * pageSize.value + 1;
-    });
+      return totalItems.value === 0 ? 0 : currentPage.value * pageSize.value + 1
+    })
 
     const endItem = computed(() => {
-      const end = (currentPage.value + 1) * pageSize.value;
-      return end > totalItems.value ? totalItems.value : end;
-    });
+      const end = (currentPage.value + 1) * pageSize.value
+      return end > totalItems.value ? totalItems.value : end
+    })
 
     const emptyRows = computed(() => {
-      const rowsCount = paginatedHomestays.value.length;
-      return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0;
-    });
+      const rowsCount = paginatedHomestays.value.length
+      return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0
+    })
 
     const handleSearch = () => {
-      currentPage.value = 0;
-    };
+      currentPage.value = 0
+    }
 
     const handleStatusChange = (status) => {
-      selectedStatus.value = status;
-      currentPage.value = 0;
-    };
+      selectedStatus.value = status
+      currentPage.value = 0
+    }
 
     const changePage = (page) => {
       if (page >= 0 && page < totalPages.value) {
-        currentPage.value = page;
+        currentPage.value = page
       }
-    };
+    }
 
     // Modal functions
     const openAddModal = () => {
-      isEdit.value = false;
-      isViewMode.value = false;
-      selectedHomestay.value = null;
-      showModal.value = true;
-    };
+      isEdit.value = false
+      isViewMode.value = false
+      selectedHomestay.value = null
+      showModal.value = true
+    }
 
     const editHomestay = (homestay) => {
-      isEdit.value = true;
-      isViewMode.value = false;
-      selectedHomestay.value = { ...homestay };
-      showModal.value = true;
-    };
+      isEdit.value = true
+      isViewMode.value = false
+      selectedHomestay.value = { ...homestay }
+      showModal.value = true
+    }
 
     // View homestay details
     const viewHomestayDetails = (homestay) => {
-      isEdit.value = false;
-      isViewMode.value = true;
-      selectedHomestay.value = { ...homestay };
-      showModal.value = true;
-    };
+      isEdit.value = false
+      isViewMode.value = true
+      selectedHomestay.value = { ...homestay }
+      showModal.value = true
+    }
 
     // Handle edit from view mode
     const editFromViewMode = () => {
-      isViewMode.value = false;
-      isEdit.value = true;
-    };
+      isViewMode.value = false
+      isEdit.value = true
+    }
 
     const closeModal = () => {
-      showModal.value = false;
+      showModal.value = false
       setTimeout(() => {
-        selectedHomestay.value = null;
-        isEdit.value = false;
-        isViewMode.value = false;
-      }, 300); // Delay để hoàn tất animation
-    };
+        selectedHomestay.value = null
+        isEdit.value = false
+        isViewMode.value = false
+      }, 300) // Delay để hoàn tất animation
+    }
 
     const saveHomestay = async (formData) => {
       try {
         // Kiểm tra xem formData có phải là FormData object không
         if (formData instanceof FormData) {
           // Lấy homestay JSON từ FormData
-          const homestayJson = formData.get('homestay');
+          const homestayJson = formData.get('homestay')
           if (homestayJson) {
             if (isEdit.value && selectedHomestay.value && selectedHomestay.value.id) {
-              const homestayId = parseInt(selectedHomestay.value.id, 10);
-              await updateHomestay(homestayId, formData);
-              toast.success('Cập nhật homestay thành công');
+              const homestayId = parseInt(selectedHomestay.value.id, 10)
+              await updateHomestay(homestayId, formData)
+              toast.success('Cập nhật homestay thành công')
             } else {
-              await createHomestay(formData);
-              toast.success('Thêm homestay thành công');
+              await createHomestay(formData)
+              toast.success('Thêm homestay thành công')
             }
           } else {
-            throw new Error('Dữ liệu homestay không hợp lệ');
+            throw new Error('Dữ liệu homestay không hợp lệ')
           }
         } else {
           // Xử lý trường hợp dữ liệu không phải FormData (trường hợp cũ)
           if (isEdit.value && formData.id) {
-            const homestayId = parseInt(formData.id, 10);
-            await updateHomestay(homestayId, formData);
-            toast.success('Cập nhật homestay thành công');
+            const homestayId = parseInt(formData.id, 10)
+            await updateHomestay(homestayId, formData)
+            toast.success('Cập nhật homestay thành công')
           } else {
-            await createHomestay(formData);
-            toast.success('Thêm homestay thành công');
+            await createHomestay(formData)
+            toast.success('Thêm homestay thành công')
           }
         }
 
-        closeModal();
-        fetchData(); // Tải lại danh sách sau khi lưu
+        closeModal()
+        fetchData() // Tải lại danh sách sau khi lưu
       } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi lưu homestay';
-        toast.error(errorMessage);
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Có lỗi xảy ra khi lưu homestay'
+        toast.error(errorMessage)
       }
-    };
+    }
 
     const deleteHomestay = async (id) => {
       if (confirm('Bạn có chắc chắn muốn xóa homestay này?')) {
         try {
-          await deleteHomestayAPI(id);
-          toast.success('Xóa homestay thành công');
-          fetchData();
+          await deleteHomestayAPI(id)
+          toast.success('Xóa homestay thành công')
+          fetchData()
         } catch {
-          toast.error('Lỗi khi xóa homestay');
+          toast.error('Lỗi khi xóa homestay')
         }
       }
-    };
+    }
 
-    onMounted(fetchData);
+    onMounted(fetchData)
 
     return {
       searchTerm,
@@ -449,10 +463,10 @@ export default {
       deleteHomestay,
       // Các danh sách để truyền xuống modal
       loaiList,
-      chuList
-    };
-  }
-};
+      chuList,
+    }
+  },
+}
 </script>
 
 <style scoped>

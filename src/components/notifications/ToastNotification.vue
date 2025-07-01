@@ -1,9 +1,12 @@
 <template>
-  <!-- Toast Container -->
   <div class="toast-container" :class="positionClass">
     <transition-group name="toast">
-      <div v-for="notification in positionNotifications" :key="notification.id" class="toast"
-        :class="[`toast-${notification.type}`, { 'toast-visible': notification.visible }]">
+      <div
+        v-for="notification in positionNotifications"
+        :key="notification.id"
+        class="toast"
+        :class="[`toast-${notification.type}`, { 'toast-visible': notification.visible }]"
+      >
         <div class="toast-icon">
           <i class="material-icons">{{ getIconForType(notification.type) }}</i>
         </div>
@@ -11,7 +14,11 @@
           <div v-if="notification.title" class="toast-title">{{ notification.title }}</div>
           <div class="toast-message">{{ notification.message }}</div>
         </div>
-        <button v-if="notification.dismissible" class="toast-close" @click="dismiss(notification.id)">
+        <button
+          v-if="notification.dismissible"
+          class="toast-close"
+          @click="dismiss(notification.id)"
+        >
           <i class="material-icons">close</i>
         </button>
       </div>
@@ -21,21 +28,33 @@
   <!-- Modal Notifications -->
   <teleport to="body">
     <transition-group name="modal-fade">
-      <div v-for="notification in modalNotifications" :key="notification.id" class="modal-overlay"
-        @click="notification.dismissible && dismiss(notification.id)">
+      <div
+        v-for="notification in modalNotifications"
+        :key="notification.id"
+        class="modal-overlay"
+        @click="notification.dismissible && dismiss(notification.id)"
+      >
         <div class="modal-container" :class="`modal-${notification.type}`" @click.stop>
           <div class="modal-icon">
             <i class="material-icons">{{ getIconForType(notification.type) }}</i>
           </div>
+
           <h3 class="modal-title" v-if="notification.title">{{ notification.title }}</h3>
           <div class="modal-content">{{ notification.message }}</div>
+
           <div class="modal-actions">
-            <button v-if="notification.showCancelButton" class="modal-btn modal-btn-cancel"
-              @click="cancel(notification.id)">
+            <button
+              v-if="notification.showCancelButton"
+              class="modal-btn modal-btn-cancel"
+              @click="cancel(notification.id)"
+            >
               {{ notification.cancelText }}
             </button>
-            <button class="modal-btn modal-btn-confirm" :class="`modal-btn-${notification.type}`"
-              @click="confirm(notification.id)">
+            <button
+              class="modal-btn modal-btn-confirm"
+              :class="`modal-btn-${notification.type}`"
+              @click="confirm(notification.id)"
+            >
               {{ notification.confirmText }}
             </button>
           </div>
@@ -109,151 +128,6 @@ function cancel(id) {
 </script>
 
 <style scoped>
-.toast-notification {
-  min-width: 300px;
-  max-width: 450px;
-  background-color: #fff;
-  color: #212529;
-  border-radius: 6px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  margin-bottom: 15px;
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: all 0.3s ease-in-out;
-  overflow: hidden;
-  z-index: 1050;
-  border-left: 4px solid #ccc;
-}
-
-.toast-notification.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.toast-success {
-  border-left-color: #28a745;
-}
-
-.toast-error {
-  border-left-color: #dc3545;
-}
-
-.toast-warning {
-  border-left-color: #ffc107;
-}
-
-.toast-info {
-  border-left-color: #17a2b8;
-}
-
-.toast-header {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.toast-icon {
-  margin-right: 10px;
-  font-size: 1.1rem;
-}
-
-.toast-success .toast-icon {
-  color: #28a745;
-}
-
-.toast-error .toast-icon {
-  color: #dc3545;
-}
-
-.toast-warning .toast-icon {
-  color: #ffc107;
-}
-
-.toast-info .toast-icon {
-  color: #17a2b8;
-}
-
-.toast-title {
-  font-weight: 600;
-  color: #333;
-}
-
-.spacer {
-  flex-grow: 1;
-}
-
-.toast-close {
-  background: transparent;
-  border: 0;
-  font-size: 1.25rem;
-  padding: 0;
-  margin-left: 10px;
-  opacity: 0.5;
-  cursor: pointer;
-}
-
-.toast-close:hover {
-  opacity: 1;
-}
-
-.toast-body {
-  padding: 0.75rem;
-  word-wrap: break-word;
-}
-
-/* Position styles */
-.toast-top-right,
-.toast-top-left,
-.toast-top-center,
-.toast-bottom-right,
-.toast-bottom-left,
-.toast-bottom-center {
-  position: fixed;
-  z-index: 1060;
-}
-
-.toast-top-right {
-  top: 20px;
-  right: 20px;
-}
-
-.toast-top-left {
-  top: 20px;
-  left: 20px;
-}
-
-.toast-top-center {
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.toast-notification.toast-top-center.show {
-  transform: translateX(-50%);
-}
-
-.toast-bottom-right {
-  bottom: 20px;
-  right: 20px;
-}
-
-.toast-bottom-left {
-  bottom: 20px;
-  left: 20px;
-}
-
-.toast-bottom-center {
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.toast-notification.toast-bottom-center.show {
-  transform: translateX(-50%);
-}
-
 /* Import Material Icons */
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
@@ -570,6 +444,5 @@ function cancel(id) {
 .modal-fade-leave-to {
   opacity: 0;
   transform: scale(0.95);
-
 }
 </style>

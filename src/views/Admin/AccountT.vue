@@ -317,8 +317,17 @@
               <div class="col-md-4">
                 <div class="account-avatar-display">
                   <div class="avatar-preview" @click="triggerImageUploadInEdit">
+                    <!-- Ưu tiên sử dụng anhPreview nếu có (ảnh mới được chọn) -->
                     <img
-                      v-if="selectedAccount.anh"
+                      v-if="selectedAccount.anhPreview"
+                      :src="selectedAccount.anhPreview"
+                      :alt="`Ảnh ${selectedAccount.tenDangNhap}`"
+                      @error="handleProfileImageError"
+                      class="uploaded-avatar"
+                    />
+                    <!-- Nếu không có anhPreview, sử dụng URL từ server -->
+                    <img
+                      v-else-if="selectedAccount.anh"
                       :src="processImageUrl(selectedAccount.anh)"
                       :alt="`Ảnh ${selectedAccount.tenDangNhap}`"
                       @error="handleProfileImageError"
@@ -695,8 +704,16 @@ export default {
 
     // Initialize component
     onMounted(() => {
+      console.log('AccountT component mounted - Loading account data')
+
+      // Tải danh sách tài khoản
       fetchAccounts()
+
+      // Tải danh sách loại tài khoản
       fetchAccountTypes()
+
+      // Kiểm tra kết nối tới GCS (chỉ logging thông tin)
+      console.log('Using GCS for avatar storage')
     })
 
     // Fetch account types for dropdown
@@ -726,27 +743,28 @@ export default {
       deleting.value = false
     }
 
+    // Phương thức executeDelete (khóa tài khoản) đã được cập nhật để xử lý thông báo tốt hơn
     const executeDelete = async () => {
       try {
         deleting.value = true
         console.log('Locking account with ID:', selectedAccount.value.id)
 
-        // Call API to lock account
+        // Gọi API để khóa tài khoản
         const response = await deleteTaiKhoan(selectedAccount.value.id)
         console.log('Lock response:', response)
 
-        // Hide confirmation dialog
+        // Ẩn hộp thoại xác nhận
         showDeleteConfirm.value = false
 
-        // Show success notification
+        // Hiển thị thông báo thành công
         notification.success(`Đã khóa tài khoản ${selectedAccount.value.tenDangNhap} thành công.`)
 
-        // Reload account list
+        // Tải lại danh sách tài khoản
         fetchAccounts()
       } catch (error) {
         console.error('Error locking account:', error)
         notification.error(
-          `Không thể khóa tài khoản. Lỗi: ${error.response?.data?.message || 'Lỗi không xác định'}`,
+          `Không thể khóa tài khoản. Lỗi: ${error.response?.data?.message || error.response?.data || 'Lỗi không xác định'}`,
         )
       } finally {
         deleting.value = false
@@ -765,29 +783,30 @@ export default {
       restoring.value = false
     }
 
+    // Phương thức executeRestore (mở khóa tài khoản) được cập nhật để xử lý thông báo tốt hơn
     const executeRestore = async () => {
       try {
         restoring.value = true
         console.log('Unlocking account with ID:', selectedAccount.value.id)
 
-        // Call API to unlock account
+        // Gọi API để mở khóa tài khoản
         const response = await restoreTaiKhoan(selectedAccount.value.id)
         console.log('Unlock response:', response)
 
-        // Hide confirmation dialog
+        // Ẩn hộp thoại xác nhận
         showRestoreConfirm.value = false
 
-        // Show success notification
+        // Hiển thị thông báo thành công
         notification.success(
           `Đã mở khóa tài khoản ${selectedAccount.value.tenDangNhap} thành công.`,
         )
 
-        // Reload account list
+        // Tải lại danh sách tài khoản
         fetchAccounts()
       } catch (error) {
         console.error('Error unlocking account:', error)
         notification.error(
-          `Không thể mở khóa tài khoản. Lỗi: ${error.response?.data?.message || 'Lỗi không xác định'}`,
+          `Không thể mở khóa tài khoản. Lỗi: ${error.response?.data?.message || error.response?.data || 'Lỗi không xác định'}`,
         )
       } finally {
         restoring.value = false
@@ -920,24 +939,12 @@ export default {
     const processImageUrl = (imagePath) => {
       if (!imagePath) return null
 
-      // Nếu là chuỗi Base64 đầy đủ
-      if (imagePath.startsWith('data:')) {
-        return imagePath
-      }
-
-      // Nếu chỉ là chuỗi Base64 không có prefix, thêm prefix vào
-      if (imagePath.length > 100 && !imagePath.startsWith('http')) {
-        // Giả định là ảnh PNG nếu không biết định dạng
-        return `data:image/png;base64,${imagePath}`
-      }
-
-      // Nếu là URL đầy đủ từ database
+      // Nếu là URL đầy đủ (từ GCS hoặc nguồn khác)
       if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
         return imagePath
       }
 
-      // Nếu là đường dẫn tương đối hoặc tên file
-      // Điều chỉnh theo cấu hình server của bạn
+      // Fallback cho trường hợp còn lại (đường dẫn tương đối)
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
       return `${baseUrl}/images/${imagePath}`
     }
@@ -953,6 +960,12 @@ export default {
     const viewAccountDetails = (account) => {
       selectedAccount.value = { ...account }
       showAccountDetailsModal.value = true
+
+      // Đảm bảo ảnh được xử lý đúng cách
+      if (selectedAccount.value.anh) {
+        // Đánh dấu ảnh đang tải
+        imageLoadingStates[selectedAccount.value.id] = true
+      }
     }
 
     // Close modal function
@@ -965,6 +978,17 @@ export default {
       previewImage.value = imageUrl
       previewImageTitle.value = `Ảnh tài khoản: ${accountName}`
       showImagePreview.value = true
+
+      // Nếu không có ảnh hoặc URL ảnh không hợp lệ
+      if (!imageUrl || (typeof imageUrl === 'string' && imageUrl.trim() === '')) {
+        previewImage.value = null
+        notification.info('Tài khoản chưa có ảnh đại diện')
+      }
+      // Đảm bảo URL ảnh từ GCS được xử lý đúng
+      else if (typeof imageUrl === 'string') {
+        // URL từ GCS đã được xử lý bởi processImageUrl() khi hiển thị trong danh sách
+        console.log('Showing image preview from URL:', imageUrl)
+      }
     }
 
     const closeImagePreview = () => {
@@ -975,11 +999,40 @@ export default {
 
     // Image error handlers
     const handleProfileImageError = (event) => {
+      console.warn('Failed to load profile image')
+
+      // Sử dụng ảnh mặc định từ public/images
       event.target.src = '/images/default-avatar.png'
+
+      // Nếu vẫn không tải được ảnh mặc định, ẩn ảnh và hiển thị biểu tượng người dùng
+      event.target.onerror = () => {
+        event.target.style.display = 'none'
+        // Hiển thị thông báo lỗi
+        notification.warning('Không thể tải ảnh đại diện')
+      }
     }
 
     const handlePreviewImageError = (event) => {
+      console.warn('Failed to load preview image')
+
+      // Sử dụng ảnh mặc định
       event.target.src = '/images/default-avatar.png'
+
+      // Nếu vẫn không tải được, ẩn ảnh và hiển thị thông báo
+      event.target.onerror = () => {
+        event.target.style.display = 'none'
+        // Hiển thị thông báo trong modal
+        const previewBody = document.querySelector('.image-preview-body')
+        if (previewBody) {
+          const errorMsg = document.createElement('div')
+          errorMsg.className = 'no-preview-image'
+          errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i><p>Không thể tải ảnh</p>'
+          previewBody.appendChild(errorMsg)
+        }
+
+        // Hiển thị thông báo cho người dùng
+        notification.warning('Không thể tải ảnh xem trước')
+      }
     }
 
     // Update image handling functions
@@ -992,6 +1045,13 @@ export default {
       imageLoadingStates[accountId] = false
       imageErrors[accountId] = true
       console.warn(`Failed to load image for account ID: ${accountId}`)
+
+      // Thử tải lại ảnh hoặc sử dụng ảnh mặc định
+      const accountWithError = accounts.value.find((acc) => acc.id === accountId)
+      if (accountWithError) {
+        // Sử dụng ảnh mặc định thay vì hiển thị lỗi
+        accountWithError.anh = '/images/default-avatar.png'
+      }
     }
 
     // Image upload handling
@@ -1003,25 +1063,23 @@ export default {
       const file = event.target.files[0]
       if (!file) return
 
-      // Check file type
+      // Kiểm tra file type
       if (!file.type.match('image.*')) {
         notification.error('Vui lòng chọn một tệp hình ảnh hợp lệ')
         return
       }
 
-      // Check file size (max 5MB)
+      // Kiểm tra kích thước file (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         notification.error('Kích thước ảnh không được vượt quá 5MB')
         return
       }
 
-      // Create a preview and convert to base64
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        newAccount.value.anhPreview = e.target.result
-        newAccount.value.anh = e.target.result // Store the base64 string
-      }
-      reader.readAsDataURL(file)
+      // Lưu trữ file để upload lên server thay vì sử dụng base64
+      newAccount.value.anhFile = file
+
+      // Tạo URL preview để hiển thị ảnh
+      newAccount.value.anhPreview = URL.createObjectURL(file)
     }
 
     const handleUploadImageError = (event) => {
@@ -1069,47 +1127,46 @@ export default {
       }
 
       try {
-        // Call API to add new account
-        const response = await addTaiKhoan(newAccount.value)
+        // Gọi API để thêm tài khoản mới với FormData
+        addTaiKhoan(newAccount.value)
+          .then((response) => {
+            console.log('Add account response:', response)
+            notification.success('Tài khoản đã được tạo thành công.')
+            closeAddModal()
+            fetchAccounts()
+          })
+          .catch((error) => {
+            console.error('Error adding account:', error)
 
-        console.log('Add account response:', response)
+            // Xử lý lỗi và hiển thị thông báo
+            let errorMessage = 'Có lỗi xảy ra khi tạo tài khoản'
+            if (error.response && error.response.data) {
+              errorMessage = error.response.data
+            }
 
-        // Show success notification
-        notification.success('Tài khoản đã được tạo thành công.')
-
-        // Reset form and hide modal
-        closeAddModal()
-
-        // Reload account list
-        fetchAccounts()
+            // Hiển thị thông báo lỗi cụ thể
+            if (errorMessage.includes('Tên đăng nhập đã tồn tại')) {
+              notification.error('Tên đăng nhập đã tồn tại trong hệ thống')
+            } else if (errorMessage.includes('Email đã tồn tại')) {
+              notification.error('Email đã tồn tại trong hệ thống')
+            } else if (errorMessage.includes('Số điện thoại đã tồn tại')) {
+              notification.error('Số điện thoại đã tồn tại trong hệ thống')
+            } else if (errorMessage.includes('Tên đăng nhập không được chứa ký tự đặc biệt')) {
+              notification.error('Tên đăng nhập không được chứa ký tự đặc biệt')
+            } else if (errorMessage.includes('Định dạng email không hợp lệ')) {
+              notification.error('Định dạng email không hợp lệ')
+            } else if (errorMessage.includes('Số điện thoại phải có 10-11 chữ số')) {
+              notification.error('Số điện thoại phải có 10-11 chữ số và bắt đầu bằng số 0')
+            } else {
+              notification.error(`Không thể tạo tài khoản: ${errorMessage}`)
+            }
+          })
+          .finally(() => {
+            isAddingAccount.value = false
+          })
       } catch (error) {
-        console.error('Error adding account:', error)
-
-        // Extract error message for display
-        let errorMessage = 'Có lỗi xảy ra khi tạo tài khoản'
-
-        if (error.response && error.response.data) {
-          errorMessage = error.response.data
-        }
-
-        // Show all errors as notifications
-        if (errorMessage.includes('Tên đăng nhập đã tồn tại')) {
-          notification.error('Tên đăng nhập đã tồn tại trong hệ thống')
-        } else if (errorMessage.includes('Email đã tồn tại')) {
-          notification.error('Email đã tồn tại trong hệ thống')
-        } else if (errorMessage.includes('Số điện thoại đã tồn tại')) {
-          notification.error('Số điện thoại đã tồn tại trong hệ thống')
-        } else if (errorMessage.includes('Tên đăng nhập không được chứa ký tự đặc biệt')) {
-          notification.error('Tên đăng nhập không được chứa ký tự đặc biệt')
-        } else if (errorMessage.includes('Định dạng email không hợp lệ')) {
-          notification.error('Định dạng email không hợp lệ')
-        } else if (errorMessage.includes('Số điện thoại phải có 10-11 chữ số')) {
-          notification.error('Số điện thoại phải có 10-11 chữ số và bắt đầu bằng số 0')
-        } else {
-          // For other errors, show a toast notification
-          notification.error(`Không thể tạo tài khoản: ${errorMessage}`)
-        }
-      } finally {
+        console.error('Error submitting form:', error)
+        notification.error('Có lỗi xảy ra khi xử lý form')
         isAddingAccount.value = false
       }
     }
@@ -1162,14 +1219,34 @@ export default {
 
     // Edit functions
     const openEditModal = (account) => {
-      // Create a deep copy to avoid modifying the original data
+      // Xóa URL tạm thời cũ nếu có
+      if (selectedAccount.value && selectedAccount.value._tempImageUrl) {
+        URL.revokeObjectURL(selectedAccount.value._tempImageUrl)
+      }
+
+      // Tạo bản sao để tránh sửa đổi dữ liệu gốc
       selectedAccount.value = JSON.parse(JSON.stringify(account))
-      selectedAccount.value.matKhau = '' // Clear password field
+      selectedAccount.value.matKhau = '' // Xóa trường mật khẩu
+
+      // Khởi tạo các trường liên quan đến ảnh
+      selectedAccount.value._tempImageUrl = null
+      selectedAccount.value.anhPreview = null
+      selectedAccount.value.anhFile = null
+
       showEditModal.value = true
       formErrors.value = {}
+
+      console.log('Mở modal chỉnh sửa tài khoản:', selectedAccount.value.tenDangNhap)
     }
 
     const cancelEdit = () => {
+      // Xóa URL tạm thời để tránh rò rỉ bộ nhớ
+      if (selectedAccount.value && selectedAccount.value._tempImageUrl) {
+        URL.revokeObjectURL(selectedAccount.value._tempImageUrl)
+        selectedAccount.value._tempImageUrl = null
+        selectedAccount.value.anhPreview = null
+      }
+
       showEditModal.value = false
       formErrors.value = {}
     }
@@ -1179,7 +1256,7 @@ export default {
       isSubmitting.value = true
 
       try {
-        // Perform basic validation
+        // Validate đầu vào
         if (!selectedAccount.value.email) {
           notification.error('Email không được để trống')
           isSubmitting.value = false
@@ -1192,32 +1269,38 @@ export default {
           return
         }
 
-        // Call API to update account
-        await updateTaiKhoan(selectedAccount.value.id, selectedAccount.value)
+        // Gọi API để cập nhật tài khoản
+        updateTaiKhoan(selectedAccount.value.id, selectedAccount.value)
+          .then(() => {
+            notification.success('Cập nhật tài khoản thành công')
+            showEditModal.value = false
 
-        notification.success('Cập nhật tài khoản thành công')
-        showEditModal.value = false
+            // Tải lại danh sách tài khoản
+            fetchAccounts()
+          })
+          .catch((error) => {
+            console.error('Error updating account:', error)
 
-        // Refresh account list
-        fetchAccounts()
+            // Xử lý thông báo lỗi
+            let errorMessage = 'Có lỗi xảy ra khi cập nhật tài khoản'
+            if (error.response && error.response.data) {
+              errorMessage = error.response.data
+            }
+
+            if (errorMessage.includes('Email đã tồn tại')) {
+              notification.error('Email đã tồn tại trong hệ thống')
+            } else if (errorMessage.includes('Số điện thoại đã tồn tại')) {
+              notification.error('Số điện thoại đã tồn tại trong hệ thống')
+            } else {
+              notification.error(`Không thể cập nhật tài khoản: ${errorMessage}`)
+            }
+          })
+          .finally(() => {
+            isSubmitting.value = false
+          })
       } catch (error) {
-        console.error('Error updating account:', error)
-
-        // Extract error messages
-        let errorMessage = 'Có lỗi xảy ra khi cập nhật tài khoản'
-        if (error.response && error.response.data) {
-          errorMessage = error.response.data
-        }
-
-        // Show appropriate error messages
-        if (errorMessage.includes('Email đã tồn tại')) {
-          notification.error('Email đã tồn tại trong hệ thống')
-        } else if (errorMessage.includes('Số điện thoại đã tồn tại')) {
-          notification.error('Số điện thoại đã tồn tại trong hệ thống')
-        } else {
-          notification.error(`Không thể cập nhật tài khoản: ${errorMessage}`)
-        }
-      } finally {
+        console.error('Error submitting form:', error)
+        notification.error('Có lỗi xảy ra khi xử lý form')
         isSubmitting.value = false
       }
     }
@@ -1231,24 +1314,35 @@ export default {
       const file = event.target.files[0]
       if (!file) return
 
-      // Check file type
+      // Kiểm tra định dạng file
       if (!file.type.match('image.*')) {
         notification.error('Vui lòng chọn một tệp hình ảnh hợp lệ')
         return
       }
 
-      // Check file size (max 5MB)
+      // Kiểm tra kích thước file (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         notification.error('Kích thước ảnh không được vượt quá 5MB')
         return
       }
 
-      // Create a preview and convert to base64
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        selectedAccount.value.anh = e.target.result // Store the base64 string
+      // Lưu trữ file để upload lên server
+      selectedAccount.value.anhFile = file
+
+      // Hủy URL cũ nếu có để tránh rò rỉ bộ nhớ
+      if (selectedAccount.value._tempImageUrl) {
+        URL.revokeObjectURL(selectedAccount.value._tempImageUrl)
       }
-      reader.readAsDataURL(file)
+
+      // Tạo URL preview để hiển thị ảnh và lưu tạm thời
+      const tempUrl = URL.createObjectURL(file)
+      selectedAccount.value._tempImageUrl = tempUrl // Lưu URL tạm thời để có thể hủy sau này
+      selectedAccount.value.anhPreview = tempUrl // Dùng cho hiển thị
+
+      console.log('Tạo preview URL mới cho ảnh:', tempUrl)
+
+      // Force render component
+      selectedAccount.value = { ...selectedAccount.value }
     }
 
     return {

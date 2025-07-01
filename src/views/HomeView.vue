@@ -117,7 +117,7 @@
                 <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '' }}₫</span>
                 <span class="price-unit">/đêm</span>
               </div>
-              <button class="book-now-btn">Đặt Ngay</button>
+              <button class="book-now-btn" @click="navigateToBooking">Đặt Ngay</button>
             </div>
           </div>
         </div>
@@ -135,7 +135,7 @@
           <h2>Sẵn Sàng Khám Phá Mộc Châu?</h2>
           <p>Đặt phòng ngay để trải nghiệm hệ thống homestay độc đáo với tầm nhìn núi non hùng vĩ.</p>
           <div class="cta-buttons">
-            <button class="cta-btn primary">Đặt Phòng Ngay</button>
+            <button class="cta-btn primary" @click="navigateToBooking">Đặt Phòng Ngay</button>
             <button class="cta-btn secondary">Liên Hệ Tư Vấn</button>
           </div>
         </div>
@@ -147,11 +147,18 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { getAllHomeStay } from '@/Service/HomeStayService';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const homestays = ref([]);
 const isLoading = ref(true);
 const hasError = ref(false);
 const errorMessage = ref('');
+
+// Phương thức chuyển đến trang Booking
+const navigateToBooking = () => {
+  router.push('/booking');
+};
 
 // Lọc chỉ các homestay có trạng thái Hoạt động (chấp nhận cả boolean true hoặc chuỗi "Hoạt động")
 const activeHomestays = computed(() => {

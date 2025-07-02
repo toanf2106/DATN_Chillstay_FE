@@ -52,14 +52,11 @@
             <th>STT</th>
             <th>Mã giảm giá</th>
             <th>Tên</th>
-            <th>Loại</th>
             <th>Giá trị</th>
             <th>Ngày bắt đầu</th>
             <th>Ngày kết thúc</th>
             <th>Số lượng</th>
-
-            <th>Số lượng</th>
-
+            <th>Giảm tối đa</th>
             <th>Homestay</th>
             <th>Trạng thái</th>
             <th>Thao tác</th>
@@ -74,12 +71,11 @@
             <td class="text-center">{{ index + 1 }}</td>
             <td class="text-center">{{ voucher.maGiamGia }}</td>
             <td class="text-center">{{ voucher.tenGiamGia }}</td>
-            <td class="text-center">{{ formatLoaiGiamGia(voucher.loaiGiamGia) }}</td>
             <td class="text-center">{{ formatGiaTri(voucher.giaTri, voucher.loaiGiamGia) }}</td>
             <td class="text-center">{{ formatDate(voucher.ngayBatDau) }}</td>
             <td class="text-center">{{ formatDate(voucher.ngayKetThuc) }}</td>
             <td class="text-center">{{ voucher.soLuong }}</td>
-            <td class="text-center">{{ voucher.giamToiDa }} đ</td>
+            <td class="text-center">{{ voucher.giamToiDa ? `${voucher.giamToiDa.toLocaleString('vi-VN')} đ` : 'Không giới hạn' }}</td>
             <td class="text-center">{{ getHomeStayName(voucher.homeStayId) }}</td>
             <td class="text-center">
               <span :class="`badge ${isVoucherValid(voucher) ? 'bg-success' : 'bg-danger'}`">
@@ -223,16 +219,6 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Loại Giảm Giá</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="detailVoucher ? formatLoaiGiamGia(detailVoucher.loaiGiamGia) : ''"
-                    readonly
-                  />
-                </div>
-
-                <div class="form-group">
                   <label>Giá trị</label>
                   <input
                     type="text"
@@ -255,6 +241,21 @@
                       detailVoucher?.giaTriToiThieu
                         ? `${detailVoucher.giaTriToiThieu.toLocaleString('vi-VN')} VND`
                         : '0 VND'
+                    "
+                    readonly
+                  />
+                </div>
+
+                <!-- Thêm trường giảm tối đa -->
+                <div class="form-group">
+                  <label>Giảm tối đa</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :value="
+                      detailVoucher?.giamToiDa
+                        ? `${detailVoucher.giamToiDa.toLocaleString('vi-VN')} VND`
+                        : 'Không giới hạn'
                     "
                     readonly
                   />

@@ -53,6 +53,7 @@ function setupModalListeners() {
   const loginForm = document.getElementById('loginForm')
   const signupForm = document.getElementById('signupForm')
   const forgotPasswordForm = document.getElementById('forgotPasswordForm')
+  const emailVerificationForm = document.getElementById('emailVerificationForm')
   const loginBtn = document.querySelector('.login-btn')
   const signupBtn = document.querySelector('.signup-btn')
   const closeBtn = document.querySelector('.close-button')
@@ -60,12 +61,14 @@ function setupModalListeners() {
   const showLoginLink = document.getElementById('showLogin')
   const showForgotPasswordLink = document.getElementById('forgotPassword')
   const showLoginFromForgotLink = document.getElementById('showLoginFromForgot')
+  const showLoginFromVerificationLink = document.getElementById('showLoginFromVerification')
 
   // Function để reset form
   function resetForms() {
     resetLoginForm()
     resetSignupForm()
     resetForgotPasswordForm()
+    resetVerificationForm()
   }
 
   // Function để mở modal với animation
@@ -77,6 +80,7 @@ function setupModalListeners() {
         loginForm.style.display = 'block'
         signupForm.style.display = 'none'
         forgotPasswordForm.style.display = 'none'
+        emailVerificationForm.style.display = 'none'
         loginForm.classList.add('form-active')
         setTimeout(function () {
           const inputElem = loginForm.querySelector('input[type="text"]')
@@ -86,6 +90,7 @@ function setupModalListeners() {
         loginForm.style.display = 'none'
         signupForm.style.display = 'block'
         forgotPasswordForm.style.display = 'none'
+        emailVerificationForm.style.display = 'none'
         signupForm.classList.add('form-active')
         setTimeout(function () {
           const inputElem = signupForm.querySelector('input[type="text"]')
@@ -95,9 +100,20 @@ function setupModalListeners() {
         loginForm.style.display = 'none'
         signupForm.style.display = 'none'
         forgotPasswordForm.style.display = 'block'
+        emailVerificationForm.style.display = 'none'
         forgotPasswordForm.classList.add('form-active')
         setTimeout(function () {
           const inputElem = forgotPasswordForm.querySelector('input[type="email"]')
+          if (inputElem) inputElem.focus()
+        }, 300)
+      } else if (formToShow === 'verification') {
+        loginForm.style.display = 'none'
+        signupForm.style.display = 'none'
+        forgotPasswordForm.style.display = 'none'
+        emailVerificationForm.style.display = 'block'
+        emailVerificationForm.classList.add('form-active')
+        setTimeout(function () {
+          const inputElem = emailVerificationForm.querySelector('input[type="email"]')
           if (inputElem) inputElem.focus()
         }, 300)
       }
@@ -114,7 +130,7 @@ function setupModalListeners() {
       toForm.style.display = 'block'
       setTimeout(function () {
         toForm.classList.add('form-active')
-        const inputElem = toForm.querySelector('input[type="text"]')
+        const inputElem = toForm.querySelector('input[type="text"]') || toForm.querySelector('input[type="email"]')
         if (inputElem) inputElem.focus()
       }, 10)
     }, 200)
@@ -175,6 +191,14 @@ function setupModalListeners() {
       e.preventDefault()
       resetForms()
       switchForm(forgotPasswordForm, loginForm)
+    })
+  }
+
+  if (showLoginFromVerificationLink) {
+    showLoginFromVerificationLink.addEventListener('click', function (e) {
+      e.preventDefault()
+      resetForms()
+      switchForm(emailVerificationForm, loginForm)
     })
   }
 
@@ -240,24 +264,17 @@ function toggleConfirmPasswordVisibility() {
   confirmPasswordVisible.value = !confirmPasswordVisible.value
 }
 
-// Hàm xử lý quên mật khẩu
-function goToForgotPassword() {
-  const modal = document.getElementById('authModal')
-  if (modal) {
-    closeModal(modal)
-    resetLoginForm()
-  }
-  // Sử dụng setTimeout để đảm bảo modal đã đóng trước khi chuyển hướng
-  setTimeout(() => {
-    window.location.href = window.location.origin + '/quen-mat-khau'
-  }, 300)
-}
-
 // Biến cho form quên mật khẩu
 const forgotEmail = ref('')
 const forgotEmailError = ref('')
 const forgotEmailSuccess = ref('')
 const isEmailProcessing = ref(false)
+
+// Biến cho form xác nhận email
+const verificationEmail = ref('')
+const verificationEmailError = ref('')
+const verificationEmailSuccess = ref('')
+const isVerificationEmailProcessing = ref(false)
 
 // Hàm xử lý quên mật khẩu trong modal
 async function handleForgotPassword() {
@@ -286,7 +303,7 @@ async function handleForgotPassword() {
     // Đảm bảo email được format đúng trước khi gửi đi
     const trimmedEmail = forgotEmail.value.trim().toLowerCase()
 
-        // Gọi API quên mật khẩu từ authService
+    // Gọi API quên mật khẩu từ authService
     const { forgotPassword } = await import('@/Service/authService')
     await forgotPassword(trimmedEmail)
 
@@ -350,6 +367,25 @@ async function handleLogin() {
     const result = await authStore.login(loginUsername.value, loginPassword.value)
 
     if (!result.success) {
+      // Kiểm tra trường hợp tài khoản chưa xác nhận email
+      if (result.error && result.error.response && result.error.response.data && result.error.response.data.error === 'email_not_verified') {
+        loginError.value = result.error.response.data.message
+
+        // Chuyển sang form xác nhận email
+        showEmailVerificationForm(result.error.response.data.email)
+
+        notification.warning('Vui lòng xác nhận email trước khi đăng nhập', {
+          position: 'top-right',
+          duration: 5000,
+        })
+
+        // Cập nhật trạng thái xử lý và nút submit
+        window.isLoginProcessing = false
+        submitBtn.innerHTML = 'Đăng nhập'
+        submitBtn.disabled = false
+        return
+      }
+
       if (result.error && result.error.response && result.error.response.status === 403) {
         loginError.value = 'Tài khoản đã bị khóa!'
         notification.error('Tài khoản đã bị khóa!', {
@@ -468,12 +504,12 @@ async function handleRegister() {
     signupError.value = ''
 
     const submitBtn = document.querySelector('#signupForm .submit-btn')
-    submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> ĐANG XỬ LÝ...'
     submitBtn.disabled = true
 
     // Kiểm tra các trường hợp lệ
     if (!validateForm()) {
-      submitBtn.innerHTML = 'Đăng ký'
+      submitBtn.innerHTML = 'ĐĂNG KÝ'
       submitBtn.disabled = false
       window.isRegisterProcessing = false
       return
@@ -492,9 +528,9 @@ async function handleRegister() {
     await api.post('/api/register', taiKhoan)
 
     // Xử lý thành công
-    notification.success('Đăng ký tài khoản thành công!', {
+    notification.success('Đăng ký tài khoản thành công! Vui lòng kiểm tra email để xác nhận tài khoản.', {
       position: 'top-right',
-      duration: 3000,
+      duration: 5000,
     })
 
     // Đóng modal
@@ -504,8 +540,10 @@ async function handleRegister() {
     // Reset form
     resetSignupForm()
 
-    // Hủy cờ đăng ký
+    // Hủy cờ đăng ký và khôi phục nút
     window.isRegisterProcessing = false
+    submitBtn.innerHTML = 'ĐĂNG KÝ'
+    submitBtn.disabled = false
 
     // Chuyển sang form đăng nhập sau khi đăng ký thành công
     setTimeout(() => {
@@ -542,14 +580,14 @@ async function handleRegister() {
       position: 'top-right',
       duration: 5000,
     })
-
-    // Hủy cờ đăng ký
+  } finally {
+    // Đảm bảo luôn khôi phục trạng thái nút và cờ xử lý
     window.isRegisterProcessing = false
-
-    // Khôi phục nút submit
     const submitBtn = document.querySelector('#signupForm .submit-btn')
-    submitBtn.innerHTML = 'Đăng ký'
-    submitBtn.disabled = false
+    if (submitBtn) {
+      submitBtn.innerHTML = 'ĐĂNG KÝ'
+      submitBtn.disabled = false
+    }
   }
 }
 
@@ -570,6 +608,92 @@ function handleLogout() {
       duration: 3000,
     })
   }
+}
+
+// Hàm hiển thị form xác nhận email
+function showEmailVerificationForm(email) {
+  verificationEmail.value = email || ''
+  const modal = document.getElementById('authModal')
+  const loginForm = document.getElementById('loginForm')
+  const verificationForm = document.getElementById('emailVerificationForm')
+
+  if (modal && loginForm && verificationForm) {
+    loginForm.classList.add('form-hiding')
+    setTimeout(function () {
+      loginForm.style.display = 'none'
+      loginForm.classList.remove('form-active')
+      loginForm.classList.remove('form-hiding')
+      verificationForm.style.display = 'block'
+      setTimeout(function () {
+        verificationForm.classList.add('form-active')
+      }, 10)
+    }, 200)
+  }
+}
+
+// Hàm gửi lại email xác nhận
+async function resendVerificationEmail() {
+  try {
+    verificationEmailError.value = ''
+    verificationEmailSuccess.value = ''
+
+    if (!verificationEmail.value) {
+      verificationEmailError.value = 'Vui lòng nhập email của bạn'
+      return
+    }
+
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!regexEmail.test(verificationEmail.value)) {
+      verificationEmailError.value = 'Email không hợp lệ'
+      return
+    }
+
+    isVerificationEmailProcessing.value = true
+    const submitBtn = document.querySelector('#emailVerificationForm .submit-btn')
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Đang xử lý...'
+    submitBtn.disabled = true
+
+    // Gọi API gửi lại email xác nhận
+    await api.post('/api/gui-lai-xac-nhan', { email: verificationEmail.value })
+
+    verificationEmailSuccess.value = 'Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.'
+    notification.success('Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.', {
+      position: 'top-right',
+      duration: 5000
+    })
+  } catch (error) {
+    console.error('Lỗi gửi lại email xác nhận:', error)
+
+    if (error.response && error.response.data) {
+      if (typeof error.response.data === 'string') {
+        verificationEmailError.value = error.response.data
+      } else if (error.response.data.message) {
+        verificationEmailError.value = error.response.data.message
+      } else {
+        verificationEmailError.value = 'Có lỗi xảy ra khi gửi email xác nhận'
+      }
+    } else {
+      verificationEmailError.value = 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
+    }
+
+    notification.error(verificationEmailError.value, {
+      position: 'top-right',
+      duration: 5000
+    })
+  } finally {
+    isVerificationEmailProcessing.value = false
+    const submitBtn = document.querySelector('#emailVerificationForm .submit-btn')
+    if (submitBtn) {
+      submitBtn.innerHTML = 'Gửi lại email xác nhận'
+      submitBtn.disabled = false
+    }
+  }
+}
+
+function resetVerificationForm() {
+  verificationEmail.value = ''
+  verificationEmailError.value = ''
+  verificationEmailSuccess.value = ''
 }
 </script>
 
@@ -673,17 +797,12 @@ function handleLogout() {
             <div class="input-group">
               <label for="matKhau">Mật khẩu</label>
               <div class="password-input-container">
-
                 <input
                   :type="signupPasswordVisible ? 'text' : 'password'"
                   id="matKhau"
                   v-model="matKhau"
                   required
                 />
-
-                <input :type="signupPasswordVisible ? 'text' : 'password'" id="signupPassword" name="signupPassword"
-                  required />
-
                 <span class="password-toggle" @click="toggleSignupPasswordVisibility">
                   <font-awesome-icon :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
@@ -693,17 +812,12 @@ function handleLogout() {
             <div class="input-group">
               <label for="xacNhanMatKhau">Xác nhận mật khẩu</label>
               <div class="password-input-container">
-
                 <input
                   :type="confirmPasswordVisible ? 'text' : 'password'"
                   id="xacNhanMatKhau"
                   v-model="xacNhanMatKhau"
                   required
                 />
-
-                <input :type="confirmPasswordVisible ? 'text' : 'password'" id="confirmPassword" name="confirmPassword"
-                  required />
-
                 <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
                   <font-awesome-icon :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
@@ -752,6 +866,44 @@ function handleLogout() {
             </button>
           </form>
           <p class="form-switcher">Quay lại <a href="#" id="showLoginFromForgot">Đăng nhập</a></p>
+        </div>
+
+        <!-- Email Verification Form -->
+        <div id="emailVerificationForm" class="auth-form" style="display: none">
+          <h2>Xác nhận email</h2>
+          <p class="text-center text-muted mb-4">
+            Nhập email của bạn để nhận hướng dẫn xác nhận email
+          </p>
+          <form @submit.prevent="resendVerificationEmail">
+            <div class="input-group">
+              <label for="verificationEmail">Email</label>
+              <input
+                type="email"
+                id="verificationEmail"
+                v-model="verificationEmail"
+                class="form-control"
+                placeholder="Nhập email của bạn"
+                :disabled="isVerificationEmailProcessing"
+              />
+            </div>
+
+            <div v-if="verificationEmailError" class="form-error">
+              {{ verificationEmailError }}
+            </div>
+
+            <div v-if="verificationEmailSuccess" class="alert-success">
+              {{ verificationEmailSuccess }}
+            </div>
+
+            <button
+              type="submit"
+              class="btn submit-btn"
+              :disabled="isVerificationEmailProcessing"
+            >
+              {{ isVerificationEmailProcessing ? 'Đang xử lý...' : 'Gửi lại email xác nhận' }}
+            </button>
+          </form>
+          <p class="form-switcher">Quay lại <a href="#" id="showLoginFromVerification">Đăng nhập</a></p>
         </div>
       </div>
     </div>

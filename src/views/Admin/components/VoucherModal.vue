@@ -26,37 +26,9 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Loại giảm giá <span class="text-danger">*</span></label>
-              <div class="form-check-group">
-                <div class="form-check">
-                  <input
-                    type="radio"
-                    id="loai-phan-tram"
-                    name="loai-giam-gia"
-                    v-model="form.loaiGiamGia"
-                    value="PhanTram"
-                    class="form-check-input"
-                  />
-                  <label class="form-check-label" for="loai-phan-tram">Phần trăm</label>
-                </div>
-                <div class="form-check">
-                  <input
-                    type="radio"
-                    id="loai-tien"
-                    name="loai-giam-gia"
-                v-model="form.loaiGiamGia"
-                    value="SoTien"
-                    class="form-check-input"
-                  />
-                  <label class="form-check-label" for="loai-tien">Số tiền</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-group">
               <label class="form-label">
                 Giá trị <span class="text-danger">*</span>
-                <small v-if="form.loaiGiamGia === 'PhanTram'">(0-100%)</small>
+                <small>(0-100%)</small>
               </label>
               <input
                 type="number"
@@ -64,9 +36,9 @@
                 :class="{ 'is-invalid': errors.giaTri }"
                 v-model.number="form.giaTri"
                 min="0"
-                :max="form.loaiGiamGia === 'PhanTram' ? 100 : null"
-                :step="form.loaiGiamGia === 'PhanTram' ? 1 : 1000"
-                :placeholder="form.loaiGiamGia === 'PhanTram' ? 'Nhập % giảm giá' : 'Nhập số tiền giảm'"
+                max="100"
+                step="1"
+                placeholder="Nhập % giảm giá"
               />
               <div class="invalid-feedback" v-if="errors.giaTri">
                 {{ errors.giaTri }}
@@ -84,6 +56,24 @@
                 placeholder="Nhập giá trị tối thiểu để áp dụng"
               />
               <small class="text-muted">Giá trị đơn hàng tối thiểu để áp dụng mã giảm giá</small>
+            </div>
+
+            <!-- Thêm trường giảm tối đa cho loại phần trăm -->
+            <div class="form-group">
+              <label class="form-label">Giảm tối đa</label>
+              <input
+                type="number"
+                class="form-control"
+                :class="{ 'is-invalid': errors.giamToiDa }"
+                v-model.number="form.giamToiDa"
+                min="0"
+                step="1000"
+                placeholder="Nhập giá trị giảm tối đa"
+              />
+              <div class="invalid-feedback" v-if="errors.giamToiDa">
+                {{ errors.giamToiDa }}
+              </div>
+              <small class="text-muted">Giới hạn số tiền tối đa được giảm (để trống nếu không giới hạn)</small>
             </div>
           </div>
           <div class="col-md-6">
@@ -195,6 +185,7 @@ export default {
       loaiGiamGia: 'PhanTram',
       giaTri: 0,
       giaTriToiThieu: 0,
+      giamToiDa: null,
       ngayBatDau: null,
       ngayKetThuc: null,
       soLuong: 0,
@@ -219,6 +210,7 @@ export default {
           loaiGiamGia: props.voucher.loaiGiamGia || 'PhanTram',
           giaTri: props.voucher.giaTri || 0,
           giaTriToiThieu: props.voucher.giaTriToiThieu || 0,
+          giamToiDa: props.voucher.giamToiDa || null,
           ngayBatDau: props.voucher.ngayBatDau ? new Date(props.voucher.ngayBatDau).toISOString().split('T')[0] : null,
           ngayKetThuc: props.voucher.ngayKetThuc ? new Date(props.voucher.ngayKetThuc).toISOString().split('T')[0] : null,
           soLuong: props.voucher.soLuong || 0,
@@ -264,6 +256,11 @@ export default {
 
       if (!form.value.homeStayId) {
         newErrors.homeStayId = 'Vui lòng chọn homestay áp dụng';
+      }
+
+      // Validate giảm tối đa khi loại giảm giá là phần trăm
+      if (form.value.loaiGiamGia === 'PhanTram' && form.value.giamToiDa !== null && form.value.giamToiDa <= 0) {
+        newErrors.giamToiDa = 'Giá trị giảm tối đa phải lớn hơn 0';
       }
 
       errors.value = newErrors;

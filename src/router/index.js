@@ -6,6 +6,7 @@ import ThongKe from '../views/Admin/ThongKe.vue'
 import DatHomestay from '../views/Admin/DatHome.vue'
 
 import ForgotPasswordForm from '../components/Password.vue'
+import EmailConfirmView from '../views/EmailConfirmView.vue'
 
 import BookingView from '../views/BookingView.vue'
 
@@ -21,6 +22,9 @@ const router = createRouter({
     // Route cho quên mật khẩu và đặt lại mật khẩu
     { path: '/quen-mat-khau', name: 'forgot-password', component: ForgotPasswordForm },
     { path: '/dat-lai-mat-khau', name: 'reset-password', component: ForgotPasswordForm },
+
+    // Route cho xác nhận email
+    { path: '/xac-nhan-tai-khoan', name: 'email-confirm', component: EmailConfirmView },
 
     // Các route cho Admin
     {

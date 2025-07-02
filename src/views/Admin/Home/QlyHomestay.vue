@@ -58,7 +58,7 @@
           <tr>
             <th>STT</th>
             <th>Tên Homestay</th>
-            <th>Chủ sở hữu</th>
+            <th>Quản lý Homestay</th>
             <th>Diện tích</th>
             <th>Giá</th>
             <th>Địa chỉ</th>

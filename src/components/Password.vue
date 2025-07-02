@@ -84,22 +84,17 @@ async function handleForgotPassword() {
     console.log('Đang gửi yêu cầu quên mật khẩu cho email (đã chuẩn hóa):', trimmedEmail);
 
     // Gọi API quên mật khẩu
-    try {
-      const response = await forgotPassword(trimmedEmail);
-      console.log('Kết quả từ API:', response.data);
+    const response = await forgotPassword(trimmedEmail);
+    console.log('Kết quả từ API:', response.data);
 
-      emailSuccess.value = 'Vui lòng kiểm tra email của bạn để đặt lại mật khẩu';
-      notification.success('Vui lòng kiểm tra email của bạn để đặt lại mật khẩu', {
-        position: 'top-right',
-        duration: 5000
-      });
+    emailSuccess.value = 'Vui lòng kiểm tra email của bạn để đặt lại mật khẩu';
+    notification.success('Vui lòng kiểm tra email của bạn để đặt lại mật khẩu', {
+      position: 'top-right',
+      duration: 5000
+    });
 
-      // Reset form
-      email.value = '';
-    } catch (apiError) {
-      console.error('API error details:', apiError);
-      throw apiError; // Ném lỗi để xử lý ở catch bên ngoài
-    }
+    // Reset form
+    email.value = '';
   } catch (error) {
     console.error('Lỗi quên mật khẩu:', error);
 

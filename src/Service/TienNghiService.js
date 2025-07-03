@@ -22,12 +22,17 @@ export function addTienNghi(tienNghi) {
 
 // Cập nhật tiện nghi
 export function updateTienNghi(id, tienNghi) {
-  return api.put(`/api/tien-nghi/${id}`, tienNghi);
+  return api.put(`/api/tien-nghi/update/${id}`, tienNghi);
 }
 
-// Xóa tiện nghi (dùng PUT theo backend)
+// Xóa tiện nghi (chuyển sang không hoạt động)
 export function deleteTienNghi(id) {
   return api.put(`/api/tien-nghi/delete/${id}`);
+}
+
+// Khôi phục tiện nghi (chuyển sang hoạt động)
+export function restoreTienNghi(id) {
+  return api.put(`/api/tien-nghi/reset/${id}`);
 }
 
 // Tìm kiếm và phân trang tiện nghi

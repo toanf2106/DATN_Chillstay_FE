@@ -1,6 +1,6 @@
 <template>
   <div class="voucher-container">
-    <h1 class="page-title">Quản Lý Mã Giảm Giá</h1>
+    <h1 class="page-title">Quản Lý Voucher</h1>
 
     <div class="controls-container">
       <div class="search-box">
@@ -10,7 +10,7 @@
             <input
               type="text"
               v-model="searchTerm"
-              placeholder="Tìm kiếm mã giảm giá..."
+              placeholder="Tìm kiếm Voucher..."
               class="search-input"
               @input="handleSearch"
             />
@@ -56,6 +56,7 @@
             <th>Ngày bắt đầu</th>
             <th>Ngày kết thúc</th>
             <th>Số lượng</th>
+            <th>Giá trị tối thiểu</th>
             <th>Giảm tối đa</th>
             <th>Homestay</th>
             <th>Trạng thái</th>
@@ -75,6 +76,7 @@
             <td class="text-center">{{ formatDate(voucher.ngayBatDau) }}</td>
             <td class="text-center">{{ formatDate(voucher.ngayKetThuc) }}</td>
             <td class="text-center">{{ voucher.soLuong }}</td>
+            <td class="text-center">{{ voucher.giaTriToiThieu ? `${voucher.giaTriToiThieu.toLocaleString('vi-VN')} đ` : '0 đ' }}</td>
             <td class="text-center">{{ voucher.giamToiDa ? `${voucher.giamToiDa.toLocaleString('vi-VN')} đ` : 'Không giới hạn' }}</td>
             <td class="text-center">{{ getHomeStayName(voucher.homeStayId) }}</td>
             <td class="text-center">
@@ -103,7 +105,7 @@
           </tr>
           <!-- Empty rows to ensure space for 10 rows -->
           <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
-            <td colspan="11">&nbsp;</td>
+            <td colspan="12">&nbsp;</td>
           </tr>
         </tbody>
       </table>

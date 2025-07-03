@@ -3,7 +3,7 @@
       <div class="modal-content">
         <div class="modal-header">
       <h3 class="modal-title">
-            {{ isEdit ? 'Cập nhật mã giảm giá' : 'Thêm mã giảm giá mới' }}
+            {{ isEdit ? 'Cập nhật Voucher' : 'Thêm Voucher mới' }}
       </h3>
       <button type="button" class="close-button" @click="$emit('close')" aria-label="Close">&times;</button>
         </div>
@@ -12,13 +12,13 @@
         <div class="row">
           <div class="col-md-6">
             <div class="form-group">
-              <label class="form-label">Tên giảm giá <span class="text-danger">*</span></label>
+              <label class="form-label">Tên Voucher <span class="text-danger">*</span></label>
               <input
                 type="text"
                 class="form-control"
                 :class="{ 'is-invalid': errors.tenGiamGia }"
                 v-model="form.tenGiamGia"
-                placeholder="Nhập tên giảm giá"
+                placeholder="Nhập tên Voucher"
               />
               <div class="invalid-feedback" v-if="errors.tenGiamGia">
                 {{ errors.tenGiamGia }}
@@ -38,7 +38,7 @@
                 min="0"
                 max="100"
                 step="1"
-                placeholder="Nhập % giảm giá"
+                placeholder="Nhập % giảm giá Voucher"
               />
               <div class="invalid-feedback" v-if="errors.giaTri">
                 {{ errors.giaTri }}
@@ -50,17 +50,21 @@
               <input
                 type="number"
                 class="form-control"
+                :class="{ 'is-invalid': errors.giaTriToiThieu }"
                 v-model.number="form.giaTriToiThieu"
                 min="0"
                 step="1000"
                 placeholder="Nhập giá trị tối thiểu để áp dụng"
               />
-              <small class="text-muted">Giá trị đơn hàng tối thiểu để áp dụng mã giảm giá</small>
+              <div class="invalid-feedback" v-if="errors.giaTriToiThieu">
+                {{ errors.giaTriToiThieu }}
+              </div>
+              <small class="text-muted">Giá trị đơn hàng tối thiểu để áp dụng voucher</small>
             </div>
 
             <!-- Thêm trường giảm tối đa cho loại phần trăm -->
             <div class="form-group">
-              <label class="form-label">Giảm tối đa</label>
+              <label class="form-label">Giảm tối đa </label>
               <input
                 type="number"
                 class="form-control"
@@ -134,6 +138,15 @@
                 {{ errors.homeStayId }}
               </div>
             </div>
+
+            <!-- Thêm trường trạng thái cho modal chỉnh sửa -->
+            <div class="form-group" v-if="isEdit">
+              <label class="form-label">Trạng thái</label>
+              <select class="form-select" v-model="form.trangThai">
+                <option :value="true">Còn hạn</option>
+                <option :value="false">Hết hạn</option>
+              </select>
+            </div>
           </div>
         </div>
           </form>
@@ -154,7 +167,7 @@
           role="status"
           aria-hidden="true"
         ></span>
-        <span v-else>{{ isEdit ? 'Cập nhật' : 'Thêm mới' }}</span>
+        <span v-else>{{ isEdit ? 'Cập nhật Voucher' : 'Thêm Voucher' }}</span>
           </button>
     </div>
   </div>
@@ -232,13 +245,13 @@ export default {
       const newErrors = {};
 
       if (!form.value.tenGiamGia?.trim()) {
-        newErrors.tenGiamGia = 'Tên giảm giá không được để trống';
+        newErrors.tenGiamGia = 'Tên Voucher không được để trống';
       }
 
       if (!form.value.giaTri || form.value.giaTri <= 0) {
         newErrors.giaTri = 'Giá trị phải lớn hơn 0';
       } else if (form.value.loaiGiamGia === 'PhanTram' && form.value.giaTri > 100) {
-        newErrors.giaTri = 'Phần trăm giảm giá không được vượt quá 100%';
+        newErrors.giaTri = 'Phần trăm Voucher không được vượt quá 100%';
       }
 
       if (!form.value.ngayBatDau) {
@@ -261,6 +274,11 @@ export default {
       // Validate giảm tối đa khi loại giảm giá là phần trăm
       if (form.value.loaiGiamGia === 'PhanTram' && form.value.giamToiDa !== null && form.value.giamToiDa <= 0) {
         newErrors.giamToiDa = 'Giá trị giảm tối đa phải lớn hơn 0';
+      }
+
+      // Kiểm tra giá trị tối thiểu không được lớn hơn giá trị tối đa
+      if (form.value.giaTriToiThieu > 0 && form.value.giamToiDa !== null && form.value.giaTriToiThieu > form.value.giamToiDa) {
+        newErrors.giaTriToiThieu = 'Giá trị tối thiểu không được lớn hơn giá trị giảm tối đa';
       }
 
       errors.value = newErrors;

@@ -91,7 +91,7 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="chuSoHuu">Chủ sở hữu <span class="text-danger">*</span></label>
+                      <label for="chuSoHuu">Quản lý Homestay <span class="text-danger">*</span></label>
                       <select
                         id="chuSoHuu"
                         v-model="formData.idChuHomeStay"
@@ -99,7 +99,7 @@
                         :class="{ 'is-invalid': errors.idChuHomeStay }"
                         required
                       >
-                        <option value="" disabled selected>-- Chọn chủ sở hữu --</option>
+                        <option value="" disabled selected>-- Chọn quản lý--</option>
                         <option v-for="chu in chuList" :key="chu.id" :value="chu.id">
                           {{ chu.hotenChuHomestay || chu.hoTen }}
                         </option>

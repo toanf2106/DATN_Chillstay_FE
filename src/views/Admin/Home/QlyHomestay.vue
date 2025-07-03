@@ -60,10 +60,10 @@
             <th>Tên Homestay</th>
             <th>Quản lý Homestay</th>
             <th>Diện tích</th>
-            <th>Giá</th>
+            <th>Giá gốc</th>
             <th>Địa chỉ</th>
             <th>Tình trạng</th>
-            <th>Loại Phòng</th>
+            <th>Loại Homestay</th>
             <th>Trạng thái</th>
             <th>Hình ảnh</th>
             <th>Thao tác</th>
@@ -79,7 +79,7 @@
             <td class="text-center">{{ hs.tenHomestay }}</td>
             <td class="text-center">{{ getChuName(hs.idChuHomeStay) }}</td>
             <td class="text-center">{{ hs.dienTich }} m²</td>
-            <td class="text-center">{{ formatCurrency(hs.giaCaHomestay) }}</td>
+            <td class="text-center">{{ formatCurrency(hs.giaCaHomestay) }} đ</td>
             <td class="text-center">{{ hs.diaChi }}</td>
             <td class="text-center">{{ hs.tinhTrang }}</td>
             <td class="text-center">{{ getLoaiName(hs.idLoaiHomeStay) }}</td>

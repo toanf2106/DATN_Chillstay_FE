@@ -1,18 +1,10 @@
 <template>
   <div>
     <!-- Container for each position -->
-    <div
-      v-for="position in positions"
-      :key="position"
-      class="notification-container"
-      :class="`position-${position}`"
-    >
+    <div v-for="position in positions" :key="position" class="notification-container" :class="`position-${position}`">
       <transition-group name="notification-transition">
-        <toast-notification
-          v-for="notification in getNotificationsForPosition(position)"
-          :key="notification.id"
-          :notification="notification"
-        />
+        <toast-notification v-for="notification in getNotificationsForPosition(position)" :key="notification.id"
+          :notification="notification" />
       </transition-group>
     </div>
   </div>

@@ -1,103 +1,198 @@
 <template>
-  <div class="container mt-4">
-    <h2>Quản lý Tiện nghi</h2>
-    <div class="mb-3 d-flex align-items-center search-bar-custom justify-content-between">
-      <div class="d-flex align-items-center flex-grow-1">
-        <input v-model="searchKeyword" @input="debouncedSearch" class="form-control search-input-custom me-2"
-          style="width: 400px" placeholder="Tìm kiếm tiện nghi..." />
+  <div class="tien-nghi-container">
+    <h1 class="page-title">Quản Lý Tiện Nghi</h1>
+
+    <div class="controls-container">
+      <div class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" v-model="searchText" placeholder="Tìm kiếm tiện nghi..." class="search-input"
+          @input="onSearchChange" />
       </div>
-      <div class="d-flex align-items-center">
-        <select class="form-select search-select-custom me-2" v-model="filterStatus">
-          <option :value="null">Tất cả trạng thái</option>
-          <option :value="true">Đang hoạt động</option>
-          <option :value="false">Không hoạt động</option>
+
+      <div class="right-controls">
+        <select class="form-select status-filter" v-model="filterStatus" @change="filterByStatus">
+          <option value="Đang hoạt động">Đang hoạt động</option>
+          <option value="Ngừng hoạt động">Ngừng hoạt động</option>
         </select>
-        <button class="btn-action btn-blue" @click="openAddModal" title="Thêm tiện nghi">
-          <i class="fas fa-plus"></i>
+        <button class="btn btn-primary add-button" @click="showAddModal">
+          <i class="fas fa-plus-circle"></i>
         </button>
       </div>
     </div>
-    <table class="table table-bordered table-hover">
-      <thead>
-        <tr>
-          <th>STT</th>
-          <th>Tên tiện nghi</th>
-          <th>Mô tả</th>
-          <th>Đơn vị</th>
-          <th>Trạng thái</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in tienNghis" :key="item.id">
-          <td>{{ item.id }}</td>
-          <td>{{ item.tenTienNghi }}</td>
-          <td>{{ item.moTa }}</td>
-          <td>{{ item.donVi }}</td>
-          <td>
-            <span :class="['badge', item.trangThai ? 'bg-success' : 'bg-secondary']">
-              {{ item.trangThai ? 'Đang sử dụng' : 'Ngừng sử dụng' }}
-            </span>
-          </td>
-          <td class="action-column">
-            <button class="btn-action btn-blue" @click="showDetail(item)" title="Chi tiết">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button v-if="item.trangThai" class="btn-action btn-yellow" @click="openEditModal(item)" title="Sửa">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button v-if="item.trangThai" class="btn-action btn-red" @click="confirmDelete(item.id)" title="Xóa">
-              <i class="fas fa-trash"></i>
-            </button>
-            <button v-else class="btn-action btn-green" @click="restoreTienNghi(item.id)" title="Khôi phục">
-              <i class="fas fa-redo"></i>
-            </button>
-          </td>
-        </tr>
-        <!-- Empty rows to maintain table height -->
-        <template v-if="tienNghis.length < size">
-          <tr v-for="i in (size - tienNghis.length)" :key="'empty-' + i" class="empty-row">
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-            <td>&nbsp;</td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
 
-    <!-- Modal Thêm/Sửa -->
-    <div class="modal fade" ref="tienNghiModal" id="tienNghiModal" tabindex="-1" aria-labelledby="tienNghiModalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <form @submit.prevent="handleSubmit">
-            <div class="modal-header">
-              <h5 class="modal-title" id="tienNghiModalLabel">
-                {{ isEditing ? 'Cập nhật tiện nghi' : 'Thêm tiện nghi mới' }}
-              </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Loading indicator -->
+    <div v-if="loading" class="loading-indicator">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Tien Nghi Table -->
+    <div class="table-responsive" v-if="!loading">
+      <table class="table table-hover table-bordered table-sm">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Tên Tiện Nghi</th>
+            <th>Đơn Vị</th>
+            <th>Mô Tả</th>
+            <th>Trạng Thái</th>
+            <th>Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in tienNghiList" :key="item.id" @dblclick="showDetailModal(item)">
+            <td class="text-center">{{ item.id }}</td>
+            <td class="text-center">{{ item.tenTienNghi }}</td>
+            <td class="text-center">{{ item.donVi }}</td>
+            <td class="text-center">{{ item.moTa }}</td>
+            <td class="text-center">
+              <span :class="`badge ${item.trangThai === 'Đang hoạt động' ? 'bg-success' : 'bg-danger'}`">
+                {{ item.trangThai }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div v-if="item.trangThai === 'Đang hoạt động'" class="action-buttons">
+                <button class="btn btn-icon btn-warning-light" title="Chỉnh sửa" @click="editTienNghi(item)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-icon btn-danger-light" title="Xóa" @click="deleteTienNghi(item.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              <div v-else class="action-buttons">
+                <button class="btn btn-icon btn-success-light" title="Khôi phục" @click="showRestoreConfirmModal(item)">
+                  <i class="fas fa-reply"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <!-- Empty rows to ensure space for 10 rows -->
+          <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
+            <td colspan="7">&nbsp;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="!loading && tienNghiList.length === 0" class="empty-state">
+      <i class="fas fa-box-open empty-icon"></i>
+      <p>Không tìm thấy tiện nghi nào.</p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" v-if="!loading && totalItems > 0">
+      <div class="pagination-info">
+        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} tiện nghi
+      </div>
+      <nav aria-label="Page navigation">
+        <ul class="pagination">
+          <li class="page-item" :class="{ disabled: currentPage === 0 }">
+            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage)">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+          <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: currentPage === page - 1 }">
+            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+          </li>
+          <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage + 2)">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Confirmation Modals -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete()">
+      <!-- Delete Confirmation -->
+      <div class="confirmation-box">
+        <button class="close-button" @click="cancelDelete">&times;</button>
+        <div class="confirmation-body">
+          <div class="confirm-icon-wrapper icon-danger">
+            <i class="fas fa-trash-alt"></i>
+          </div>
+          <h4 class="confirm-title">Bạn có chắc chắn muốn xóa?</h4>
+          <p class="confirm-text">
+            Hành động này sẽ xóa tiện nghi với ID
+            <strong>{{ selectedTienNghiId }}</strong>. <br />Bạn có thể khôi phục lại sau này.
+          </p>
+        </div>
+        <div class="confirmation-footer">
+          <button class="btn btn-secondary" @click="cancelDelete">Hủy bỏ</button>
+          <button class="btn btn-danger" @click="confirmDelete" :disabled="processing">
+            <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span v-else>Xác nhận xóa</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restore Confirmation Modal -->
+    <div v-if="showRestoreConfirm" class="modal-overlay" @click.self="cancelRestore()">
+      <div class="confirmation-box">
+        <button class="close-button" @click="cancelRestore">&times;</button>
+        <div class="confirmation-body">
+          <div class="confirm-icon-wrapper icon-success">
+            <i class="fas fa-undo"></i>
+          </div>
+          <h4 class="confirm-title">Bạn có chắc chắn muốn khôi phục?</h4>
+          <p class="confirm-text">
+            Hành động này sẽ khôi phục tiện nghi
+            <strong>{{ selectedTienNghiToRestore?.tenTienNghi }}</strong> (ID: {{ selectedTienNghiToRestore?.id }}).
+          </p>
+        </div>
+        <div class="confirmation-footer">
+          <button class="btn btn-secondary" @click="cancelRestore">Hủy bỏ</button>
+          <button class="btn btn-success" @click="confirmRestore" :disabled="processing">
+            <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span v-else>Xác nhận khôi phục</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Thêm/Sửa Modal -->
+    <div v-if="showForm" class="modal-overlay" @click.self="cancelForm">
+      <div class="modal-form">
+        <div class="modal-header">
+          <h3>{{ isEdit ? 'Sửa Tiện Nghi' : 'Thêm Tiện Nghi Mới' }}</h3>
+          <button class="close-button" @click="cancelForm">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="saveTienNghi" class="tien-nghi-form">
+            <div class="form-group">
+              <label for="tenTienNghi">Tên Tiện Nghi <span class="required">*</span></label>
+              <input id="tenTienNghi" v-model="form.tenTienNghi" class="form-control"
+                :class="{ 'is-invalid': errorsFromBackend.tenTienNghi }" placeholder="Nhập tên tiện nghi"
+                maxlength="100" required />
+              <small class="form-text text-muted">Tối đa 100 ký tự</small>
+              <div v-if="errorsFromBackend.tenTienNghi" class="error-feedback">{{ errorsFromBackend.tenTienNghi }}</div>
             </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label class="form-label">Tên tiện nghi <span class="text-danger">*</span></label>
-                <input v-model="form.tenTienNghi" class="form-control" required maxlength="100" />
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Mô tả</label>
-                <textarea v-model="form.moTa" class="form-control" rows="2" maxlength="255"></textarea>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Đơn vị</label>
-                <input v-model="form.donVi" class="form-control" maxlength="20" />
-              </div>
+            <div class="form-group">
+              <label for="donVi">Đơn Vị <span class="required">*</span></label>
+              <input id="donVi" v-model="form.donVi" class="form-control"
+                :class="{ 'is-invalid': errorsFromBackend.donVi }" placeholder="Nhập đơn vị tính" maxlength="20"
+                required />
+              <small class="form-text text-muted">Tối đa 20 ký tự</small>
+              <div v-if="errorsFromBackend.donVi" class="error-feedback">{{ errorsFromBackend.donVi }}</div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-              <button type="submit" class="btn btn-primary">
-                {{ isEditing ? 'Cập nhật' : 'Thêm mới' }}
+            <div class="form-group">
+              <label for="moTa">Mô Tả</label>
+              <textarea id="moTa" v-model="form.moTa" class="form-control"
+                :class="{ 'is-invalid': errorsFromBackend.moTa }" placeholder="Nhập mô tả về tiện nghi (không bắt buộc)"
+                rows="3" maxlength="255"></textarea>
+              <small class="form-text text-muted">Tối đa 255 ký tự</small>
+              <div v-if="errorsFromBackend.moTa" class="error-feedback">{{ errorsFromBackend.moTa }}</div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" @click="cancelForm">Hủy bỏ</button>
+              <button type="submit" class="btn btn-primary" :disabled="processing">
+                <span v-if="processing" class="spinner-border spinner-border-sm" role="status"
+                  aria-hidden="true"></span>
+                <span v-else>{{ isEdit ? 'Cập nhật' : 'Thêm mới' }}</span>
               </button>
             </div>
           </form>
@@ -105,363 +200,886 @@
       </div>
     </div>
 
-    <!-- Modal Chi tiết tiện nghi -->
-    <div class="modal fade" ref="detailModal" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="detailModalLabel">Chi tiết tiện nghi</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" v-if="detailItem">
-            <p><b>Tên tiện nghi:</b> {{ detailItem.tenTienNghi }}</p>
-            <p><b>Mô tả:</b> {{ detailItem.moTa }}</p>
-            <p><b>Đơn vị:</b> {{ detailItem.donVi }}</p>
-            <p><b>Trạng thái:</b> <span :class="['badge', detailItem.trangThai ? 'bg-success' : 'bg-secondary']">{{
-              detailItem.trangThai ? 'Đang sử dụng' : 'Ngừng sử dụng' }}</span></p>
+    <!-- View Tien Nghi Details Modal -->
+    <div v-if="showDetail" class="modal-overlay" @click.self="showDetail = false">
+      <div class="staff-details-modal">
+        <div class="modal-header">
+          <h3>Chi Tiết Tiện Nghi</h3>
+          <button class="close-button" @click="showDetail = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-content">
+            <div class="detail-item">
+              <span class="detail-label">ID:</span>
+              <span class="detail-value">{{ detailTienNghi.id }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Tên tiện nghi:</span>
+              <span class="detail-value">{{ detailTienNghi.tenTienNghi }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Đơn vị:</span>
+              <span class="detail-value">{{ detailTienNghi.donVi }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Mô tả:</span>
+              <span class="detail-value">{{ detailTienNghi.moTa || 'Không có' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Trạng thái:</span>
+              <span :class="`badge ${detailTienNghi.trangThai === 'Đang hoạt động' ? 'bg-success' : 'bg-danger'}`">
+                {{ detailTienNghi.trangThai }}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="table-footer">
-      <div v-if="totalPages > 1" class="pagination-wrapper">
-        <ul class="pagination pagination-sm justify-content-end">
-          <li class="page-item" :class="{ disabled: page === 0 }">
-            <button class="page-link" @click="changePage(page - 1)" :disabled="page === 0">‹</button>
-          </li>
-          <li class="page-item" v-for="p in totalPages" :key="p" :class="{ active: page === p - 1 }">
-            <button class="page-link" @click="changePage(p - 1)">{{ p }}</button>
-          </li>
-          <li class="page-item" :class="{ disabled: page === totalPages - 1 }">
-            <button class="page-link" @click="changePage(page + 1)" :disabled="page === totalPages - 1">›</button>
-          </li>
-        </ul>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import {
-  addTienNghi,
-  updateTienNghi,
-  searchTienNghi,
-} from '@/Service/TienNghiService'
-import * as bootstrap from 'bootstrap'
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { searchTienNghi, addTienNghi, updateTienNghi, deleteTienNghi as deleteTienNghiAPI, restoreTienNghi as restoreTienNghiAPI } from '@/Service/TienNghiService'
+import notification from '@/utils/notification'
 
-export default {
-  name: 'TienNghi',
-  data() {
-    return {
-      tienNghis: [],
-      isEditing: false,
-      form: {
-        id: null,
-        tenTienNghi: '',
-        moTa: '',
-        donVi: '',
-        trangThai: true,
-      },
-      modal: null,
-      filterStatus: null,
-      detailItem: null,
-      detailModal: null,
-      searchKeyword: '',
-      page: 0,
-      size: 8,
-      totalPages: 1,
-      totalElements: 0,
-      searchText: '',
-      debouncedSearch: null,
-    }
-  },
-  mounted() {
-    this.loadTienNghi();
-    this.$nextTick(() => {
-      const el = this.$refs.tienNghiModal;
-      if (el) {
-        this.modal = bootstrap.Modal.getOrCreateInstance(el);
-      }
-      const detailEl = this.$refs.detailModal;
-      if (detailEl) {
-        this.detailModal = bootstrap.Modal.getOrCreateInstance(detailEl);
-      }
-    });
-  },
-  watch: {
-    filterStatus() {
-      this.page = 0;
-      this.loadTienNghi();
-    }
-  },
-  methods: {
-    async loadTienNghi() {
-      try {
-        const res = await searchTienNghi({
-          keyword: this.searchKeyword,
-          page: this.page,
-          size: this.size,
-          status: this.filterStatus,
-        });
+const tienNghiList = ref([])
+const showForm = ref(false)
+const isEdit = ref(false)
+const filterStatus = ref('Đang hoạt động')
+const searchText = ref('')
+const loading = ref(true)
+const processing = ref(false)
+const showDeleteConfirm = ref(false)
+const selectedTienNghiId = ref(null)
+const showRestoreConfirm = ref(false)
+const selectedTienNghiToRestore = ref(null)
+const errorsFromBackend = ref({})
 
-        this.tienNghis = res.data.content;
-        this.totalPages = res.data.totalPages;
-        this.totalElements = res.data.totalElements;
-      } catch {
-        alert('Lỗi khi tải danh sách tiện nghi');
-      }
-    },
+const form = ref({
+  id: null,
+  tenTienNghi: '',
+  donVi: '',
+  moTa: '',
+  trangThai: 'Đang hoạt động',
+})
 
-    openAddModal() {
-      this.isEditing = false;
-      this.form = { id: null, tenTienNghi: '', moTa: '', donVi: '', trangThai: true };
-      if (this.modal) this.modal.show();
-    },
-    openEditModal(item) {
-      this.isEditing = true;
-      this.form = { ...item };
-      if (this.modal) this.modal.show();
-    },
-    async handleSubmit() {
-      if (!this.form.tenTienNghi || this.form.tenTienNghi.trim() === '') {
-        alert('Tên tiện nghi không được để trống!');
-        return;
-      }
-      try {
-        if (this.isEditing) {
-          await updateTienNghi(this.form.id, this.form);
-          alert('Cập nhật thành công');
-        } else {
-          await addTienNghi(this.form);
-          alert('Thêm mới thành công');
-        }
-        this.modal.hide();
-        this.loadTienNghi();
-      } catch {
-        alert('Lỗi khi lưu tiện nghi');
-      }
-    },
-    async confirmDelete(id) {
-      if (confirm('Bạn có chắc chắn muốn xóa tiện nghi này (chuyển sang không hoạt động)?')) {
-        try {
-          const item = this.tienNghis.find(tn => tn.id === id);
-          if (item) {
-            const updated = { ...item, trangThai: false };
-            await updateTienNghi(id, updated);
-            alert('Đã chuyển tiện nghi sang không hoạt động');
-            this.loadTienNghi();
-          }
-        } catch {
-          alert('Lỗi khi chuyển trạng thái tiện nghi');
-        }
-      }
-    },
-    async restoreTienNghi(id) {
-      try {
-        const item = this.tienNghis.find(tn => tn.id === id);
-        if (item) {
-          const updated = { ...item, trangThai: true };
-          await updateTienNghi(id, updated);
-          alert('Đã khôi phục tiện nghi');
-          this.loadTienNghi();
-        }
-      } catch {
-        alert('Lỗi khi khôi phục tiện nghi');
-      }
-    },
-    showDetail(item) {
-      this.detailItem = item;
-      if (this.detailModal) this.detailModal.show();
-    },
-    async handleSearch() {
-      this.page = 0;
-      await this.loadTienNghi();
-    },
-    async changePage(newPage) {
-      if (newPage >= 0 && newPage < this.totalPages) {
-        this.page = newPage;
-        await this.loadTienNghi();
-      }
-    },
-    onSearchInput() {
-      this.page = 0;
-      this.loadTienNghi();
+// Chi tiết tiện nghi
+const showDetail = ref(false)
+const detailTienNghi = ref({})
+
+// Phân trang
+const currentPage = ref(0) // API sử dụng 0-based page index
+const pageSize = ref(10) // Số hàng mỗi trang là 10
+const totalItems = ref(0)
+const totalPages = ref(1)
+
+// Tính toán số hàng trống để bảng luôn có kích thước cố định
+const emptyRows = computed(() => {
+  const currentItems = tienNghiList.value.length
+  return currentItems < pageSize.value ? pageSize.value - currentItems : 0
+})
+
+// Chuyển đổi giá trị trạng thái hiển thị sang boolean cho API
+const statusForApi = computed(() => {
+  if (filterStatus.value === 'Đang hoạt động') return true
+  if (filterStatus.value === 'Ngừng hoạt động') return false
+  return null
+})
+
+// Thông tin phân trang
+const startItem = computed(() =>
+  totalItems.value > 0 ? currentPage.value * pageSize.value + 1 : 0
+)
+const endItem = computed(() => {
+  const end = (currentPage.value + 1) * pageSize.value
+  return end > totalItems.value ? totalItems.value : end
+})
+
+// Theo dõi sự thay đổi của searchText, filterStatus, currentPage, pageSize
+watch([searchText, filterStatus, currentPage, pageSize], fetchTienNghi, { deep: true })
+
+async function fetchTienNghi() {
+  loading.value = true
+  try {
+    const response = await searchTienNghi({
+      keyword: searchText.value.trim(),
+      status: statusForApi.value,
+      page: currentPage.value,
+      size: pageSize.value
+    })
+
+    // Xử lý dữ liệu trả về từ API
+    tienNghiList.value = response.data.content.map(item => ({
+      ...item,
+      trangThai: item.trangThai ? 'Đang hoạt động' : 'Ngừng hoạt động'
+    }))
+
+    // Cập nhật thông tin phân trang
+    totalItems.value = response.data.totalElements
+    totalPages.value = response.data.totalPages || 1
+
+    // Điều chỉnh trang hiện tại nếu nó vượt quá tổng số trang
+    if (currentPage.value >= totalPages.value && totalPages.value > 0) {
+      currentPage.value = totalPages.value - 1
     }
-  },
-  created() {
-    // Debounce tìm kiếm 300ms
-    let timeout = null;
-    this.debouncedSearch = () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        this.page = 0;
-        this.loadTienNghi();
-      }, 300);
-    };
+  } catch (error) {
+    notification.error('Lỗi khi tải dữ liệu tiện nghi')
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchTienNghi)
+
+// Xử lý khi thay đổi tìm kiếm
+function onSearchChange() {
+  // Đặt lại trang về 0 khi thay đổi từ khóa tìm kiếm
+  currentPage.value = 0
+}
+
+// Xử lý khi thay đổi trạng thái
+function filterByStatus() {
+  // Đặt lại trang về 0 khi thay đổi trạng thái
+  currentPage.value = 0
+}
+
+// Thay đổi trang (hiển thị dựa trên index 1)
+function changePage(page) {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page - 1 // Chuyển đổi từ 1-based UI sang 0-based API
+}
+
+function showAddModal() {
+  showForm.value = true
+  isEdit.value = false
+  errorsFromBackend.value = {}
+  form.value = {
+    id: null,
+    tenTienNghi: '',
+    donVi: '',
+    moTa: '',
+    trangThai: 'Đang hoạt động',
+  }
+}
+
+function editTienNghi(item) {
+  showForm.value = true
+  isEdit.value = true
+  errorsFromBackend.value = {}
+  form.value = { ...item }
+}
+
+function cancelForm() {
+  showForm.value = false
+  errorsFromBackend.value = {}
+}
+
+function showDetailModal(item) {
+  detailTienNghi.value = { ...item }
+  showDetail.value = true
+}
+
+function deleteTienNghi(id) {
+  selectedTienNghiId.value = id
+  showDeleteConfirm.value = true
+}
+
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  selectedTienNghiId.value = null
+}
+
+async function confirmDelete() {
+  processing.value = true
+  try {
+    await deleteTienNghiAPI(selectedTienNghiId.value)
+    notification.success('Đã xóa tiện nghi thành công!')
+    await fetchTienNghi()
+  } catch (error) {
+    notification.error('Lỗi khi xóa tiện nghi')
+    console.error(error)
+  } finally {
+    processing.value = false
+    showDeleteConfirm.value = false
+  }
+}
+
+function showRestoreConfirmModal(item) {
+  selectedTienNghiToRestore.value = item
+  showRestoreConfirm.value = true
+}
+
+function cancelRestore() {
+  showRestoreConfirm.value = false
+  selectedTienNghiToRestore.value = null
+}
+
+async function confirmRestore() {
+  processing.value = true
+  try {
+    await restoreTienNghiAPI(selectedTienNghiToRestore.value.id)
+    notification.success('Đã khôi phục tiện nghi thành công!')
+    await fetchTienNghi()
+  } catch (error) {
+    notification.error('Lỗi khi khôi phục tiện nghi')
+    console.error(error)
+  } finally {
+    processing.value = false
+    showRestoreConfirm.value = false
+  }
+}
+
+// Validation function based on TienNghi.java entity constraints
+const validateForm = () => {
+  let ok = true;
+  errorsFromBackend.value = {};
+
+  // Tên tiện nghi (required, max 100 chars)
+  if (!form.value.tenTienNghi.trim()) {
+    errorsFromBackend.value.tenTienNghi = 'Tên tiện nghi không được để trống';
+    ok = false;
+  } else if (form.value.tenTienNghi.length > 100) {
+    errorsFromBackend.value.tenTienNghi = 'Tên tiện nghi tối đa 100 ký tự';
+    ok = false;
+  }
+
+  // Đơn vị (required, max 20 chars)
+  if (!form.value.donVi.trim()) {
+    errorsFromBackend.value.donVi = 'Đơn vị không được để trống';
+    ok = false;
+  } else if (form.value.donVi.length > 20) {
+    errorsFromBackend.value.donVi = 'Đơn vị tối đa 20 ký tự';
+    ok = false;
+  }
+
+  // Mô tả (max 255 chars)
+  if (form.value.moTa && form.value.moTa.length > 255) {
+    errorsFromBackend.value.moTa = 'Mô tả tối đa 255 ký tự';
+    ok = false;
+  }
+
+  return ok;
+};
+
+async function saveTienNghi() {
+  if (!validateForm()) return;  // dừng nếu lỗi
+
+  processing.value = true
+  try {
+    const payload = {
+      ...form.value,
+      trangThai: form.value.trangThai === 'Đang hoạt động',
+    }
+    if (isEdit.value) {
+      await updateTienNghi(form.value.id, payload)
+      notification.success('Cập nhật tiện nghi thành công!')
+      showForm.value = false
+      await fetchTienNghi()
+    } else {
+      await addTienNghi(payload)
+      notification.success('Thêm tiện nghi mới thành công!')
+      showForm.value = false
+      await fetchTienNghi()
+    }
+  } catch (error) {
+    console.error('Lỗi khi lưu tiện nghi:', error);
+
+    if (error.response && error.response.data) {
+      // Xử lý lỗi từ backend
+      errorsFromBackend.value = error.response.data;
+
+      // Hiển thị thông báo lỗi chung nếu có
+      if (error.response.data.message) {
+        notification.error(error.response.data.message);
+      } else if (typeof error.response.data === 'string') {
+        notification.error(error.response.data);
+      } else {
+        notification.error('Lỗi khi lưu tiện nghi. Vui lòng kiểm tra các trường thông tin.');
+      }
+    } else {
+      notification.error('Lỗi khi kết nối với máy chủ');
+    }
+  } finally {
+    processing.value = false
   }
 }
 </script>
 
 <style scoped>
-.table th,
-.table td {
-  vertical-align: middle;
+/* Main Container Styling */
+.tien-nghi-container {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  padding: 25px;
+  margin-bottom: 30px;
+  min-height: 80vh;
 }
 
-.modal-backdrop.show {
-  z-index: 1040;
+.page-title {
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 10px;
 }
 
-.modal.show {
-  display: block;
-  z-index: 1055;
-}
-
-/* Custom search bar styles giống ảnh */
-.search-bar-custom {
-  background: #f8fafc;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  padding: 12px 20px;
-  margin-bottom: 24px;
+/* Controls Styling */
+.controls-container {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
-.search-input-custom {
-  border-radius: 20px;
-  border: 1.5px solid #3b82f6;
-  background: #fff;
-  box-shadow: none;
-  transition: border-color 0.2s;
+.search-box {
+  position: relative;
+  flex-grow: 1;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+.search-input {
   width: 100%;
-  min-width: 200px;
-  max-width: 100%;
+  padding: 12px 15px 12px 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
-.search-input-custom:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px #dbeafe;
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  outline: none;
 }
 
-.search-select-custom {
-  border-radius: 20px;
-  border: 1.5px solid #3b82f6;
-  background: #fff;
-  box-shadow: none;
-  transition: border-color 0.2s;
-  width: 180px;
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-/* Nút hành động */
-.btn-action {
-  width: 36px;
-  height: 36px;
+.status-filter {
+  padding: 10px 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  min-width: 180px;
+}
+
+.add-button {
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 0;
   border: none;
-  margin: 0 3px;
-  cursor: pointer;
+  background-color: #2563eb;
   transition: all 0.2s ease;
 }
 
-.action-column {
-  white-space: nowrap;
-}
-
-.btn-blue {
-  background-color: #2563eb;
-  color: white;
-}
-
-.btn-blue:hover {
+.add-button:hover {
   background-color: #1d4ed8;
+  transform: translateY(-2px);
 }
 
-.btn-yellow {
-  background-color: #f59e42;
-  color: white;
+.add-button i {
+  font-size: 20px;
 }
 
-.btn-yellow:hover {
-  background-color: #d97706;
+/* Table Styling */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
 }
 
-.btn-red {
-  background-color: #ef4444;
-  color: white;
+.table th {
+  background-color: #f3f4f6;
+  padding: 12px 15px;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.btn-red:hover {
-  background-color: #b91c1c;
+.table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
 }
 
-.btn-green {
-  background-color: #22c55e;
-  color: white;
+.table tr:last-child td {
+  border-bottom: none;
 }
 
-.btn-green:hover {
-  background-color: #15803d;
+.table tbody tr:hover {
+  background-color: #f9fafb;
 }
 
-.pagination-wrapper {
+.table .badge {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.bg-success {
+  background-color: #10b981 !important;
+}
+
+.bg-danger {
+  background-color: #ef4444 !important;
+}
+
+.action-buttons {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-  margin-bottom: 8px;
+  justify-content: center;
+  gap: 8px;
 }
 
-.pagination {
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  padding: 4px 16px;
-}
-
-.pagination.pagination-sm .page-link {
-  border-radius: 50% !important;
-  margin: 0 2px;
-  width: 32px;
-  height: 32px;
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.pagination .page-item.active .page-link {
-  background: #2563eb;
-  color: #fff;
+  padding: 0;
   border: none;
-}
-
-.pagination .page-link:focus {
-  box-shadow: 0 0 0 2px #dbeafe;
-}
-
-.table-footer {
-  min-height: 56px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  margin-top: 0;
-  margin-bottom: 16px;
-  position: sticky;
-  bottom: 0;
   background-color: #fff;
-  z-index: 10;
-  margin-top: auto;
-  padding-top: 8px;
-  padding-bottom: 16px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
-.container {
-  min-height: 600px;
+.btn-warning-light {
+  color: #d97706;
+  background-color: #fef3c7;
+}
+
+.btn-danger-light {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
+.btn-success-light {
+  color: #059669;
+  background-color: #d1fae5;
+}
+
+.btn-info-light {
+  color: #0284c7;
+  background-color: #e0f2fe;
+}
+
+.btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-row td {
+  height: 54px;
+  background-color: #f9fafb;
+}
+
+/* Loading Indicator */
+.loading-indicator {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 8px;
+}
+
+.page-item {
+  margin: 0;
+}
+
+.page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #4b5563;
+  background-color: #f9fafb;
+  border: none;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.page-link:hover {
+  background-color: #e5e7eb;
+}
+
+.page-item.active .page-link {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+.page-item.disabled .page-link {
+  color: #d1d5db;
+  pointer-events: none;
+  cursor: default;
+  opacity: 0.6;
+  background-color: #f3f4f6;
+}
+
+.nav-arrow {
+  color: #6b7280;
+  font-size: 12px;
+  background-color: #f9fafb;
+}
+
+/* Button Styling */
+.btn {
+  padding: 10px 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.btn:focus {
+  box-shadow: none;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  border-color: #6b7280;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+  border-color: #4b5563;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 15px;
+}
+
+.modal-form,
+.staff-details-modal,
+.confirmation-box {
+  position: relative;
+  background-color: #fff;
+  border-radius: 16px;
+  width: 550px;
+  max-width: 95%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modal-fade-in 0.3s ease;
+  overflow: hidden;
+}
+
+.staff-details-modal {
+  width: 500px;
+}
+
+.confirmation-box {
+  width: 450px;
+}
+
+.modal-header {
+  padding: 20px 25px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.modal-body {
+  padding: 25px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.tien-nghi-form .form-group {
+  margin-bottom: 20px;
+}
+
+.tien-nghi-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.tien-nghi-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+/* Detail View Styling */
+.detail-content {
+  padding: 5px 0;
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 15px;
+  align-items: center;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #4b5563;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  flex-grow: 1;
+  color: #111827;
+}
+
+/* Confirmation Modal */
+.confirmation-body {
+  text-align: center;
+  padding: 25px 30px;
+}
+
+.confirm-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  margin-bottom: 15px;
+  font-size: 28px;
+}
+
+.icon-danger {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.icon-success {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.confirm-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+.confirm-text {
+  color: #6b7280;
+  font-size: 15px;
+  margin-bottom: 0;
+}
+
+.confirmation-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 15px 25px 25px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  font-family: 'Roboto', sans-serif !important;
+  font-size: 0.95rem;
+}
+
+.form-control:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  outline: none;
+}
+
+/* Đảm bảo hiển thị tiếng Việt đúng */
+input,
+textarea,
+label,
+span,
+h3,
+h4,
+p,
+button {
+  font-family: 'Roboto', sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Backend validation error styling */
+.is-invalid {
+  border-color: #dc2626 !important;
+}
+
+.error-feedback {
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.required {
+  color: #dc2626;
+  margin-left: 3px;
+}
+
+.form-text {
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin-top: 4px;
 }
 </style>

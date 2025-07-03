@@ -1,12 +1,8 @@
 <template>
   <div class="toast-container" :class="positionClass">
     <transition-group name="toast">
-      <div
-        v-for="notification in positionNotifications"
-        :key="notification.id"
-        class="toast"
-        :class="[`toast-${notification.type}`, { 'toast-visible': notification.visible }]"
-      >
+      <div v-for="notification in positionNotifications" :key="notification.id" class="toast"
+        :class="[`toast-${notification.type}`, { 'toast-visible': notification.visible }]">
         <div class="toast-icon">
           <i class="material-icons">{{ getIconForType(notification.type) }}</i>
         </div>
@@ -14,11 +10,7 @@
           <div v-if="notification.title" class="toast-title">{{ notification.title }}</div>
           <div class="toast-message">{{ notification.message }}</div>
         </div>
-        <button
-          v-if="notification.dismissible"
-          class="toast-close"
-          @click="dismiss(notification.id)"
-        >
+        <button v-if="notification.dismissible" class="toast-close" @click="dismiss(notification.id)">
           <i class="material-icons">close</i>
         </button>
       </div>
@@ -28,12 +20,8 @@
   <!-- Modal Notifications -->
   <teleport to="body">
     <transition-group name="modal-fade">
-      <div
-        v-for="notification in modalNotifications"
-        :key="notification.id"
-        class="modal-overlay"
-        @click="notification.dismissible && dismiss(notification.id)"
-      >
+      <div v-for="notification in modalNotifications" :key="notification.id" class="modal-overlay"
+        @click="notification.dismissible && dismiss(notification.id)">
         <div class="modal-container" :class="`modal-${notification.type}`" @click.stop>
           <div class="modal-icon">
             <i class="material-icons">{{ getIconForType(notification.type) }}</i>
@@ -43,18 +31,12 @@
           <div class="modal-content">{{ notification.message }}</div>
 
           <div class="modal-actions">
-            <button
-              v-if="notification.showCancelButton"
-              class="modal-btn modal-btn-cancel"
-              @click="cancel(notification.id)"
-            >
+            <button v-if="notification.showCancelButton" class="modal-btn modal-btn-cancel"
+              @click="cancel(notification.id)">
               {{ notification.cancelText }}
             </button>
-            <button
-              class="modal-btn modal-btn-confirm"
-              :class="`modal-btn-${notification.type}`"
-              @click="confirm(notification.id)"
-            >
+            <button class="modal-btn modal-btn-confirm" :class="`modal-btn-${notification.type}`"
+              @click="confirm(notification.id)">
               {{ notification.confirmText }}
             </button>
           </div>

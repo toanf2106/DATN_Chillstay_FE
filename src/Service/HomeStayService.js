@@ -127,3 +127,74 @@ export function uploadImage(file) {
     }
   });
 }
+
+// Lấy loại homestay theo id
+export function getLoaiHomeStayById(id) {
+  return api.get(`/loai-homestay/detail/${id}`);
+}
+
+// Thêm loại homestay mới
+export function createLoaiHomestay(loaiHomestayData) {
+  return api.post('/loai-homestay/add', loaiHomestayData);
+}
+
+// Cập nhật loại homestay
+export function updateLoaiHomestay(id, loaiHomestayData) {
+  return api.put(`/loai-homestay/${id}`, loaiHomestayData);
+}
+
+// Xóa loại homestay
+export function deleteLoaiHomestay(id) {
+  return api.put(`/loai-homestay/delete/${id}`);
+}
+
+// Đổi trạng thái loại homestay
+export function changeLoaiHomestayStatus(id) {
+  return api.put(`/loai-homestay/change-status/${id}`);
+}
+
+// Lấy danh sách ảnh của homestay
+export function getAnhHomeStayByHomestayId(homestayId) {
+  return api.get(`/api/anh_homestay/by-homestay/${homestayId}`);
+}
+
+// Thêm ảnh cho homestay
+export function addAnhHomeStay(data) {
+  if (data instanceof FormData) {
+    return api.post('/api/anh_homestay/add', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
+  return api.post('/api/anh_homestay/add', data);
+}
+
+// Cập nhật ảnh homestay
+export function updateAnhHomeStay(id, data) {
+  if (data instanceof FormData) {
+    return api.put(`/api/anh_homestay/update/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
+  return api.put(`/api/anh_homestay/update/${id}`, data);
+}
+
+// Xóa ảnh homestay
+export function deleteAnhHomeStay(id) {
+  return api.put(`/api/anh_homestay/delete/${id}`);
+}
+
+// Tải lên ảnh homestay
+export function uploadAnhHomeStay(file, homestayId) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('homestayId', homestayId);
+  return api.post('/api/anh_homestay/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}

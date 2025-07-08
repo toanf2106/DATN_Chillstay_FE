@@ -101,7 +101,7 @@ export const deleteHomestayAPI = deleteHomeStay;
 
 // Lấy danh sách loại homestay
 export function getLoaiHomeStay() {
-  return api.get('/loai-homestay/hien-thi');
+  return api.get('/api/loai-homestay/hien-thi');
 }
 
 // Lấy danh sách chủ homestay
@@ -130,27 +130,27 @@ export function uploadImage(file) {
 
 // Lấy loại homestay theo id
 export function getLoaiHomeStayById(id) {
-  return api.get(`/loai-homestay/detail/${id}`);
+  return api.get(`/api/loai-homestay/detail/${id}`);
 }
 
 // Thêm loại homestay mới
 export function createLoaiHomestay(loaiHomestayData) {
-  return api.post('/loai-homestay/add', loaiHomestayData);
+  return api.post('/api/loai-homestay/add', loaiHomestayData);
 }
 
 // Cập nhật loại homestay
 export function updateLoaiHomestay(id, loaiHomestayData) {
-  return api.put(`/loai-homestay/${id}`, loaiHomestayData);
+  return api.put(`/api/loai-homestay/${id}`, loaiHomestayData);
 }
 
 // Xóa loại homestay
 export function deleteLoaiHomestay(id) {
-  return api.put(`/loai-homestay/delete/${id}`);
+  return api.put(`/api/loai-homestay/delete/${id}`);
 }
 
 // Đổi trạng thái loại homestay
 export function changeLoaiHomestayStatus(id) {
-  return api.put(`/loai-homestay/change-status/${id}`);
+  return api.put(`/api/loai-homestay/change-status/${id}`);
 }
 
 // Lấy danh sách ảnh của homestay

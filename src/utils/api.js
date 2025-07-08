@@ -25,19 +25,23 @@ api.interceptors.request.use(
 
     // Danh sách các API endpoints công khai không cần token
     const publicEndpoints = [
-      '/api/auth',
-      '/api/homestay/all',
-      '/loai-homestay/hien-thi',
-      '/loai-homestay/detail-ten',
-      '/api/homestay',
+      // API xác thực
       '/api/register',
       '/api/login',
       '/api/gui-lai-xac-nhan',
-      '/api/upload/homestay'
+      '/api/quen-mat-khau',
+      '/api/dat-lai-mat-khau',
+      '/api/kiem-tra-token',
+      '/api/xac-nhan-tai-khoan',
+      // Tất cả các GET request tự động được cho phép trong interceptor
     ];
 
     // Kiểm tra xem URL hiện tại có phải là API công khai không
-    const isPublicEndpoint = publicEndpoints.some(endpoint => config.url && config.url.includes(endpoint));
+    const isPublicEndpoint =
+      // Là một trong các API công khai đã định nghĩa
+      publicEndpoints.some(endpoint => config.url && config.url.includes(endpoint)) ||
+      // Hoặc là GET request đến API
+      (config.method && config.method.toLowerCase() === 'get' && config.url && config.url.startsWith('/api/'));
 
     // Chỉ thêm token nếu không phải là API công khai
     if (!isPublicEndpoint) {

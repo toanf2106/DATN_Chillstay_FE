@@ -23,11 +23,30 @@ api.interceptors.request.use(
       config.headers['Content-Type'] = 'application/json; charset=utf-8'
     }
 
-    const sessionId = getSessionId()
-    if (sessionId) {
-      const token = localStorage.getItem(`token_${sessionId}`)
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+    // Danh sách các API endpoints công khai không cần token
+    const publicEndpoints = [
+      '/api/auth',
+      '/api/homestay/all',
+      '/loai-homestay/hien-thi',
+      '/loai-homestay/detail-ten',
+      '/api/homestay',
+      '/api/register',
+      '/api/login',
+      '/api/gui-lai-xac-nhan',
+      '/api/upload/homestay'
+    ];
+
+    // Kiểm tra xem URL hiện tại có phải là API công khai không
+    const isPublicEndpoint = publicEndpoints.some(endpoint => config.url && config.url.includes(endpoint));
+
+    // Chỉ thêm token nếu không phải là API công khai
+    if (!isPublicEndpoint) {
+      const sessionId = getSessionId()
+      if (sessionId) {
+        const token = localStorage.getItem(`token_${sessionId}`)
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
       }
     }
 
@@ -89,6 +108,7 @@ api.interceptors.response.use(
           const currentPath = window.location.pathname
           const isHomePage = currentPath === '/' || currentPath === '/home'
           const isLoginPage = currentPath === '/login'
+          const isAllHomestaysPage = currentPath === '/all-homestays'
 
           // Xóa dữ liệu localStorage cho phiên hiện tại
           const sessionId = getSessionId()
@@ -98,8 +118,8 @@ api.interceptors.response.use(
             localStorage.removeItem(`isAdmin_${sessionId}`)
           }
 
-          // Chỉ redirect nếu không ở trang chủ hoặc trang login
-          if (!isHomePage && !isLoginPage) {
+          // Chỉ redirect nếu không ở trang chủ, trang login hoặc trang tất cả homestay
+          if (!isHomePage && !isLoginPage && !isAllHomestaysPage) {
             api.isRedirecting = true // Đánh dấu đang redirect
 
             // Tăng thời gian chờ để tránh reload quá nhanh

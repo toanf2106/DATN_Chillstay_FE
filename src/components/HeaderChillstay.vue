@@ -702,12 +702,13 @@ function resetVerificationForm() {
     <nav class="navbar">
       <div class="logo">
         <router-link to="/">
-          <img src="@/assets/icon/chillLogo.png" alt="Chillstay Logo" />
+          <img src="@/assets/icon/LogoChill.png" alt="Chillstay Logo" />
           <span>Chillstay</span>
         </router-link>
       </div>
       <ul class="nav-links">
         <li><router-link to="/">Trang Chủ</router-link></li>
+        <li><router-link to="/all-homestays">Tìm Homestay</router-link></li>
         <li><a href="#">Dịch Vụ</a></li>
         <li><a href="#">Tin Tức</a></li>
         <li><a href="#">Giảm Giá</a></li>
@@ -797,12 +798,7 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="matKhau">Mật khẩu</label>
               <div class="password-input-container">
-                <input
-                  :type="signupPasswordVisible ? 'text' : 'password'"
-                  id="matKhau"
-                  v-model="matKhau"
-                  required
-                />
+                <input :type="signupPasswordVisible ? 'text' : 'password'" id="matKhau" v-model="matKhau" required />
                 <span class="password-toggle" @click="toggleSignupPasswordVisibility">
                   <font-awesome-icon :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
@@ -812,12 +808,8 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="xacNhanMatKhau">Xác nhận mật khẩu</label>
               <div class="password-input-container">
-                <input
-                  :type="confirmPasswordVisible ? 'text' : 'password'"
-                  id="xacNhanMatKhau"
-                  v-model="xacNhanMatKhau"
-                  required
-                />
+                <input :type="confirmPasswordVisible ? 'text' : 'password'" id="xacNhanMatKhau" v-model="xacNhanMatKhau"
+                  required />
                 <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
                   <font-awesome-icon :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
@@ -839,14 +831,8 @@ function resetVerificationForm() {
           <form @submit.prevent="handleForgotPassword">
             <div class="input-group">
               <label for="forgotEmail">Email</label>
-              <input
-                type="email"
-                id="forgotEmail"
-                v-model="forgotEmail"
-                class="form-control"
-                placeholder="Nhập email của bạn"
-                :disabled="isEmailProcessing"
-              />
+              <input type="email" id="forgotEmail" v-model="forgotEmail" class="form-control"
+                placeholder="Nhập email của bạn" :disabled="isEmailProcessing" />
             </div>
 
             <div v-if="forgotEmailError" class="form-error">
@@ -857,11 +843,7 @@ function resetVerificationForm() {
               {{ forgotEmailSuccess }}
             </div>
 
-            <button
-              type="submit"
-              class="btn submit-btn"
-              :disabled="isEmailProcessing"
-            >
+            <button type="submit" class="btn submit-btn" :disabled="isEmailProcessing">
               {{ isEmailProcessing ? 'Đang xử lý...' : 'Gửi yêu cầu' }}
             </button>
           </form>
@@ -877,14 +859,8 @@ function resetVerificationForm() {
           <form @submit.prevent="resendVerificationEmail">
             <div class="input-group">
               <label for="verificationEmail">Email</label>
-              <input
-                type="email"
-                id="verificationEmail"
-                v-model="verificationEmail"
-                class="form-control"
-                placeholder="Nhập email của bạn"
-                :disabled="isVerificationEmailProcessing"
-              />
+              <input type="email" id="verificationEmail" v-model="verificationEmail" class="form-control"
+                placeholder="Nhập email của bạn" :disabled="isVerificationEmailProcessing" />
             </div>
 
             <div v-if="verificationEmailError" class="form-error">
@@ -895,11 +871,7 @@ function resetVerificationForm() {
               {{ verificationEmailSuccess }}
             </div>
 
-            <button
-              type="submit"
-              class="btn submit-btn"
-              :disabled="isVerificationEmailProcessing"
-            >
+            <button type="submit" class="btn submit-btn" :disabled="isVerificationEmailProcessing">
               {{ isVerificationEmailProcessing ? 'Đang xử lý...' : 'Gửi lại email xác nhận' }}
             </button>
           </form>
@@ -921,12 +893,12 @@ function resetVerificationForm() {
 }
 
 .modal h2 {
-  color: #2a7d4f;
+  color: #48cae4;
   text-align: center;
   font-size: 28px;
   margin-bottom: 30px;
   font-weight: bold;
-  border-bottom: 2px solid #2a7d4f;
+  border-bottom: 2px solid #48cae4;
   padding-bottom: 10px;
 }
 
@@ -977,10 +949,10 @@ function resetVerificationForm() {
 .submit-btn {
   width: 100%;
   padding: 14px;
-  background-color: #2a7d4f;
+  background-color: #48cae4;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 20px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
@@ -990,7 +962,7 @@ function resetVerificationForm() {
 }
 
 .submit-btn:hover {
-  background-color: #216b42;
+  background-color: #0096c7;
 }
 
 .form-switcher {
@@ -1042,17 +1014,17 @@ function resetVerificationForm() {
 }
 
 .logout-btn {
-  background-color: #ff5252;
+  background-color: #48cae4;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 20px;
   padding: 0.5rem 1rem;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .logout-btn:hover {
-  background-color: #ff1a1a;
+  background-color: #0096c7;
 }
 
 .form-links {
@@ -1084,4 +1056,46 @@ function resetVerificationForm() {
   margin: 10px 0;
   font-size: 14px;
 }
+
+/* Styling for auth buttons */
+.auth-buttons .btn {
+  border-radius: 20px;
+  padding: 10px 20px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.login-btn {
+  background-color: #fff;
+  color: #48cae4;
+  border: 2px solid #48cae4;
+}
+
+.login-btn:hover {
+  background-color: #e6f7fb;
+}
+
+.signup-btn {
+  background-color: #48cae4;
+  color: #fff;
+  border: 2px solid #48cae4;
+}
+
+.signup-btn:hover {
+  background-color: #0096c7;
+}
+
+/* Logo styling */
+.logo span {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #48cae4, #0077b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 0.5px;
+}
+
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 </style>

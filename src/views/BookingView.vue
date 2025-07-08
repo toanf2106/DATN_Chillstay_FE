@@ -1,574 +1,810 @@
 <template>
-  <div class="home-container">
-    <!-- Phần Hero -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <div class="hero-text">
-          <h1 class="hero-title">
-            Đặt Phòng <span class="highlight">Homestay</span>
-          </h1>
-          <p class="hero-subtitle">
-            Chọn ngày, số khách và tìm phòng phù hợp cho chuyến đi của bạn tại Mộc Châu!
-          </p>
-          <div class="hero-search">
-            <form class="search-box" @submit.prevent="searchRooms">
-              <div class="search-input">
-                <i class="fas fa-calendar-alt search-icon"></i>
-                <input type="date" v-model="checkIn" placeholder="Ngày nhận phòng" required />
-              </div>
-              <div class="search-input">
-                <i class="fas fa-calendar-alt search-icon"></i>
-                <input type="date" v-model="checkOut" placeholder="Ngày trả phòng" required />
-              </div>
-              <div class="search-input">
-                <i class="fas fa-users search-icon"></i>
-                <select v-model="guests" required>
-                  <option v-for="n in 6" :key="n" :value="n">{{ n }} khách</option>
-                </select>
-              </div>
-              <button type="submit" class="search-btn">
-                <i class="fas fa-search"></i> Tìm Phòng
-              </button>
-            </form>
+  <div class="booking-container">
+    <!-- Hiển thị trạng thái tải -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Đang tải thông tin homestay...</p>
+    </div>
+
+    <!-- Hiển thị lỗi nếu có -->
+    <div v-else-if="hasError" class="error-container">
+      <i class="fas fa-exclamation-circle error-icon"></i>
+      <h3>Đã xảy ra lỗi</h3>
+      <p>{{ errorMessage }}</p>
+      <button class="btn primary-btn" @click="goBack">Quay lại</button>
+    </div>
+
+    <!-- Hiển thị thông tin chi tiết homestay -->
+    <div v-else-if="homestay" class="booking-content">
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <router-link to="/">Trang chủ</router-link>
+        <span class="separator">/</span>
+        <router-link to="/all-homestays">Tất cả homestay</router-link>
+        <span class="separator">/</span>
+        <span class="current">{{ homestay.tenHomestay }}</span>
+      </div>
+
+      <!-- Thông tin cơ bản và hình ảnh -->
+      <div class="homestay-header">
+        <h1>{{ homestay.tenHomestay }}</h1>
+        <div class="homestay-meta">
+          <div class="location">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>{{ homestay.diaChi }}</span>
+          </div>
+          <div class="rating">
+            <span class="stars">★★★★★</span>
+            <span>{{ homestay.danhGiaTrungBinh || '4.7' }} ({{ homestay.soDanhGia || 95 }} đánh giá)</span>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- Phần Danh Sách Phòng -->
-    <section class="rooms-section py-5">
-      <div class="container">
-        <h2 class="section-title">Phòng Khả Dụng</h2>
-        <!-- Trạng thái đang tải -->
-        <div v-if="isLoading" class="loading-container">
-          <i class="fas fa-spinner fa-spin"></i>
-          <p>Đang tải dữ liệu...</p>
+      <!-- Gallery hình ảnh -->
+      <div class="homestay-gallery">
+        <div class="main-image">
+          <img :src="homestay.hinhAnh || defaultImage" :alt="homestay.tenHomestay" />
         </div>
-
-        <!-- Thông báo lỗi -->
-        <div v-else-if="hasError" class="error-container">
-          <i class="fas fa-exclamation-circle"></i>
-          <p>{{ errorMessage }}</p>
-          <button class="btn btn-primary mt-3" @click="retryFetch">Thử lại</button>
+        <div class="thumbnail-images">
+          <img v-for="(image, index) in additionalImages" :key="index" :src="image"
+            :alt="`${homestay.tenHomestay} - Ảnh ${index + 1}`" @click="setMainImage(image)" />
         </div>
+      </div>
 
-        <!-- Lưới phòng -->
-        <div v-else class="rooms-grid">
-          <div class="room-card" v-for="room in filteredRooms" :key="room.id">
-            <div class="room-image">
-              <img v-if="room.hinhAnh" :src="room.hinhAnh" :alt="room.tenHomestay" />
-              <span class="room-status">{{ room.trangThai }}</span>
+      <!-- Thông tin chi tiết và đặt phòng -->
+      <div class="booking-details">
+        <div class="homestay-info">
+          <h2>Thông tin chi tiết</h2>
+
+          <div class="info-section">
+            <h3>Mô tả</h3>
+            <p>{{ homestay.moTa ||
+              "Homestay xinh đẹp tọa lạc tại trung tâm Mộc Châu với tầm nhìn núi non hùng vĩ, " +
+              "không gian yên bình và thiết kế hiện đại kết hợp với nét văn hóa địa phương. " +
+              "Đây là nơi lý tưởng để nghỉ dưỡng, thư giãn và khám phá vẻ đẹp thiên nhiên của Mộc Châu." }}</p>
+          </div>
+
+          <div class="info-section">
+            <h3>Thông tin cơ bản</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <i class="fas fa-ruler"></i>
+                <span>Diện tích: {{ homestay.dienTich || '50' }} m²</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-bed"></i>
+                <span>Loại: {{ homestay.loaiHomeStay || 'Homestay' }}</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-user"></i>
+                <span>Chủ sở hữu: {{ homestay.chuSoHuu || 'ChillStay' }}</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-users"></i>
+                <span>Sức chứa: {{ homestay.sucChua || '4' }} người</span>
+              </div>
             </div>
-            <div class="room-content">
-              <h3>{{ room.tenHomestay }}</h3>
-              <p class="room-location">
-                <i class="fas fa-map-marker-alt"></i> {{ room.diaChi }}
-              </p>
-              <div class="room-details">
-                <span><i class="fas fa-bed"></i> {{ room.loaiPhong || 'Phòng tiêu chuẩn' }}</span>
-                <span><i class="fas fa-users"></i> {{ room.sucChua || 2 }} khách</span>
+          </div>
+
+          <div class="info-section">
+            <h3>Tiện nghi</h3>
+            <div class="amenities-grid">
+              <div class="amenity-item" v-for="(amenity, index) in amenities" :key="index">
+                <i :class="amenity.icon"></i>
+                <span>{{ amenity.name }}</span>
               </div>
-              <div class="room-rating">
-                <span class="stars">★★★★★</span>
-                <span class="rating-text">{{ room.danhGiaTrungBinh || '4.7' }} ({{ room.soDanhGia || 95 }} đánh
-                  giá)</span>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3>Quy định</h3>
+            <div class="rules">
+              <div class="rule-item">
+                <i class="fas fa-clock"></i>
+                <div>
+                  <strong>Nhận phòng:</strong> Sau 14:00
+                </div>
               </div>
-              <div class="room-price">
-                <span class="price">{{ room.giaCaHomestay ? room.giaCaHomestay.toLocaleString('vi-VN') : '0' }}₫</span>
-                <span class="price-unit">/đêm</span>
+              <div class="rule-item">
+                <i class="fas fa-clock"></i>
+                <div>
+                  <strong>Trả phòng:</strong> Trước 12:00
+                </div>
               </div>
-              <button class="book-now-btn" @click="bookRoom(room)">Đặt Ngay</button>
+              <div class="rule-item">
+                <i class="fas fa-smoking-ban"></i>
+                <div>
+                  <strong>Hút thuốc:</strong> Không hút thuốc trong phòng
+                </div>
+              </div>
+              <div class="rule-item">
+                <i class="fas fa-paw"></i>
+                <div>
+                  <strong>Thú cưng:</strong> Không cho phép
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3>Đánh giá từ khách hàng</h3>
+            <div class="reviews-summary">
+              <div class="overall-rating">
+                <span class="rating-number">{{ homestay.danhGiaTrungBinh || '4.7' }}</span>
+                <div class="stars">★★★★★</div>
+                <span class="review-count">{{ homestay.soDanhGia || '95' }} đánh giá</span>
+              </div>
+              <div class="rating-bars">
+                <div class="rating-bar-item">
+                  <span>Sạch sẽ</span>
+                  <div class="bar-container">
+                    <div class="bar" style="width: 95%"></div>
+                  </div>
+                  <span>4.8</span>
+                </div>
+                <div class="rating-bar-item">
+                  <span>Vị trí</span>
+                  <div class="bar-container">
+                    <div class="bar" style="width: 90%"></div>
+                  </div>
+                  <span>4.5</span>
+                </div>
+                <div class="rating-bar-item">
+                  <span>Giá trị</span>
+                  <div class="bar-container">
+                    <div class="bar" style="width: 92%"></div>
+                  </div>
+                  <span>4.6</span>
+                </div>
+                <div class="rating-bar-item">
+                  <span>Dịch vụ</span>
+                  <div class="bar-container">
+                    <div class="bar" style="width: 94%"></div>
+                  </div>
+                  <span>4.7</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div v-if="filteredRooms.length === 0 && !isLoading && !hasError" class="text-center mt-4">
-          <p class="text-muted">Không có phòng nào khả dụng cho lựa chọn của bạn.</p>
+        <!-- Form đặt phòng -->
+        <div class="booking-form-container">
+          <div class="booking-form">
+            <h3>Đặt phòng</h3>
+            <div class="price-info">
+              <span class="price">{{ formatPrice(homestay.giaCaHomestay) }}</span>
+              <span class="price-unit">/ đêm</span>
+            </div>
+
+            <div class="form-group">
+              <label for="check-in">Ngày nhận phòng</label>
+              <input type="date" id="check-in" v-model="checkInDate" :min="today" @change="calculateTotalPrice" />
+            </div>
+
+            <div class="form-group">
+              <label for="check-out">Ngày trả phòng</label>
+              <input type="date" id="check-out" v-model="checkOutDate" :min="minCheckoutDate"
+                @change="calculateTotalPrice" />
+            </div>
+
+            <div class="form-group">
+              <label for="guests">Số khách</label>
+              <select id="guests" v-model="guestCount">
+                <option v-for="i in maxGuests" :key="i" :value="i">{{ i }} khách</option>
+              </select>
+            </div>
+
+            <div class="price-breakdown">
+              <div class="price-row">
+                <span>{{ formatPrice(homestay.giaCaHomestay) }} x {{ nightCount }} đêm</span>
+                <span>{{ formatPrice(basePrice) }}</span>
+              </div>
+              <div class="price-row">
+                <span>Phí dịch vụ</span>
+                <span>{{ formatPrice(serviceFee) }}</span>
+              </div>
+              <div class="price-row">
+                <span>Thuế</span>
+                <span>{{ formatPrice(tax) }}</span>
+              </div>
+              <div class="price-row total">
+                <span>Tổng cộng</span>
+                <span>{{ formatPrice(totalPrice) }}</span>
+              </div>
+            </div>
+
+            <button class="btn book-now-btn" @click="bookNow">Đặt ngay</button>
+            <p class="booking-note">Bạn chưa bị trừ tiền</p>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { getAllHomeStay } from '@/Service/HomeStayService';
+import { useRoute, useRouter } from 'vue-router';
+import { getHomeStayById } from '@/Service/HomeStayService';
 
-const checkIn = ref('');
-const checkOut = ref('');
-const guests = ref(1);
-const homestays = ref([]);
+const route = useRoute();
+const router = useRouter();
+const homestay = ref(null);
 const isLoading = ref(true);
 const hasError = ref(false);
 const errorMessage = ref('');
+const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80';
 
-// Lấy dữ liệu homestay từ API
-const fetchData = async () => {
+// Dữ liệu đặt phòng
+const today = new Date().toISOString().split('T')[0];
+const checkInDate = ref(today);
+const checkOutDate = ref(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+const guestCount = ref(2);
+const maxGuests = 10;
+
+// Tính toán giá
+const basePrice = ref(0);
+const serviceFee = ref(0);
+const tax = ref(0);
+const totalPrice = ref(0);
+
+// Tính số đêm
+const nightCount = computed(() => {
+  if (!checkInDate.value || !checkOutDate.value) return 1;
+  const start = new Date(checkInDate.value);
+  const end = new Date(checkOutDate.value);
+  const diffTime = Math.abs(end - start);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays || 1;
+});
+
+// Ngày checkout tối thiểu
+const minCheckoutDate = computed(() => {
+  if (!checkInDate.value) return today;
+  return checkInDate.value;
+});
+
+// Hình ảnh bổ sung (mô phỏng)
+const additionalImages = ref([
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1582719508461-905c673771fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1564078516393-cf04bd966897?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+]);
+
+// Danh sách tiện nghi
+const amenities = [
+  { name: 'WiFi miễn phí', icon: 'fas fa-wifi' },
+  { name: 'Điều hòa', icon: 'fas fa-snowflake' },
+  { name: 'TV', icon: 'fas fa-tv' },
+  { name: 'Bếp', icon: 'fas fa-utensils' },
+  { name: 'Máy giặt', icon: 'fas fa-tshirt' },
+  { name: 'Chỗ đậu xe', icon: 'fas fa-parking' },
+  { name: 'Hồ bơi', icon: 'fas fa-swimming-pool' },
+  { name: 'Bữa sáng', icon: 'fas fa-coffee' }
+];
+
+// Lấy thông tin homestay từ API
+const fetchHomestayData = async () => {
+  isLoading.value = true;
+  hasError.value = false;
+  errorMessage.value = '';
+
   try {
-    isLoading.value = true;
-    hasError.value = false;
+    const homestayId = route.params.id;
 
-    const res = await getAllHomeStay();
-    console.log('API Response:', res);
-    console.log('Homestay Data:', res.data);
-
-    if (res && res.data && Array.isArray(res.data)) {
-      homestays.value = res.data;
-      console.log('Homestays loaded:', homestays.value.length);
-
-      // Kiểm tra cấu trúc dữ liệu của homestay đầu tiên nếu có
-      if (homestays.value.length > 0) {
-        console.log('Sample homestay structure:', JSON.stringify(homestays.value[0], null, 2));
-      }
-    } else {
-      console.warn('API trả về dữ liệu không phải mảng hoặc rỗng:', res);
-      homestays.value = getSampleData(); // Sử dụng dữ liệu mẫu nếu không có dữ liệu thực
+    if (!homestayId) {
+      throw new Error('Không tìm thấy ID homestay');
     }
-  } catch (err) {
-    console.error('Lỗi khi lấy homestay:', err);
+
+    console.log('Đang tải thông tin homestay với ID:', homestayId);
+    const response = await getHomeStayById(homestayId);
+
+    if (response.data) {
+      homestay.value = response.data;
+      calculateTotalPrice();
+    } else {
+      throw new Error('Không tìm thấy thông tin homestay');
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin homestay:', error);
     hasError.value = true;
-    errorMessage.value = err.message || 'Không thể tải dữ liệu homestay';
-    homestays.value = getSampleData(); // Sử dụng dữ liệu mẫu khi có lỗi
+    errorMessage.value = error.message || 'Đã xảy ra lỗi khi tải thông tin homestay';
   } finally {
     isLoading.value = false;
   }
 };
 
-// Dữ liệu mẫu khi không có dữ liệu thực
-const getSampleData = () => {
-  return [
-    {
-      id: 1,
-      tenHomestay: 'ChillStay View Núi',
-      loaiPhong: 'Phòng Gia Đình',
-      giaCaHomestay: 450000,
-      sucChua: 4,
-      dienTich: 40,
-      trangThai: 'Hoạt động',
-      diaChi: 'Mộc Châu, Sơn La',
-      hinhAnh: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      danhGiaTrungBinh: 4.8,
-      soDanhGia: 120
-    },
-    {
-      id: 2,
-      tenHomestay: 'ChillStay Premium',
-      loaiPhong: 'Phòng VIP',
-      giaCaHomestay: 750000,
-      sucChua: 2,
-      dienTich: 35,
-      trangThai: 'Hoạt động',
-      diaChi: 'Tiểu khu 32, Mộc Châu',
-      hinhAnh: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      danhGiaTrungBinh: 4.9,
-      soDanhGia: 85
-    },
-    {
-      id: 3,
-      tenHomestay: 'ChillStay Cozy',
-      loaiPhong: 'Phòng Đôi',
-      giaCaHomestay: 350000,
-      sucChua: 2,
-      dienTich: 25,
-      trangThai: 'Hoạt động',
-      diaChi: 'Bản Áng, Mộc Châu',
-      hinhAnh: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      danhGiaTrungBinh: 4.7,
-      soDanhGia: 95
-    },
-  ];
+// Tính tổng giá tiền
+const calculateTotalPrice = () => {
+  if (!homestay.value || !homestay.value.giaCaHomestay) {
+    basePrice.value = 0;
+    serviceFee.value = 0;
+    tax.value = 0;
+    totalPrice.value = 0;
+    return;
+  }
+
+  const price = homestay.value.giaCaHomestay;
+  basePrice.value = price * nightCount.value;
+  serviceFee.value = basePrice.value * 0.05; // Phí dịch vụ 5%
+  tax.value = basePrice.value * 0.08; // Thuế 8%
+  totalPrice.value = basePrice.value + serviceFee.value + tax.value;
+};
+
+// Format giá tiền
+const formatPrice = (price) => {
+  if (!price) return '0₫';
+  return price.toLocaleString('vi-VN') + '₫';
+};
+
+// Đặt hình ảnh chính
+const setMainImage = (image) => {
+  if (homestay.value) {
+    homestay.value.hinhAnh = image;
+  }
+};
+
+// Xử lý đặt phòng
+const bookNow = () => {
+  // Kiểm tra đăng nhập
+  // Trong thực tế, bạn sẽ kiểm tra trạng thái đăng nhập từ store
+  const isLoggedIn = false; // Giả định chưa đăng nhập
+
+  if (!isLoggedIn) {
+    alert('Vui lòng đăng nhập để đặt phòng');
+    // Hiển thị modal đăng nhập hoặc chuyển hướng đến trang đăng nhập
+    return;
+  }
+
+  // Xử lý đặt phòng
+  alert(`Đặt phòng thành công!\nHomestay: ${homestay.value.tenHomestay}\nNgày nhận phòng: ${checkInDate.value}\nNgày trả phòng: ${checkOutDate.value}\nSố khách: ${guestCount.value}\nTổng tiền: ${formatPrice(totalPrice.value)}`);
+};
+
+// Quay lại trang trước
+const goBack = () => {
+  router.back();
 };
 
 onMounted(() => {
-  // Thiết lập ngày mặc định (hôm nay và ngày mai)
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  checkIn.value = formatDate(today);
-  checkOut.value = formatDate(tomorrow);
-
-  fetchData();
+  fetchHomestayData();
 });
-
-// Định dạng ngày YYYY-MM-DD
-const formatDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-// Thử lại khi có lỗi
-const retryFetch = () => {
-  fetchData();
-};
-
-// Lọc phòng dựa trên ngày và số khách
-const filteredRooms = computed(() => {
-  // Kiểm tra xem homestays có dữ liệu không
-  if (homestays.value.length === 0) return [];
-
-  // Lọc các homestay có trạng thái Hoạt động (chấp nhận cả boolean true hoặc chuỗi "Hoạt động")
-  const activeHomestays = homestays.value.filter(h => h.trangThai === true || h.trangThai === 'Hoạt động');
-  console.log('Homestay đang hoạt động:', activeHomestays.length);
-
-  // Nếu không có tiêu chí tìm kiếm, trả về tất cả homestay đang hoạt động
-  if (!checkIn.value || !checkOut.value || !guests.value) {
-    return activeHomestays;
-  }
-
-  // Lọc theo số khách (nếu có thông tin về sức chứa)
-  return activeHomestays.filter(h => {
-    // Sử dụng giá trị mặc định nếu không có thông tin sức chứa
-    const capacity = h.sucChua || h.soNguoi || 2;
-    return capacity >= guests.value;
-  });
-});
-
-// Hàm tìm phòng
-const searchRooms = () => {
-  console.log('Tìm phòng với:', { checkIn: checkIn.value, checkOut: checkOut.value, guests: guests.value });
-  // Fetch data sẽ được thực hiện thông qua computed property
-};
-
-const bookRoom = (room) => {
-  // Implement the logic to book a room
-  console.log('Đặt phòng:', room);
-};
 </script>
 
 <style scoped>
-/* Nhập Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-/* Đặt lại và kiểu cơ bản */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.home-container {
-  font-family: 'Poppins', sans-serif;
-  color: #2d2d2d;
-  background: #f5f7fa;
-}
-
-/* Container */
-.container {
-  max-width: 1280px;
+.booking-container {
+  font-family: 'Roboto', sans-serif;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
-}
-
-/* Phần Hero */
-.hero-section {
-  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center/cover;
-  color: #fff;
-  padding: 120px 0;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-}
-
-.hero-title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-
-.highlight {
-  color: #ffcc00;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  font-weight: 300;
-  max-width: 600px;
-  margin: 0 auto 32px;
-}
-
-.hero-search {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.search-box {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.search-input {
-  position: relative;
-  flex: 1;
-}
-
-.search-icon {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  transform: translateY(-50%);
-  color: #6b7280;
-  font-size: 1.1rem;
-}
-
-.search-input input,
-.search-input select {
-  width: 100%;
-  padding: 12px 12px 12px 36px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  transition: border-color 0.3s ease;
-}
-
-.search-input input:focus,
-.search-input select:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.search-btn {
-  background: #3b82f6;
-  color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.3s ease;
-}
-
-.search-btn:hover {
-  background: #2563eb;
-}
-
-/* Phần Danh Sách Phòng */
-.rooms-section {
-  padding: 80px 0;
-}
-
-.section-title {
-  font-size: 2.25rem;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 48px;
-  color: #1f2937;
-}
-
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
-}
-
-.room-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.room-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.room-image {
-  position: relative;
-}
-
-.room-image img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-}
-
-.room-status {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 6px 12px;
-  background: #10b981;
-  color: #fff;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.room-content {
   padding: 20px;
+  color: #333;
 }
 
-.room-content h3 {
-  font-size: 1.25rem;
+/* Loading và Error */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px;
+  text-align: center;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #007bff;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error-icon {
+  color: #dc3545;
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
   font-weight: 500;
-  margin-bottom: 8px;
-  color: #1f2937;
+  transition: background-color 0.3s;
 }
 
-.room-location {
-  font-size: 0.9rem;
-  color: #6b7280;
-  margin-bottom: 12px;
+.primary-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Breadcrumb */
+.breadcrumb {
   display: flex;
   align-items: center;
-  gap: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
 }
 
-.room-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 0.85rem;
-  color: #6b7280;
+.breadcrumb a {
+  color: #007bff;
+  text-decoration: none;
 }
 
-.room-details span {
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.separator {
+  margin: 0 10px;
+  color: #6c757d;
+}
+
+.current {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Homestay Header */
+.homestay-header {
+  margin-bottom: 20px;
+}
+
+.homestay-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #212529;
+}
+
+.homestay-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 20px;
+  color: #6c757d;
+  font-size: 14px;
 }
 
-.room-rating {
+.location,
+.rating {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 5px;
 }
 
 .stars {
-  color: #f59e0b;
-  font-size: 0.9rem;
+  color: #ffc107;
 }
 
-.rating-text {
-  font-size: 0.85rem;
-  color: #6b7280;
+/* Gallery */
+.homestay-gallery {
+  margin-bottom: 30px;
 }
 
-.room-price {
+.main-image {
+  width: 100%;
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.main-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.thumbnail-images img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.thumbnail-images img:hover {
+  opacity: 0.8;
+}
+
+/* Booking Details */
+.booking-details {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 768px) {
+  .booking-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Homestay Info */
+.homestay-info {
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.homestay-info h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #212529;
+}
+
+.info-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.info-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.info-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #212529;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-item i {
+  color: #007bff;
+  width: 20px;
+  text-align: center;
+}
+
+/* Amenities */
+.amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.amenity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.amenity-item i {
+  color: #007bff;
+  width: 20px;
+  text-align: center;
+}
+
+/* Rules */
+.rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rule-item i {
+  color: #007bff;
+  width: 20px;
+  text-align: center;
+  margin-top: 3px;
+}
+
+/* Reviews */
+.reviews-summary {
+  display: flex;
+  gap: 30px;
+}
+
+.overall-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.rating-number {
+  font-size: 48px;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1;
+}
+
+.review-count {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.rating-bars {
+  flex: 1;
+}
+
+.rating-bar-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rating-bar-item span {
+  width: 60px;
+}
+
+.rating-bar-item span:last-child {
+  width: 30px;
+  text-align: right;
+}
+
+.bar-container {
+  flex: 1;
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  margin: 0 10px;
+}
+
+.bar {
+  height: 100%;
+  background-color: #007bff;
+  border-radius: 4px;
+}
+
+/* Booking Form */
+.booking-form-container {
+  align-self: flex-start;
+  position: sticky;
+  top: 20px;
+}
+
+.booking-form {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.booking-form h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #212529;
+}
+
+.price-info {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .price {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 24px;
+  font-weight: 700;
+  color: #212529;
 }
 
 .price-unit {
-  font-size: 0.9rem;
-  color: #6b7280;
+  color: #6c757d;
+  margin-left: 5px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.price-breakdown {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.price-row.total {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+  font-weight: 700;
+  font-size: 16px;
 }
 
 .book-now-btn {
   width: 100%;
   padding: 12px;
-  background: #3b82f6;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s ease;
+  background-color: #007bff;
+  color: white;
+  font-size: 16px;
+  margin-top: 20px;
 }
 
 .book-now-btn:hover {
-  background: #2563eb;
+  background-color: #0056b3;
 }
 
-/* Trạng thái Tải và Lỗi */
-.loading-container,
-.error-container {
+.booking-note {
   text-align: center;
-  padding: 32px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 32px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6c757d;
 }
 
-.loading-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
+@media (max-width: 576px) {
+  .booking-container {
+    padding: 10px;
+  }
 
-.loading-container p {
-  font-size: 1.1rem;
-  color: #3b82f6;
-}
+  .main-image {
+    height: 250px;
+  }
 
-.error-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.error-container p {
-  font-size: 1.1rem;
-  color: #ef4444;
-}
-
-.btn-primary {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-}
-
-.btn-primary:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-/* Thiết kế Responsive */
-@media (max-width: 1024px) {
-  .search-box {
+  .reviews-summary {
     flex-direction: column;
-  }
-
-  .hero-title {
-    font-size: 2.5rem;
-  }
-
-  .section-title {
-    font-size: 1.75rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .rooms-grid {
-    grid-template-columns: 1fr;
+    gap: 20px;
   }
 }
 </style>

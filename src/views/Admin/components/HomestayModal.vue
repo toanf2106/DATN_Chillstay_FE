@@ -45,6 +45,12 @@
                   {{ formData.trangThai ? 'Hoạt động' : 'Khóa' }}
                 </span>
               </div>
+
+              <div class="mt-3 text-center" v-if="isViewMode">
+                <button type="button" class="btn btn-info" @click="viewDetailImages">
+                  <i class="fas fa-images me-1"></i> Xem ảnh chi tiết
+                </button>
+              </div>
             </div>
           </div>
           <div class="col-md-8">
@@ -219,7 +225,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Chủ sở hữu</label>
+                  <label>Quản lý Homestay</label>
                   <input
                     type="text"
                     class="form-control"
@@ -299,6 +305,7 @@
                         readonly
                       />
                     </div>
+
                   </div>
                   <div class="col-md-6" v-if="formData.ngayUpdate">
                     <div class="form-group">
@@ -371,7 +378,7 @@ export default {
       default: false,
     },
   },
-  emits: ['save', 'close', 'edit'],
+  emits: ['save', 'close', 'edit', 'view-images'],
   setup(props, { emit }) {
     const formData = ref({
       tenHomestay: '',
@@ -549,6 +556,10 @@ export default {
       }
     }
 
+    const viewDetailImages = () => {
+      emit('view-images', formData.value)
+    }
+
     // Nếu là chỉnh sửa, điền dữ liệu hiện có
     watch(
       () => props.homestay,
@@ -602,6 +613,7 @@ export default {
       getChuName,
       formatCurrency,
       formatDate,
+      viewDetailImages,
     }
   },
 }
@@ -893,3 +905,4 @@ export default {
   transform: none;
 }
 </style>
+

@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import about from '../views/AboutView.vue'
-import AdminDashboard from '../components/AdminDashboard.vue'
 import ThongKe from '../views/Admin/ThongKe.vue'
 import DatHomestay from '../views/Admin/DatHome.vue'
 
@@ -29,10 +28,38 @@ const router = createRouter({
     // Các route cho Admin
     {
       path: '/admin',
-      name: 'admin',
-      component: AdminDashboard,
-      meta: { requiresAuth: true, isAdmin: true },
+      name: 'Admin',
+      component: () => import('../views/Admin/AdminDashboard.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
       children: [
+        // Dashboard - Trang chính quản trị
+        {
+          path: '',
+          name: 'admin-dashboard',
+          component: () => import('../views/Admin/ThongKe.vue'),
+        },
+
+        // Quản lý Homestay - Thông tin chung về homestay
+        {
+          path: 'homestay',
+          name: 'admin-homestay',
+          component: () => import('../views/Admin/Home/QlyHomestay.vue'),
+        },
+
+        // Quản lý Loại Homestay
+        {
+          path: 'loai-homestay',
+          name: 'admin-loai-homestay',
+          component: () => import('../views/Admin/Home/QlyLoaiHomestay.vue'),
+        },
+
+        // Quản lý Phòng - Thông tin về các phòng trong homestay
+        {
+          path: 'phong',
+          name: 'admin-phong',
+          component: () => import('../views/Admin/Home/QlyPhong.vue'),
+        },
+
         // Thống kê - Hiển thị dữ liệu tổng quan
         {
           path: 'thong-ke',
@@ -48,20 +75,6 @@ const router = createRouter({
         },
 
         // Các route quản lý Homestay
-        // Quản lý Homestay - Thông tin chung về homestay
-        {
-          path: 'homestay',
-          name: 'admin-homestay',
-          component: () => import('../views/Admin/Home/QlyHomestay.vue'),
-        },
-
-        // Quản lý Phòng - Thông tin về các phòng trong homestay
-        {
-          path: 'homestay/phong',
-          name: 'admin-homestay-phong',
-          component: () => import('../views/Admin/Home/QlyPhong.vue'),
-        },
-
         // Quản lý Vật tư - Thông tin về vật tư, thiết bị trong homestay
         {
           path: 'homestay/vattu',
@@ -70,7 +83,6 @@ const router = createRouter({
         },
 
         // Quản lý Tiện nghi - Các tiện nghi cung cấp cho khách hàng
-
         {
           path: 'homestay/tiennghi',
           name: 'admin-homestay-tiennghi',
@@ -152,7 +164,6 @@ const router = createRouter({
       path: '/thong-ke',
       redirect: { name: 'admin-thong-ke' },
     },
-
 
   ],
 })

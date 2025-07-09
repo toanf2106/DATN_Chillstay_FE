@@ -185,8 +185,10 @@
                         class="form-select"
                         required
                       >
-                        <option value="Còn phòng">Còn phòng</option>
-                        <option value="Hết phòng">Hết phòng</option>
+                        <option value="Đã có người ở">Đã có người ở</option>
+                        <option value="Trống và sạch">Trống và sạch</option>
+                        <option value="Trống nhưng bẩn">Trống nhưng bẩn</option>
+                        <option value="Hỏng hóc">Hỏng hóc</option>
                       </select>
                     </div>
                   </div>
@@ -387,7 +389,7 @@ export default {
       dienTich: 0,
       giaCaHomestay: 0,
       diaChi: '',
-      tinhTrang: 'Còn phòng',
+      tinhTrang: 'Trống và sạch',
       trangThai: true,
       hinhAnh: '',
       maHomestay: '',

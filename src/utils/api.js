@@ -18,9 +18,18 @@ const api = axios.create({
 // Interceptor để thêm token vào header của mỗi request
 api.interceptors.request.use(
   (config) => {
-    // Đảm bảo charset UTF-8 được thiết lập cho mọi request
-    if (!config.headers['Content-Type'] || config.headers['Content-Type'].includes('application/json')) {
-      config.headers['Content-Type'] = 'application/json; charset=utf-8'
+    // Đảm bảo charset UTF-8 được thiết lập cho mọi request JSON
+    // Nhưng không đặt Content-Type cho FormData vì axios sẽ tự động đặt multipart/form-data
+    const isFormData = config.data instanceof FormData;
+
+    if (!isFormData) {
+      // Nếu headers đã được đặt trong config của hàm gọi API, ưu tiên sử dụng nó
+      if (!config.headers['Content-Type']) {
+        config.headers['Content-Type'] = 'application/json; charset=utf-8';
+      }
+    } else {
+      // Xóa Content-Type để axios tự động đặt với boundary đúng cho FormData
+      delete config.headers['Content-Type'];
     }
 
     const sessionId = getSessionId()
@@ -33,8 +42,13 @@ api.interceptors.request.use(
 
     // Thêm log chi tiết cho request
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
+    console.log('Request headers:', config.headers);
     if (config.data) {
-      console.log('Request data:', JSON.stringify(config.data, null, 2))
+      if (isFormData) {
+        console.log('Request data: [FormData object]')
+      } else {
+        console.log('Request data:', config.data)
+      }
     }
 
     return config

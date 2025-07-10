@@ -42,7 +42,7 @@
               <div class="status-badge" v-if="isEdit || isViewMode">
                 <label>Trạng Thái:</label>
                 <span :class="`badge ${formData.trangThai ? 'bg-success' : 'bg-danger'}`">
-                  {{ formData.trangThai ? 'Hoạt động' : 'Khóa' }}
+                  {{ formData.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
                 </span>
               </div>
             </div>
@@ -185,7 +185,7 @@
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <div class="form-group">
+                                          <div class="form-group">
                       <label for="trangThai">Trạng thái</label>
                       <select
                         id="trangThai"
@@ -194,7 +194,7 @@
                         required
                       >
                         <option :value="true">Hoạt động</option>
-                        <option :value="false">Khóa</option>
+                        <option :value="false">Không hoạt động</option>
                       </select>
                     </div>
                   </div>
@@ -281,7 +281,7 @@
                       <input
                         type="text"
                         class="form-control"
-                        :value="formData.trangThai ? 'Đang hoạt động' : 'Đã khóa'"
+                        :value="formData.trangThai ? 'Hoạt động' : 'Không hoạt động'"
                         readonly
                       />
                     </div>

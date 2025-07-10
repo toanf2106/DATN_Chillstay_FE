@@ -85,7 +85,7 @@
             <td class="text-center">{{ getLoaiName(hs.idLoaiHomeStay) }}</td>
             <td class="text-center">
               <span :class="`badge ${hs.trangThai ? 'bg-success' : 'bg-danger'}`">
-                {{ hs.trangThai ? 'Hoạt động' : 'Khóa' }}
+                {{ hs.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
               </span>
             </td>
             <td class="text-center">

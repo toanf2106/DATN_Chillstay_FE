@@ -1,284 +1,1062 @@
 <template>
-  <div class="container-fluid mt-4">
-    <nav aria-label="breadcrumb" class="breadcrumb-custom mb-4">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item active" aria-current="page">Quản lý Tin tức</li>
-        <li class="breadcrumb-item"><router-link :to="{ name: 'AdminAnhTinTuc' }">Quản lý Ảnh tin tức</router-link></li>
-      </ol>
-    </nav>
+  <div class="homestay-container">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <h1 class="page-title">Quản Lý Tin Tức</h1>
 
-    <div class="news-management-section">
-      <h2 class="section-title">DANH SÁCH TIN TỨC</h2>
-
-      <!-- Toolbar -->
-      <div class="toolbar-section">
-        <div class="d-flex align-items-center justify-content-between">
-          <div class="d-flex align-items-center">
-            <button class="btn btn-primary add-btn-custom d-flex align-items-center me-3" @click="openAddModal"
-              title="Thêm tin tức">
-              <i class="bi bi-plus-lg me-2"></i> Thêm Tin
+    <div class="controls-container">
+      <div class="search-box">
+        <div class="search-control-group">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" v-model="searchQuery" placeholder="Tìm kiếm tin tức..." class="search-input"
+              @input="handleSearch" />
+            <button v-if="searchQuery" @click="searchQuery = ''; loadTinTuc()" class="clear-search-btn">
+              <i class="fas fa-times"></i>
             </button>
-            <input v-model="searchKeyword" @input="debouncedSearch" class="form-control search-input-custom me-2"
-              style="width: 300px" placeholder="Tìm kiếm theo mã hoặc tiêu đề..." />
-            <select class="form-select search-select-custom me-2" v-model="filterStatus">
-              <option :value="null">Tất cả trạng thái</option>
-              <option :value="true">Đang hoạt động</option>
-              <option :value="false">Không hoạt động</option>
-            </select>
-          </div>
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="pagination-wrapper">
-            <ul class="pagination pagination-sm">
-              <li class="page-item" :class="{ disabled: page === 0 }">
-                <button class="page-link" @click="changePage(page - 1)" :disabled="page === 0">‹</button>
-              </li>
-              <li class="page-item" v-for="p in totalPages" :key="p" :class="{ active: page === p - 1 }">
-                <button class="page-link" @click="changePage(p - 1)">{{ p }}</button>
-              </li>
-              <li class="page-item" :class="{ disabled: page === totalPages - 1 }">
-                <button class="page-link" @click="changePage(page + 1)" :disabled="page === totalPages - 1">›</button>
-              </li>
-            </ul>
           </div>
         </div>
       </div>
 
-      <!-- News Table -->
-      <div class="table-container">
-        <table class="table table-bordered table-hover">
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Mã tin tức</th>
-              <th>Tiêu đề</th>
-              <th>Ngày đăng</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in tinTucs" :key="item.id">
-              <td>{{ item.id }}</td>
-              <td>{{ item.maTinTuc }}</td>
-              <td>{{ item.tieuDe }}</td>
-              <td>{{ formatDate(item.ngayDang) }}</td>
-              <td>
-                <span :class="['badge', item.trangThai ? 'bg-success' : 'bg-secondary']">
-                  {{ item.trangThai ? 'Đang hiển thị' : 'Đã ẩn' }}
-                </span>
-              </td>
-              <td>
-                <button class="icon-btn icon-btn-info me-1" @click="showDetail(item)" title="Chi tiết">
-                  <i class="bi bi-info-circle"></i>
-                </button>
-                <router-link :to="{ name: 'AdminAnhTinTuc', params: { newsId: item.id } }"
-                  class="icon-btn icon-btn-primary me-1" title="Quản lý ảnh">
-                  <i class="bi bi-images"></i>
-                </router-link>
-                <button v-if="item.trangThai" class="icon-btn icon-btn-warning me-1" @click="openEditModal(item)"
-                  title="Sửa">
-                  <i class="bi bi-pencil-square"></i>
-                </button>
-                <button v-if="item.trangThai" class="icon-btn icon-btn-danger" @click="confirmDelete(item.id)"
-                  title="Xóa">
-                  <i class="bi bi-trash"></i>
-                </button>
-                <button v-else class="icon-btn icon-btn-success" @click="restoreTinTuc(item.id)" title="Khôi phục">
-                  <i class="bi bi-arrow-clockwise"></i>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="right-controls">
+        <select class="form-select status-filter" v-model="selectedStatus" @change="handleStatusChange(selectedStatus)">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hiển thị</option>
+          <option value="inactive">Đã ẩn</option>
+        </select>
+        <button class="btn btn-primary add-button" @click="openAddModal">
+          <i class="fas fa-newspaper"></i>
+        </button>
       </div>
     </div>
 
-    <!-- Modals -->
-    <!-- Modal Thêm/Sửa tin tức -->
-    <div class="modal fade" ref="tinTucModal" id="tinTucModal" tabindex="-1" aria-labelledby="tinTucModalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-          <form @submit.prevent="handleSubmit">
-            <div class="modal-header">
-              <h5 class="modal-title" id="tinTucModalLabel">
-                {{ isEditing ? 'Cập nhật tin tức' : 'Thêm tin tức mới' }}
-              </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label class="form-label">Mã tin tức <span class="text-danger">*</span></label>
-                <input v-model="form.maTinTuc" class="form-control" required maxlength="50" />
+    <!-- API Error Alert -->
+    <div v-if="apiError" class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <strong>Lưu ý:</strong> {{ apiErrorMessage }}
+      <button type="button" class="btn-close float-end" @click="apiError = false"></button>
+    </div>
+
+    <!-- Loading indicator -->
+    <div v-if="loading" class="loading-indicator">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
+    </div>
+
+    <!-- News Table -->
+    <div class="table-responsive" v-if="!loading">
+      <table class="table table-hover table-bordered table-sm">
+        <thead>
+          <tr>
+            <th width="5%" class="text-center">STT</th>
+            <th width="10%" class="text-center">Mã tin tức</th>
+            <th width="15%" class="text-center">Tiêu đề</th>
+            <th width="20%" class="text-center">Nội dung</th>
+            <th width="10%" class="text-center">Người đăng</th>
+            <th width="10%" class="text-center">Ngày đăng</th>
+            <th width="10%" class="text-center">Ảnh bìa</th>
+            <th width="5%" class="text-center">Trạng thái</th>
+            <th width="15%" class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in paginatedTinTucs" :key="item.id" @dblclick="showDetail(item)"
+            style="cursor: pointer;">
+            <td class="text-center">{{ index + 1 + currentPage * pageSize }}</td>
+            <td class="text-center">{{ item.maTinTuc }}</td>
+            <td class="text-center">{{ item.tieuDe }}</td>
+            <td class="text-center">
+              <div class="content-truncate">{{ item.noiDung }}</div>
+            </td>
+            <td class="text-center">{{ item.tenTaiKhoan || 'Không xác định' }}</td>
+            <td class="text-center">{{ formatDate(item.ngayDang) }}</td>
+            <td class="text-center">
+              <div class="image-wrapper">
+                <img v-if="item.anhBia" :src="item.anhBia" :alt="item.tieuDe" class="thumbnail-image" />
+                <div v-else class="no-image-placeholder">
+                  <i class="fas fa-newspaper"></i>
+                </div>
               </div>
+            </td>
+            <td class="text-center">
+              <span :class="['badge', item.trangThai ? 'bg-success' : 'bg-secondary']">
+                {{ item.trangThai ? 'Đang hiển thị' : 'Đã ẩn' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="action-buttons">
+                <button class="btn btn-icon btn-warning-light" title="Chỉnh sửa" @click.stop="openEditModal(item)"
+                  v-if="item.trangThai">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-icon btn-danger-light" title="Xóa" @click.stop="confirmDelete(item.id)"
+                  v-if="item.trangThai">
+                  <i class="fas fa-trash"></i>
+                </button>
+                <button v-else class="btn btn-icon btn-success-light" title="Khôi phục"
+                  @click.stop="restoreTinTuc(item.id)">
+                  <i class="fas fa-undo"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <!-- Empty rows to ensure space -->
+          <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
+            <td colspan="9">&nbsp;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="!loading && filteredTinTucs.length === 0" class="empty-state">
+      <i class="fas fa-box-open empty-icon"></i>
+      <p>Không tìm thấy tin tức nào.</p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container" v-if="!loading && filteredTinTucs.length > 0">
+      <div class="pagination-info">
+        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} tin tức
+      </div>
+      <nav aria-label="Page navigation">
+        <ul class="pagination">
+          <li class="page-item" :class="{ disabled: currentPage === 0 }">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+          <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: page - 1 === currentPage }">
+            <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+          </li>
+          <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Modal Thêm/Sửa tin tức -->
+  <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
+    <div class="modal-editor">
+      <div class="modal-header">
+        <h3>{{ isEditing ? 'Cập nhật tin tức' : 'Thêm tin tức mới' }}</h3>
+        <button class="close-button" @click="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleSubmit">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="news-avatar-display">
+                <div class="avatar-preview" @click="triggerFileInput">
+                  <img v-if="coverImagePreview || form.anhBia" :src="coverImagePreview || form.anhBia" alt="Ảnh bìa"
+                    class="uploaded-avatar" />
+                  <div v-else class="avatar-placeholder">
+                    <i class="fas fa-newspaper"></i>
+                    <span>Thêm ảnh bìa</span>
+                  </div>
+                </div>
+                <input type="file" ref="fileInput" @change="handleCoverImageChange" accept="image/*"
+                  style="display: none" />
+
+                <h4 class="text-center mt-3">{{ form.tieuDe || 'Tin tức mới' }}</h4>
+                <p class="text-center news-id" v-if="isEditing && form.maTinTuc">
+                  Mã: {{ form.maTinTuc }}
+                </p>
+              </div>
+            </div>
+            <div class="col-md-8">
               <div class="mb-3">
                 <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
                 <input v-model="form.tieuDe" class="form-control" required maxlength="200" />
               </div>
               <div class="mb-3">
                 <label class="form-label">Nội dung <span class="text-danger">*</span></label>
-                <textarea v-model="form.noiDung" class="form-control" rows="6" required maxlength="2000"></textarea>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-              <button type="submit" class="btn btn-primary">
-                {{ isEditing ? 'Cập nhật' : 'Thêm mới' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+                <div class="content-editor-wrapper">
+                  <div class="content-editor-toolbar">
+                    <button type="button" @click="formatText('bold')" class="toolbar-button" title="Chữ đậm">
+                      <i class="fas fa-bold"></i>
+                    </button>
+                    <button type="button" @click="formatText('italic')" class="toolbar-button" title="Chữ nghiêng">
+                      <i class="fas fa-italic"></i>
+                    </button>
+                    <button type="button" @click="formatText('underline')" class="toolbar-button" title="Gạch chân">
+                      <i class="fas fa-underline"></i>
+                    </button>
+                    <div class="toolbar-divider"></div>
+                    <button type="button" @click="formatText('justifyLeft')" class="toolbar-button" title="Căn trái">
+                      <i class="fas fa-align-left"></i>
+                    </button>
+                    <button type="button" @click="formatText('justifyCenter')" class="toolbar-button" title="Căn giữa">
+                      <i class="fas fa-align-center"></i>
+                    </button>
+                    <button type="button" @click="formatText('justifyRight')" class="toolbar-button" title="Căn phải">
+                      <i class="fas fa-align-right"></i>
+                    </button>
+                    <button type="button" @click="formatText('justifyFull')" class="toolbar-button" title="Căn đều">
+                      <i class="fas fa-align-justify"></i>
+                    </button>
+                    <div class="toolbar-divider"></div>
+                    <button type="button" @click="insertImage" class="toolbar-button" title="Chèn ảnh">
+                      <i class="fas fa-image"></i>
+                    </button>
+                    <button type="button" @click="insertParagraph" class="toolbar-button" title="Chèn đoạn văn">
+                      <i class="fas fa-paragraph"></i>
+                    </button>
+                    <div class="toolbar-divider"></div>
+                    <button type="button" @click="clearFormatting" class="toolbar-button" title="Xóa định dạng">
+                      <i class="fas fa-remove-format"></i>
+                    </button>
+                    <button type="button" @click="toggleFullscreen" class="toolbar-button"
+                      :title="isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'">
+                      <i :class="isFullscreen ? 'fas fa-compress' : 'fas fa-expand'"></i>
+                    </button>
+                  </div>
 
-    <!-- Modal Chi tiết tin tức -->
-    <div class="modal fade" ref="detailModal" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="detailModalLabel">Chi tiết tin tức</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" v-if="detailItem">
-            <div class="row">
-              <div class="col-md-8">
-                <h4>{{ detailItem.tieuDe }}</h4>
-                <p class="text-muted">Mã: {{ detailItem.maTinTuc }} | Ngày đăng: {{ formatDate(detailItem.ngayDang) }}
-                </p>
-                <div class="content-detail">
-                  {{ detailItem.noiDung }}
+                  <div class="content-editor-container">
+                    <div class="content-editor" contenteditable="true" ref="contentEditor" @input="handleContentChange"
+                      @paste="handlePaste"></div>
+                  </div>
+
+                  <textarea v-model="form.noiDung" name="noiDung" class="form-control d-none" required
+                    maxlength="10000"></textarea>
+
+                  <input type="file" ref="imageInput" @change="handleImageSelected" accept="image/*"
+                    style="display: none" />
                 </div>
               </div>
-              <div class="col-md-4" v-if="detailItem.anhBia">
-                <img :src="detailItem.anhBia" alt="Ảnh bìa" class="img-fluid rounded" />
+              <div class="mb-3">
+                <label class="form-label">Trạng thái</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" v-model="form.trangThai" id="trangThaiSwitch">
+                  <label class="form-check-label" for="trangThaiSwitch">
+                    {{ form.trangThai ? 'Đang hiển thị' : 'Đã ẩn' }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" @click="closeModal">Hủy</button>
+                <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+                  <span v-if="isSubmitting" class="spinner-border spinner-border-sm" role="status"
+                    aria-hidden="true"></span>
+                  {{ isEditing ? 'Cập nhật' : 'Thêm mới' }}
+                </button>
               </div>
             </div>
-            <div class="mt-3">
-              <span :class="['badge', detailItem.trangThai ? 'bg-success' : 'bg-secondary']">
-                {{ detailItem.trangThai ? 'Đang hiển thị' : 'Đã ẩn' }}
-              </span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Chi tiết tin tức -->
+  <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
+    <div class="homestay-details-modal">
+      <div class="modal-header">
+        <h3>Chi tiết tin tức</h3>
+        <button class="close-button" @click="closeDetailModal">&times;</button>
+      </div>
+      <div class="modal-body" v-if="detailItem">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="homestay-avatar-display">
+              <div class="avatar-preview view-mode">
+                <img v-if="detailItem.anhBia" :src="detailItem.anhBia" alt="Ảnh bìa" class="uploaded-avatar" />
+                <div v-else class="avatar-placeholder">
+                  <i class="fas fa-newspaper"></i>
+                  <span>Chưa có ảnh</span>
+                </div>
+              </div>
+
+              <h4 class="text-center mt-3">{{ detailItem.tieuDe || 'Tin tức' }}</h4>
+              <p class="text-center homestay-id" v-if="detailItem.maTinTuc">
+                Mã: {{ detailItem.maTinTuc }}
+              </p>
+
+              <div class="status-badge">
+                <label>Trạng Thái:</label>
+                <span :class="`badge ${detailItem.trangThai ? 'bg-success' : 'bg-secondary'}`">
+                  {{ detailItem.trangThai ? 'Đang hiển thị' : 'Đã ẩn' }}
+                </span>
+              </div>
+
+              <div class="mt-3 text-center">
+                <button type="button" class="btn btn-info" @click="toggleImageGallery">
+                  <i class="fas fa-images me-1"></i> Xem chi tiết ảnh
+                </button>
+              </div>
             </div>
           </div>
+          <div class="col-md-8">
+            <div class="staff-info">
+              <div class="form-group">
+                <label>Tiêu đề</label>
+                <input type="text" class="form-control" v-model="detailItem.tieuDe" readonly />
+              </div>
+
+              <div class="form-group">
+                <label>Người đăng</label>
+                <input type="text" class="form-control" v-model="detailItem.tenTaiKhoan" readonly />
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Ngày đăng</label>
+                    <input type="text" class="form-control" :value="formatDate(detailItem.ngayDang)" readonly />
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Trạng thái</label>
+                    <input type="text" class="form-control" :value="detailItem.trangThai ? 'Đang hiển thị' : 'Đã ẩn'"
+                      readonly />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Nội dung</label>
+                <div class="content-preview-box">
+                  <div v-html="detailItem.noiDung" class="content-preview-html"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gallery ảnh chi tiết -->
+        <div class="modal-overlay" v-if="showImageGallery && detailItem" @click.self="toggleImageGallery">
+          <div class="image-gallery-modal">
+            <div class="gallery-header">
+              <h3 class="gallery-title">Ảnh chi tiết - {{ detailItem.tieuDe }}</h3>
+              <div class="gallery-subtitle">Danh sách ảnh ({{ detailItem.anhBia ? 1 + extractedImages.length :
+                extractedImages.length }})</div>
+              <button class="gallery-close-btn" @click="toggleImageGallery">
+                <i class="fas fa-times"></i> Đóng
+              </button>
+            </div>
+
+            <div class="gallery-content">
+              <!-- Hiển thị tất cả ảnh trong một lưới -->
+              <div class="gallery-section">
+                <h5 class="section-title">Tất cả hình ảnh</h5>
+                <div class="gallery-grid">
+                  <!-- Ảnh bìa (nếu có) -->
+                  <div v-if="detailItem.anhBia" class="gallery-item cover-item">
+                    <div class="cover-badge">Ảnh bìa</div>
+                    <img :src="detailItem.anhBia" :alt="detailItem.tieuDe" class="gallery-img" />
+                  </div>
+
+                  <!-- Các ảnh từ nội dung -->
+                  <div v-for="(image, index) in extractedImages" :key="index" class="gallery-item">
+                    <img :src="image" :alt="`Hình ảnh ${index + 1}`" class="gallery-img" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thông báo khi không có ảnh nào -->
+              <div v-if="!detailItem.anhBia && extractedImages.length === 0" class="no-images">
+                <p>Không có ảnh nào để hiển thị</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeDetailModal">
+            <i class="fas fa-times me-1"></i> Đóng
+          </button>
+          <button type="button" class="btn btn-primary" @click="openEditModal(detailItem)"
+            v-if="detailItem && detailItem.trangThai">
+            <i class="fas fa-edit me-1"></i> Sửa
+          </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Modal chi tiết đã được thiết kế bên trên -->
 </template>
 
 <script>
-import {
-  addTinTuc,
-  updateTinTuc,
-  deleteTinTuc,
-  searchTinTuc,
-} from '@/Service/TinTucSevice'
-import * as bootstrap from 'bootstrap'
+import { getAllTinTuc, addTinTuc, updateTinTuc, deleteTinTuc, getTinTucById, prepareTinTucData } from "@/Service/TinTucService";
+import { useAuthStore } from "@/stores/authStore";
+import { getAnhTinTucByTinTucId, addAnhTinTucWithImage } from '@/Service/AnhTinTucService';
+import api from '@/utils/api';
 
 export default {
-  name: 'TinTuc',
+  name: 'TinTucManagement',
   data() {
     return {
       tinTucs: [],
       isEditing: false,
+      isSubmitting: false,
+      isFullscreen: false, // Add this line for fullscreen state
       form: {
         id: null,
         maTinTuc: '',
         tieuDe: '',
         noiDung: '',
         trangThai: true,
+        anhBia: '',
+        anhBiaFile: null,
+        taiKhoanId: null
       },
-      modal: null,
+      showModal: false,
+      showDetailModal: false,
       detailItem: null,
-      detailModal: null,
-      searchKeyword: '',
-      page: 0,
-      size: 10,
-      totalPages: 1,
-      filterStatus: null,
-      debouncedSearch: null,
+      detailImageList: [], // Thêm danh sách ảnh chi tiết
+      coverImagePreview: null,
+      showImageGallery: false,
+      extractedImages: [], // Danh sách các ảnh được trích xuất từ nội dung
+      searchQuery: '',
+      searchTimeout: null, // Added for debouncing
+      loading: false,
+      apiError: false,
+      apiErrorMessage: '',
+      selectedStatus: 'all',
+
+      // Rich content editor
+      showPreview: false,
+      uploadingImage: false,
+      imageUploads: [],
+      existingImages: [],
+
+      // Pagination
+      currentPage: 0,
+      pageSize: 10,
+      totalPages: 1
+    }
+  },
+  computed: {
+    // Lọc tin tức theo từ khóa tìm kiếm và trạng thái
+    filteredTinTucs() {
+      let filtered = this.tinTucs;
+
+      // Lọc theo từ khóa tìm kiếm
+      if (this.searchQuery) {
+        const key = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(
+          (item) => item.tieuDe?.toLowerCase().includes(key) ||
+            item.noiDung?.toLowerCase().includes(key) ||
+            item.maTinTuc?.toLowerCase().includes(key)
+        );
+      }
+
+      // Lọc theo trạng thái
+      if (this.selectedStatus !== 'all') {
+        const isActive = this.selectedStatus === 'active';
+        filtered = filtered.filter((item) => item.trangThai === isActive);
+      }
+
+      return filtered;
+    },
+
+    // Tin tức đã phân trang
+    paginatedTinTucs() {
+      const start = this.currentPage * this.pageSize;
+      const end = start + this.pageSize;
+      return this.filteredTinTucs.slice(start, end);
+    },
+
+    // Tổng số tin tức sau khi lọc
+    totalItems() {
+      return this.filteredTinTucs.length;
+    },
+
+    // Vị trí bắt đầu của trang hiện tại
+    startItem() {
+      return this.totalItems === 0 ? 0 : this.currentPage * this.pageSize + 1;
+    },
+
+    // Vị trí kết thúc của trang hiện tại
+    endItem() {
+      const end = (this.currentPage + 1) * this.pageSize;
+      return end > this.totalItems ? this.totalItems : end;
+    },
+
+    // Số hàng trống để đảm bảo chiều cao bảng
+    emptyRows() {
+      const rowsCount = this.paginatedTinTucs.length;
+      return rowsCount < this.pageSize ? this.pageSize - rowsCount : 0;
     }
   },
   mounted() {
     this.loadTinTuc();
-    this.$nextTick(() => {
-      this.modal = bootstrap.Modal.getOrCreateInstance(this.$refs.tinTucModal);
-      this.detailModal = bootstrap.Modal.getOrCreateInstance(this.$refs.detailModal);
-    });
-  },
-  watch: {
-    filterStatus() {
-      this.page = 0;
-      this.loadTinTuc();
+
+    // Lấy ID tài khoản hiện tại từ authStore
+    const authStore = useAuthStore();
+    if (authStore.user && authStore.user.id) {
+      this.form.taiKhoanId = authStore.user.id;
     }
   },
   methods: {
-    async loadTinTuc() {
-      try {
-        const res = await searchTinTuc({
-          page: this.page,
-          size: this.size,
-          maTinTuc: this.searchKeyword,
-          trangThai: this.filterStatus,
-        });
-
-        this.tinTucs = res.data.content;
-        this.totalPages = res.data.totalPages;
-      } catch (error) {
-        console.error('Lỗi khi tải danh sách tin tức:', error);
-        alert('Lỗi khi tải danh sách tin tức');
+    // Cập nhật giá trị nội dung từ editor
+    updateContentValue() {
+      if (this.$refs.contentEditor) {
+        this.form.noiDung = this.$refs.contentEditor.innerHTML;
       }
     },
 
+    async loadTinTuc() {
+      try {
+        this.loading = true;
+        const res = await getAllTinTuc();
+        this.tinTucs = res.data;
+        this.totalPages = Math.ceil(this.tinTucs.length / this.pageSize) || 1;
+        this.apiError = false;
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách tin tức:', error);
+        this.apiError = true;
+        this.apiErrorMessage = 'Không thể tải dữ liệu tin tức. Vui lòng thử lại sau.';
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    formatDate(date) {
+      if (!date) return 'N/A';
+      date = new Date(date);
+      return date.toLocaleDateString('vi-VN');
+    },
+
+    // Xử lý tìm kiếm
+    handleSearch() {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.currentPage = 0;
+      }, 300);
+    },
+
+    // Xử lý thay đổi trạng thái
+    handleStatusChange(status) {
+      this.selectedStatus = status;
+      this.currentPage = 0;
+    },
+
+    // Thay đổi trang
+    changePage(page) {
+      if (page >= 0 && page < this.totalPages) {
+        this.currentPage = page;
+      }
+    },
+
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+
+    // Định dạng văn bản
+    formatText(command) {
+      document.execCommand(command, false, null);
+      this.updateContentValue();
+    },
+
+    // Chèn đoạn văn bản
+    insertParagraph() {
+      document.execCommand('insertParagraph', false, null);
+      this.updateContentValue();
+    },
+
+    // Chèn ảnh từ máy tính
+    insertImage() {
+      this.$refs.imageInput.click();
+    },
+
+    // Xử lý khi ảnh được chọn
+    async handleImageSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        this.uploadingImage = true;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          alert('Vui lòng chỉ chọn file hình ảnh');
+          this.uploadingImage = false;
+          return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Kích thước ảnh không được vượt quá 5MB');
+          this.uploadingImage = false;
+          return;
+        }
+
+        // Tạo ID duy nhất cho file
+        const fileId = Date.now().toString();
+        const imageId = `image-${fileId}`;
+
+        // Tạo preview của ảnh
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          // Chèn ảnh vào editor với style full-width
+          const imageHtml = `
+            <div class="article-image" contenteditable="false" id="${imageId}">
+              <figure>
+                <img src="${e.target.result}" alt="Ảnh tin tức" style="max-width: 100%; width: 100%;" />
+                <figcaption contenteditable="true" class="image-caption">Nhấn vào đây để thêm mô tả ảnh</figcaption>
+              </figure>
+              <button type="button" class="btn btn-sm btn-danger image-delete-btn" data-image-id="${imageId}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          `;
+
+          document.execCommand('insertHTML', false, imageHtml);
+          this.updateContentValue();
+          console.log('Đã thêm ảnh vào editor với ID:', imageId);
+
+          // Add event listener for the delete button
+          this.$nextTick(() => {
+            const deleteBtn = this.$refs.contentEditor.querySelector(`button[data-image-id="${imageId}"]`);
+            if (deleteBtn) {
+              deleteBtn.addEventListener('click', () => this.deleteImage(imageId));
+            }
+          });
+        };
+        reader.readAsDataURL(file);
+
+        // Lưu ảnh vào danh sách ảnh cần upload với ID
+        this.imageUploads.push({
+          id: fileId,
+          file: file,
+          name: file.name,
+          size: file.size
+        });
+        console.log('Đã thêm ảnh vào danh sách uploads:', this.imageUploads.length, 'ảnh');
+
+        this.form.noiDung = this.$refs.contentEditor.innerHTML;
+      } catch (error) {
+        console.error('Lỗi khi xử lý ảnh:', error);
+        alert('Có lỗi khi xử lý ảnh. Vui lòng thử lại.');
+      } finally {
+        this.uploadingImage = false;
+        // Reset input file để có thể chọn cùng một file nhiều lần
+        if (this.$refs.imageInput) {
+          this.$refs.imageInput.value = '';
+        }
+      }
+    },
+
+    // Xóa định dạng
+    clearFormatting() {
+      document.execCommand('removeFormat', false, null);
+      this.updateContentValue();
+    },
+
+    // Xử lý khi paste nội dung
+    handlePaste(event) {
+      event.preventDefault();
+
+      // Lấy văn bản thuần túy
+      const text = event.clipboardData.getData('text/plain');
+
+      // Chèn văn bản không định dạng
+      document.execCommand('insertText', false, text);
+      this.updateContentValue();
+    },
+
+    // Xử lý khi nội dung thay đổi
+    handleContentChange() {
+      this.updateContentValue();
+    },
+
+    // Hiện/ẩn xem trước
+    togglePreview() {
+      this.showPreview = !this.showPreview;
+    },
+
+    // Cập nhật editor khi mở modal chỉnh sửa
+    updateEditor() {
+      if (this.$refs.contentEditor) {
+        // Hiển thị nội dung HTML trong editor
+        this.$refs.contentEditor.innerHTML = this.form.noiDung || '';
+
+        // Nếu đang chỉnh sửa tin tức, tải ảnh và xử lý
+        if (this.isEditing && this.form.id) {
+          this.processContentImagesForEditor();
+        }
+      }
+    },
+
+    async processContentImagesForEditor() {
+      try {
+        // Tải danh sách ảnh của tin tức
+        const response = await getAnhTinTucByTinTucId(this.form.id);
+        const images = response.data || [];
+
+        // Dùng để theo dõi ảnh đã được tải
+        this.existingImages = images;
+
+        // Cập nhật nội dung trong editor để hiển thị các ảnh đã tải
+        if (this.$refs.contentEditor && images.length > 0) {
+          // Logic xử lý ảnh đã tải vào editor có thể thêm ở đây nếu cần
+          console.log('Đã tải', images.length, 'ảnh cho tin tức.');
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải ảnh cho editor:', error);
+      }
+    },
+
+    // Cập nhật mở modal thêm/sửa
     openAddModal() {
       this.isEditing = false;
+
+      // Lấy ID tài khoản hiện tại từ authStore
+      const authStore = useAuthStore();
+      const currentUserId = authStore.user ? authStore.user.id : null;
+
       this.form = {
         id: null,
         maTinTuc: '',
         tieuDe: '',
         noiDung: '',
         trangThai: true,
+        anhBia: '',
+        anhBiaFile: null,
+        taiKhoanId: currentUserId
       };
-      if (this.modal) this.modal.show();
+      this.coverImagePreview = null;
+      this.imageUploads = [];
+
+      // Hiển thị modal
+      this.showModal = true;
+
+      // Cập nhật editor sau khi modal hiển thị
+      this.$nextTick(() => {
+        if (this.$refs.contentEditor) {
+          this.$refs.contentEditor.innerHTML = '';
+        }
+      });
     },
 
+    // Mở modal chỉnh sửa
     openEditModal(item) {
       this.isEditing = true;
+
+      // Sao chép thông tin tin tức vào form
       this.form = {
-        ...item
+        id: item.id,
+        maTinTuc: item.maTinTuc,
+        tieuDe: item.tieuDe,
+        noiDung: item.noiDung,
+        trangThai: item.trangThai,
+        anhBia: item.anhBia,
+        anhBiaFile: null,
+        taiKhoanId: item.taiKhoanId || item.taiKhoan?.id
       };
-      if (this.modal) this.modal.show();
+
+      // Nếu có ảnh bìa, đặt preview
+      if (item.anhBia) {
+        this.coverImagePreview = item.anhBia;
+        console.log('Đã đặt ảnh bìa preview:', this.coverImagePreview);
+      } else {
+        this.coverImagePreview = null;
+      }
+
+      this.imageUploads = [];
+
+      // Hiển thị modal
+      this.showModal = true;
+
+      // Cập nhật editor với nội dung từ tin tức
+      this.$nextTick(() => {
+        if (this.$refs.contentEditor) {
+          this.$refs.contentEditor.innerHTML = this.form.noiDung || '';
+          this.updateContentValue();
+        }
+      });
+
+      // Đóng modal chi tiết nếu đang mở
+      if (this.showDetailModal) {
+        this.closeDetailModal();
+      }
     },
 
+    handleCoverImageChange(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file hình ảnh');
+        this.$refs.fileInput.value = '';
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước ảnh không được vượt quá 5MB');
+        this.$refs.fileInput.value = '';
+        return;
+      }
+
+      // Store file and create preview
+      this.form.anhBiaFile = file;
+      console.log('File ảnh bìa đã chọn:', file.name, file.type, file.size);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.coverImagePreview = e.target.result;
+        console.log('Đã tạo preview ảnh bìa');
+      };
+      reader.readAsDataURL(file);
+    },
+
+    clearCoverImage() {
+      console.log('Xóa ảnh bìa');
+      this.form.anhBia = '';
+      this.form.anhBiaFile = null;
+      this.coverImagePreview = null;
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = '';
+        console.log('Đã reset input file');
+      }
+    },
+
+    // Update the handleSubmit method to handle the embedded images from the content editor
     async handleSubmit() {
-      if (!this.form.maTinTuc || this.form.maTinTuc.trim() === '') {
-        alert('Mã tin tức không được để trống!');
+      if (!this.form.tieuDe || !this.form.noiDung) {
+        alert('Vui lòng nhập đầy đủ tiêu đề và nội dung!');
         return;
       }
-      if (!this.form.tieuDe || this.form.tieuDe.trim() === '') {
-        alert('Tiêu đề không được để trống!');
-        return;
-      }
-      if (!this.form.noiDung || this.form.noiDung.trim() === '') {
-        alert('Nội dung không được để trống!');
-        return;
-      }
+
+      this.isSubmitting = true;
 
       try {
-        let tinTucData = { ...this.form };
+        console.log('Bắt đầu xử lý form:', this.form);
 
-        if (this.isEditing) {
-          await updateTinTuc(this.form.id, tinTucData);
-          alert('Cập nhật thành công');
-        } else {
-          await addTinTuc(tinTucData);
-          alert('Thêm mới thành công');
+        // Tạo mã tin tức tự động nếu đang thêm mới
+        if (!this.isEditing) {
+          const randomCode = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+          this.form.maTinTuc = `TT${randomCode}`;
         }
-        this.modal.hide();
+
+        // Xử lý nội dung HTML và thay thế ảnh base64 bằng URL thật
+        let processedContent = this.form.noiDung;
+        // Trước tiên upload ảnh bìa nếu có
+        let mainFormData = null;
+        if (this.form.anhBiaFile) {
+          mainFormData = new FormData();
+          mainFormData.append('file', this.form.anhBiaFile);
+        }
+
+        // Chuẩn bị dữ liệu để gửi
+        const tinTucData = {
+          id: this.form.id,
+          maTinTuc: this.form.maTinTuc,
+          tieuDe: this.form.tieuDe,
+          noiDung: processedContent, // Sẽ cập nhật sau khi upload ảnh nội dung
+          trangThai: this.form.trangThai,
+          taiKhoan: { id: this.form.taiKhoanId }
+        };
+
+        // Nếu đang cập nhật và không có ảnh bìa mới, giữ lại ảnh bìa cũ
+        if (this.isEditing && !this.form.anhBiaFile && this.form.anhBia) {
+          tinTucData.anhBia = this.form.anhBia;
+        }
+
+        if (mainFormData) {
+          const jsonData = JSON.stringify(tinTucData);
+          mainFormData.append('tinTuc', jsonData);
+        }
+
+        // Lưu hoặc cập nhật dữ liệu
+        let response;
+        if (this.isEditing) {
+          console.log(`Cập nhật tin tức ID ${this.form.id}`);
+          // Gửi form data nếu có ảnh mới, nếu không thì gửi JSON
+          if (mainFormData) {
+            console.log('Cập nhật với ảnh bìa mới');
+            response = await updateTinTuc(this.form.id, mainFormData);
+          } else {
+            console.log('Cập nhật không có ảnh bìa mới, giữ lại ảnh cũ:', tinTucData.anhBia);
+            response = await updateTinTuc(this.form.id, tinTucData);
+          }
+          console.log('Kết quả cập nhật:', response);
+
+          // Đóng modal sau khi cập nhật thành công
+          this.showModal = false;
+          alert('Cập nhật thành công');
+
+          // Sau khi lưu tin tức, thêm các ảnh chi tiết (nếu có)
+          if (response && response.data && this.imageUploads.length > 0) {
+            const tinTucId = response.data.id;
+            await this.uploadContentImages(tinTucId);
+          }
+        } else {
+          console.log('Thêm mới tin tức');
+          if (mainFormData) {
+            response = await addTinTuc(mainFormData);
+          } else {
+            response = await addTinTuc(tinTucData);
+          }
+          console.log('Kết quả thêm mới:', response);
+
+          // Đóng modal sau khi thêm mới thành công
+          this.showModal = false;
+          alert('Thêm mới thành công');
+
+          // Sau khi lưu tin tức, thêm các ảnh chi tiết (nếu có)
+          if (response && response.data && this.imageUploads.length > 0) {
+            const tinTucId = response.data.id;
+            await this.uploadContentImages(tinTucId);
+          }
+        }
+
+        // Làm mới dữ liệu
         this.loadTinTuc();
       } catch (error) {
         console.error('Lỗi khi lưu tin tức:', error);
-        alert('Lỗi khi lưu tin tức');
+        console.error('Chi tiết lỗi:', error.response?.data);
+        alert('Lỗi khi lưu tin tức: ' + (error.response?.data?.message || error.message || 'Không xác định'));
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+
+    // Phương thức mới để xử lý việc upload ảnh từ nội dung
+    async uploadContentImages(tinTucId) {
+      try {
+        console.log('Bắt đầu upload ảnh nội dung cho tin tức ID:', tinTucId);
+        console.log('Số lượng ảnh cần upload:', this.imageUploads.length);
+
+        // Upload từng ảnh và lấy URL
+        const uploadPromises = [];
+        const imageMap = {}; // Map để theo dõi ID ảnh và URL của chúng
+
+        // Kiểm tra kết nối trước khi upload
+        try {
+          await api.get('/api/anh-tintuc/by-tintuc/' + tinTucId);
+          console.log('Kết nối tới API thành công');
+        } catch (error) {
+          console.error('Lỗi kết nối tới API:', error);
+        }
+
+        for (const imageUpload of this.imageUploads) {
+          if (imageUpload.file instanceof File) {
+            console.log('Đang xử lý file:', imageUpload.file.name);
+            const formData = new FormData();
+            formData.append('file', imageUpload.file);
+            formData.append('tinTucId', tinTucId);
+            formData.append('isAnhBia', 'false');
+
+            // Tạo promise và theo dõi ID ảnh
+            const uploadPromise = addAnhTinTucWithImage(formData)
+              .then(response => {
+                if (response && response.data) {
+                  // Lưu ID và URL ảnh
+                  const responseData = response.data.data || response.data;
+                  imageMap[imageUpload.id] = responseData.duongDanAnh;
+                  console.log('Đã upload ảnh:', responseData);
+                  return responseData;
+                }
+                return response;
+              })
+              .catch(error => {
+                console.error('Lỗi khi upload ảnh:', error);
+                throw error;
+              });
+
+            uploadPromises.push(uploadPromise);
+          } else {
+            console.log('Bỏ qua ảnh không hợp lệ:', imageUpload);
+          }
+        }
+
+        // Đợi tất cả các ảnh được upload
+        if (uploadPromises.length > 0) {
+          console.log('Chờ tất cả ảnh được upload...');
+          const results = await Promise.allSettled(uploadPromises);
+
+          console.log('Kết quả upload:', results);
+
+          // Kiểm tra kết quả upload
+          const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
+          console.log(`Đã upload thành công ${successfulUploads}/${uploadPromises.length} ảnh`);
+
+          // Sau khi tất cả ảnh đã được upload, cập nhật nội dung tin tức với các URL ảnh thực tế
+          console.log('Tất cả ảnh đã được upload, cập nhật nội dung tin tức');
+          await this.updateNewsContentWithActualImageUrls(tinTucId, imageMap);
+        }
+
+        console.log('Đã upload tất cả ảnh nội dung cho tin tức ID:', tinTucId);
+      } catch (error) {
+        console.error('Lỗi khi upload ảnh nội dung:', error);
+      }
+    },
+
+    // Phương thức mới để cập nhật nội dung tin tức với URL ảnh thực tế
+    async updateNewsContentWithActualImageUrls(tinTucId, imageMap) {
+      try {
+        console.log('Bắt đầu cập nhật URL ảnh trong nội dung tin tức');
+        console.log('Image map:', imageMap);
+
+        // Lấy chi tiết tin tức hiện tại
+        const newsResponse = await getTinTucById(tinTucId);
+        if (!newsResponse || !newsResponse.data) {
+          console.error('Không thể lấy thông tin tin tức để cập nhật URL ảnh');
+          return;
+        }
+
+        const news = newsResponse.data;
+        let updatedContent = news.noiDung;
+        let replacedCount = 0;
+
+        // Thay thế các base64 URLs bằng URL thực tế
+        for (const [imageId, imageUrl] of Object.entries(imageMap)) {
+          console.log(`Đang xử lý ảnh ${imageId} với URL: ${imageUrl.substring(0, 50)}...`);
+
+          // Tìm phần tử ảnh theo ID
+          const imageIdPattern = new RegExp(`id="image-${imageId}"[^>]*>[\\s\\S]*?<img[^>]*src="([^"]+)"`, 'g');
+          const matches = [...updatedContent.matchAll(imageIdPattern)];
+          console.log(`Tìm thấy ${matches.length} kết quả cho imageId=${imageId}`);
+
+          if (matches.length > 0) {
+            for (const match of matches) {
+              const fullMatch = match[0];
+              const base64Url = match[1];
+
+              // Chỉ thay thế nếu URL là base64
+              if (base64Url.startsWith('data:image')) {
+                console.log('Tìm thấy ảnh base64, thực hiện thay thế URL');
+                const updatedImageHtml = fullMatch.replace(base64Url, imageUrl);
+                updatedContent = updatedContent.replace(fullMatch, updatedImageHtml);
+                replacedCount++;
+                console.log('Đã thay thế URL base64 bằng URL thực tế');
+              } else {
+                console.log('Bỏ qua ảnh không phải base64:', base64Url.substring(0, 30));
+              }
+            }
+          } else {
+            console.log('Không tìm thấy ảnh phù hợp với ID:', imageId);
+          }
+        }
+
+        console.log(`Đã thay thế ${replacedCount} URL ảnh trong nội dung`);
+
+        // Cập nhật lại nội dung tin tức với URLs ảnh thực tế
+        if (replacedCount > 0) {
+          const updateData = {
+            ...news,
+            noiDung: updatedContent
+          };
+
+          console.log('Gửi yêu cầu cập nhật nội dung tin tức');
+          await updateTinTuc(tinTucId, updateData);
+          console.log('Đã cập nhật nội dung tin tức với URL ảnh thực tế');
+        } else {
+          console.log('Không có URL ảnh nào được thay thế, bỏ qua cập nhật');
+        }
+      } catch (error) {
+        console.error('Lỗi khi cập nhật URL ảnh trong nội dung tin tức:', error);
       }
     },
 
@@ -290,7 +1068,7 @@ export default {
           this.loadTinTuc();
         } catch (error) {
           console.error('Lỗi khi xóa tin tức:', error);
-          alert('Lỗi khi xóa tin tức');
+          alert('Lỗi khi xóa tin tức: ' + error.message);
         }
       }
     },
@@ -299,334 +1077,1393 @@ export default {
       try {
         const item = this.tinTucs.find(t => t.id === id);
         if (item) {
-          const updated = { ...item, trangThai: true };
-          await updateTinTuc(id, updated);
-          alert('Đã khôi phục tin tức');
+          // Tạo đối tượng cập nhật với trạng thái mới là true
+          const baseData = {
+            id: item.id,
+            maTinTuc: item.maTinTuc,
+            tieuDe: item.tieuDe,
+            noiDung: item.noiDung,
+            trangThai: true,
+            anhBia: item.anhBia,
+            taiKhoanId: item.taiKhoanId
+          };
+
+          // Chuẩn bị dữ liệu với hàm helper
+          const updatedData = prepareTinTucData(baseData);
+
+          console.log('Dữ liệu khôi phục:', updatedData);
+          const response = await updateTinTuc(id, updatedData);
+          console.log('Kết quả khôi phục:', response);
+          alert('Đã khôi phục tin tức thành công');
           this.loadTinTuc();
         }
       } catch (error) {
         console.error('Lỗi khi khôi phục tin tức:', error);
-        alert('Lỗi khi khôi phục tin tức');
+        console.error('Chi tiết lỗi:', error.response?.data);
+        alert('Lỗi khi khôi phục tin tức: ' + (error.response?.data?.message || error.message || 'Không xác định'));
       }
     },
 
+    // Hiển thị chi tiết tin tức
     showDetail(item) {
-      this.detailItem = item;
-      if (this.detailModal) this.detailModal.show();
+      this.detailItem = { ...item };
+      this.showDetailModal = true;
+      this.showImageGallery = false; // Reset trạng thái gallery ảnh
+      this.extractedImages = []; // Xóa các ảnh đã trích xuất trước đó
     },
 
-    async changePage(newPage) {
-      if (newPage >= 0 && newPage < this.totalPages) {
-        this.page = newPage;
-        await this.loadTinTuc();
+    // Đóng modal chi tiết
+    closeDetailModal() {
+      this.showDetailModal = false;
+      this.detailItem = null;
+      this.showImageGallery = false;
+      this.extractedImages = [];
+    },
+
+    // Đóng modal chính
+    closeModal() {
+      this.showModal = false;
+      this.isEditing = false;
+      this.form = {
+        id: null,
+        maTinTuc: '',
+        tieuDe: '',
+        noiDung: '',
+        trangThai: true,
+        anhBia: '',
+        anhBiaFile: null,
+        taiKhoanId: null
+      };
+      this.coverImagePreview = null;
+      this.imageUploads = [];
+    },
+
+    // Các phương thức quản lý ảnh đã được xóa
+
+    // Bật/tắt hiển thị gallery ảnh và trích xuất ảnh từ nội dung
+    toggleImageGallery() {
+      this.showImageGallery = !this.showImageGallery;
+
+      if (this.showImageGallery && this.detailItem) {
+        // Trích xuất ảnh từ nội dung HTML khi mở gallery
+        this.extractImagesFromContent(this.detailItem.noiDung);
       }
     },
 
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN');
+    // Trích xuất các URL ảnh từ nội dung HTML
+    extractImagesFromContent(htmlContent) {
+      if (!htmlContent) {
+        this.extractedImages = [];
+        return;
+      }
+
+      // Tạo một phần tử div tạm thời để parse HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+
+      // Tìm tất cả các thẻ img trong nội dung
+      const imgElements = tempDiv.querySelectorAll('img');
+      const imageUrls = [];
+
+      // Lấy src từ mỗi thẻ img
+      imgElements.forEach(img => {
+        const src = img.getAttribute('src');
+        if (src && src.trim() !== '') {
+          imageUrls.push(src);
+        }
+      });
+
+      this.extractedImages = imageUrls;
+      console.log('Đã trích xuất', imageUrls.length, 'ảnh từ nội dung');
     },
-  },
-  created() {
-    // Debounce tìm kiếm 300ms
-    let timeout = null;
-    this.debouncedSearch = () => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        this.page = 0;
-        this.loadTinTuc();
-      }, 300);
-    };
+
+    // Phương thức mới để xóa ảnh từ nội dung
+    deleteImage(imageId) {
+      const imageElement = document.getElementById(imageId);
+      if (imageElement) {
+        imageElement.remove();
+        this.updateContentValue();
+      }
+    },
+
+    // Add this new method for toggling fullscreen
+    toggleFullscreen() {
+      this.isFullscreen = !this.isFullscreen;
+      if (this.isFullscreen) {
+        document.body.classList.add('editor-fullscreen-active');
+      } else {
+        document.body.classList.remove('editor-fullscreen-active');
+      }
+      // Focus the editor after toggling
+      this.$nextTick(() => {
+        if (this.$refs.contentEditor) {
+          this.$refs.contentEditor.focus();
+        }
+      });
+    },
   }
 }
 </script>
 
 <style scoped>
-/* Breadcrumb */
-.breadcrumb-custom {
-  padding: 0;
-  margin-bottom: 1.5rem;
+.homestay-container {
+  background-color: #f8f9fa;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.06);
 }
 
-.breadcrumb-custom .breadcrumb {
-  background-color: transparent;
-  padding: 0;
-  font-size: 1.1rem;
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #343a40;
+  background: linear-gradient(90deg, #0d6efd 40%, #20c997 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
-.breadcrumb-custom .breadcrumb-item a {
-  color: #0d6efd;
-  text-decoration: none;
-}
-
-.breadcrumb-custom .breadcrumb-item.active {
-  color: #495057;
-  font-weight: 500;
-}
-
-.breadcrumb-custom .breadcrumb-item+.breadcrumb-item::before {
-  content: "/";
-  padding: 0 0.75rem;
-  color: #6c757d;
-}
-
-/* Layout */
-.transition-col {
-  transition: all 0.4s ease-in-out;
-}
-
-.image-management-section {
-  height: 100%;
-}
-
-.table th,
-.table td {
-  vertical-align: middle;
-}
-
-.modal.show {
-  z-index: 1055;
-}
-
-/* Section styling */
-.news-management-section {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  padding: 24px;
-}
-
-.section-title {
-  color: #1f2937;
-  font-weight: 600;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.toolbar-section {
-  margin-bottom: 20px;
-}
-
-.table-container {
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Custom search bar styles */
-.search-input-custom {
-  border-radius: 20px;
-  border: 1.5px solid #3b82f6;
-  background: #fff;
-  box-shadow: none;
-  transition: border-color 0.2s;
-  width: 100%;
-  min-width: 200px;
-  max-width: 100%;
-}
-
-.search-input-custom:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px #dbeafe;
-}
-
-.search-select-custom {
-  border-radius: 20px;
-  border: 1.5px solid #3b82f6;
-  background: #fff;
-  box-shadow: none;
-  transition: border-color 0.2s;
-  width: 180px;
-}
-
-.add-btn-custom {
-  border-radius: 20px;
-  background: #2563eb;
-  border: none;
-  font-weight: 500;
-  padding: 8px 24px;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
-  transition: background 0.2s;
-}
-
-.add-btn-custom:hover {
-  background: #1d4ed8;
-}
-
-.pagination-wrapper {
+.controls-container {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  align-items: center;
 }
 
-.pagination {
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  padding: 4px 16px;
+.search-box {
+  max-width: 500px;
+
+
 }
 
-.pagination.pagination-sm .page-link {
-  border-radius: 50% !important;
-  margin: 0 2px;
-  width: 32px;
-  height: 32px;
+.search-control-group {
   display: flex;
   align-items: center;
-  justify-content: center;
 }
 
-.pagination .page-item.active .page-link {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-}
-
-.pagination .page-link:focus {
-  box-shadow: 0 0 0 2px #dbeafe;
-}
-
-.icon-btn {
-  border: none;
-  background: #f3f4f6;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  transition: background 0.2s, color 0.2s;
-  margin-right: 2px;
-}
-
-.icon-btn-info {
-  color: #2563eb;
-}
-
-.icon-btn-info:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.icon-btn-primary {
-  color: #7c3aed;
-}
-
-.icon-btn-primary:hover {
-  background: #ede9fe;
-  color: #5b21b6;
-}
-
-.icon-btn-warning {
-  color: #f59e42;
-}
-
-.icon-btn-warning:hover {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.icon-btn-danger {
-  color: #ef4444;
-}
-
-.icon-btn-danger:hover {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.icon-btn-success {
-  color: #22c55e;
-}
-
-.icon-btn-success:hover {
-  background: #bbf7d0;
-  color: #15803d;
-}
-
-.selected-row {
-  background-color: #e0f2fe !important;
-  border-left: 4px solid #0ea5e9;
-}
-
-.selected-row td {
-  background-color: transparent !important;
-}
-
-.selected-news-info {
-  background: #f0f9ff;
-  border-radius: 8px;
-  padding: 12px;
-  border-left: 4px solid #3b82f6;
-}
-
-.image-grid-container {
-  max-height: 600px;
-  overflow-y: auto;
-  padding: 5px;
-}
-
-.image-card {
+.search-input-wrapper {
   position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #060606;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 35px;
+  border-radius: 30px;
+  border: 1px solid #5c5d5e;
+
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6c757d;
   cursor: pointer;
 }
 
-.image-card .card-img-top {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+.right-controls {
+  display: flex;
+  gap: 10px;
 }
 
-.image-card:hover .card-img-top {
-  transform: scale(1.05);
+.status-filter {
+  width: auto;
+  min-width: 150px;
+  border-radius: 30px;
+  border: 1px solid #555759;
 }
 
-.image-card .image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+.add-button {
+  padding: 8px 16px;
+}
+
+.table-responsive {
+  margin-bottom: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.content-truncate {
+  max-width: 300px;
+  max-height: 10em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  margin: 0 auto;
+}
+
+.action-buttons {
   display: flex;
   justify-content: center;
+  gap: 5px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
   align-items: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  justify-content: center;
+  border-radius: 4px;
 }
 
-.image-card:hover .image-overlay {
-  opacity: 1;
+.btn-info-light {
+  background-color: rgba(232, 236, 238, 0.1);
+  color: #020809;
+  border: none;
 }
 
-.empty-image-state {
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 2rem;
+.btn-primary-light {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+  border: none;
 }
 
-.image-thumbnail {
-  width: 70px;
-  height: 50px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
+.btn-warning-light {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: none;
 }
 
-.content-detail {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  max-height: 400px;
-  overflow-y: auto;
+.btn-danger-light {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: none;
+}
+
+.btn-success-light {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+  border: none;
+}
+
+.btn-icon:hover {
+  opacity: 0.8;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  background-color: white;
+  border-radius: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #6c757d;
+  margin-bottom: 15px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination-info {
+  color: #6c757d;
+}
+
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
 }
 
 .empty-row {
   height: 53px;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 20px;
+}
+
+.modal-editor {
+  background-color: white;
+  width: 95%;
+  max-width: 1200px;
+  height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+}
+
+/* Editor Styles */
+.content-editor-wrapper {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+
+.content-editor-toolbar {
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-bottom: 1px solid #ced4da;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.content-editor-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.content-editor {
+  height: 100%;
+  padding: 15px;
+  outline: none;
+}
+
+.toolbar-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #dee2e6;
+  background-color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.toolbar-button:hover {
+  background-color: #e9ecef;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #dee2e6;
+  margin: 0 5px;
+}
+
+/* Make sure images display properly */
+.content-editor img,
+.article-image img {
+  max-width: 100%;
+  height: auto;
+}
+
+.article-image {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.image-caption {
+  padding: 8px;
+  background-color: #f8f9fa;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: #495057;
+  text-align: center;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Fullscreen mode */
+.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background-color: white;
+}
+
+.fullscreen-mode .content-editor {
+  height: calc(100vh - 120px);
+}
+
+.news-id {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 200px;
+  border: 2px dashed #ced4da;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  margin-bottom: 15px;
+}
+
+.avatar-preview:hover {
+  border-color: #0d6efd;
+}
+
+.uploaded-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #6c757d;
+}
+
+.avatar-placeholder i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.news-avatar-display {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.no-cover-image {
+  height: 200px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  transition: background-color 0.2s;
+}
+
+.no-cover-image:hover {
+  background-color: #f8f9fa;
+}
+
+.no-cover-image i {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.thumbnail-image {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.thumbnail-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.image-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+}
+
+.no-image-placeholder {
+  width: 60px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  color: #6c757d;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.no-image-placeholder:hover {
+  background-color: #e9ecef;
+}
+
+.no-image-placeholder i {
+  font-size: 1.2rem;
+}
+
+/* New styles for detail modal gallery */
+.detail-image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.detail-image-item {
+  flex: 1 1 calc(25% - 10px);
+  /* 4 images per row */
+  max-width: calc(25% - 10px);
+  box-sizing: border-box;
+}
+
+.detail-gallery-img {
+  width: 100%;
+  height: 100px;
+  /* Fixed height for gallery images */
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.detail-gallery-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.no-image-placeholder.large {
+  height: 200px;
+  /* Larger placeholder for cover image */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  transition: background-color 0.2s;
+}
+
+.no-image-placeholder.large:hover {
+  background-color: #f8f9fa;
+}
+
+.no-image-placeholder.large i {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+/* New styles for detail modal gallery */
+.image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.gallery-image-item {
+  flex: 1 1 calc(25% - 10px);
+  /* 4 images per row */
+  max-width: calc(25% - 10px);
+  box-sizing: border-box;
+  position: relative;
+}
+
+.gallery-img {
+  width: 100%;
+  height: 100px;
+  /* Fixed height for gallery images */
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gallery-img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.gallery-image-item:hover .image-overlay {
+  opacity: 1;
+}
+
+.image-overlay i {
+  color: white;
+  font-size: 1.5rem;
+}
+
+.cover-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 2;
+}
+
+.cover-image-container {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  position: relative;
+  /* Added for overlay positioning */
+}
+
+.cover-image {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.no-images {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.no-images i {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.image-overlay-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+  color: white;
+  font-size: 1rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.cover-image-container:hover .image-overlay-cover {
+  opacity: 1;
+}
+
+.image-overlay-cover i {
+  font-size: 2rem;
+  margin-bottom: 5px;
+}
+
+.image-overlay-cover span {
+  font-size: 0.9rem;
+}
+
+/* Homestay-like styling */
+.homestay-avatar-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+.avatar-preview {
+  width: 150px;
+  height: 150px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dee2e6;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.avatar-preview:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-preview.view-mode {
+  cursor: default;
+}
+
+.uploaded-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #6c757d;
+}
+
+.avatar-placeholder i {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.homestay-id {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+.status-badge {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  font-weight: 500;
+  margin-bottom: 5px;
+  display: block;
+}
+
+/* Styles for the tabs */
+.nav-tabs .nav-link {
+  color: #495057;
+  border: 1px solid transparent;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+  color: #0d6efd;
+  background-color: #fff;
+  border-color: #dee2e6 #dee2e6 #fff;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: #e9ecef #e9ecef #dee2e6;
+}
+
+/* Modal footer buttons */
+.modal-footer .btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.btn-icon i {
+  margin-right: 5px;
+}
+
+.xem-anh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+  color: white;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 180px;
+  margin: 0 auto;
+}
+
+.xem-anh-btn:hover {
+  background-color: #138496;
+  border-color: #117a8b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.xem-anh-btn i {
+  font-size: 1rem;
+}
+
+/* Rich Content Editor */
+.content-editor-wrapper {
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.content-editor-toolbar {
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-bottom: 1px solid #ced4da;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.toolbar-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #dee2e6;
+  background-color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toolbar-button:hover {
+  background-color: #e9ecef;
+}
+
+.toolbar-button:active {
+  background-color: #dee2e6;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #ced4da;
+  margin: 0 8px;
+}
+
+.content-editor {
+  min-height: 400px;
+  padding: 15px;
+  background-color: white;
+  border: none;
+  outline: none;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.content-preview {
+  border-top: 1px solid #ced4da;
+}
+
+.preview-header {
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.preview-content {
+  padding: 15px;
+  background-color: white;
+  min-height: 150px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.article-image {
+  position: relative;
+  margin: 15px 0;
+  text-align: center;
+  width: 100%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.article-image img {
+  max-width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Add full-width image style for the editor */
+.content-editor img {
+  max-width: 100%;
+  height: auto;
+  margin: 10px auto;
+  display: block;
+}
+
+.image-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  opacity: 0.8;
+  z-index: 10;
+}
+
+.image-delete-btn:hover {
+  opacity: 1;
+}
+
+.image-caption {
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  font-size: 0.9rem;
+  color: #495057;
+  font-style: italic;
+}
+
+/* Styles cho hiển thị nội dung HTML trong modal chi tiết */
+.content-preview-box {
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  background-color: #fff;
+  min-height: 200px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.content-preview-html {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.content-preview-html img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  display: block;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Hide delete buttons in preview only */
+.content-preview-html button.image-delete-btn,
+.content-preview-box button.image-delete-btn,
+.content-preview-html .btn-danger,
+.content-preview-box .btn-danger {
+  display: none !important;
+}
+
+.content-preview-html p {
+  margin-bottom: 1rem;
+}
+
+.content-preview-html h1,
+.content-preview-html h2,
+.content-preview-html h3,
+.content-preview-html h4,
+.content-preview-html h5,
+.content-preview-html h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+/* Styles cho gallery ảnh */
+.image-gallery-modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  animation: modal-slide-in 0.3s ease-out;
+  overflow: hidden;
+}
+
+.gallery-header {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+  background-color: #f8f9fa;
+}
+
+.gallery-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.gallery-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.gallery-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.gallery-close-btn:hover {
+  background-color: #0b5ed7;
+}
+
+.gallery-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 100px);
+}
+
+.gallery-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 1rem;
+  padding-left: 0.5rem;
+  border-left: 3px solid #0d6efd;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.gallery-item {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 220px;
+  position: relative;
+}
+
+.gallery-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.cover-item {
+  position: relative;
+}
+
+.cover-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #0d6efd;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-image {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Prevent body scrolling when gallery is open */
+body.gallery-open {
+  overflow: hidden;
+}
+
+.no-images {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Đảm bảo modal chi tiết đủ rộng */
+.homestay-details-modal {
+  max-width: 1000px;
+}
+
+/* Hide delete buttons only in preview, not in editor */
+.content-preview-box button.btn-danger,
+.content-preview-html button.btn-danger,
+.content-preview-box .fa-trash,
+.content-preview-html .fa-trash {
+  display: none !important;
+}
+
+.article-image figure {
+  margin: 0;
+  width: 100%;
+  position: relative;
+}
+
+.article-image figcaption {
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  color: #495057;
+  font-style: italic;
+  font-size: 0.9rem;
+  text-align: center;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.image-caption {
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  font-size: 0.9rem;
+  color: #495057;
+  font-style: italic;
+  text-align: center;
+  border-top: 1px solid #eee;
+}
+
+/* Make content editor more spacious */
+.content-editor-wrapper {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Override the default image styles to make them larger */
+.content-preview-html .article-image img,
+.content-editor .article-image img {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+/* Fullscreen mode styles */
+.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background-color: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullscreen-mode .content-editor-toolbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-bottom: 1px solid #ced4da;
+  z-index: 100;
+}
+
+.toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.fullscreen-button {
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #ced4da;
+  transition: all 0.2s;
+}
+
+.fullscreen-button:hover {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+.fullscreen-mode .content-editor {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  min-height: 0;
+  /* Important for flex child */
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.fullscreen-mode .content-preview {
+  max-height: 40vh;
+  overflow-y: auto;
+  border-top: 1px solid #ced4da;
+}
+
+/* Prevent body scrolling when editor is in fullscreen mode */
+:global(body.editor-fullscreen-active) {
+  overflow: hidden;
+}
+
+/* Improve toolbar button styles */
+.toolbar-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #ced4da;
+  background-color: white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toolbar-button:hover {
+  background-color: #e9ecef;
+  transform: translateY(-1px);
+}
+
+.toolbar-button:active {
+  background-color: #dee2e6;
 }
 </style>

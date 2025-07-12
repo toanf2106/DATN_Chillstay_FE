@@ -115,11 +115,17 @@
                 <span v-if="home.dienTich"><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span>
                 <span v-if="home.sucChua"><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span>
               </div>
+
               <div class="homestay-owner" v-if="home.hotenChuHomestay">
                 <i class="fas fa-user"></i> Chủ homestay: {{ home.hotenChuHomestay }}
               </div>
               <div class="homestay-price" v-if="home.giaCaHomestay">
                 <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
+
+              <div class="homestay-price">
+                <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
+                }}₫</span>
+
                 <span class="price-unit">/đêm</span>
               </div>
               <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>

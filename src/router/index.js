@@ -7,8 +7,9 @@ import DatHomestay from '../views/Admin/DatHome.vue'
 import ForgotPasswordForm from '../components/Password.vue'
 import EmailConfirmView from '../views/EmailConfirmView.vue'
 
-import BookingView from '../views/BookingView.vue'
+import DetailHome from '../views/DetailHome.vue'
 import AllHomestaysView from '../views/AllHomestaysView.vue'
+import BookingView from '../views/BookingView.vue'
 
 import { useAuthStore } from '../stores/authStore'
 
@@ -17,9 +18,9 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/about', name: 'about', component: about },
-    { path: '/booking', name: 'booking', component: BookingView },
+    { path: '/booking/:id', name: 'booking', component: BookingView },
     { path: '/all-homestays', name: 'allHomestays', component: AllHomestaysView },
-    { path: '/homestay/:id', name: 'homestayDetail', component: BookingView },
+    { path: '/homestay/:id', name: 'homestayDetail', component: DetailHome },
 
     // Route cho quên mật khẩu và đặt lại mật khẩu
     { path: '/quen-mat-khau', name: 'forgot-password', component: ForgotPasswordForm },

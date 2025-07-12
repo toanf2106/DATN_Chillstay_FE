@@ -77,25 +77,42 @@
           <div class="homestay-card" v-for="home in paginatedHomestays" :key="home.id">
             <div class="homestay-image">
               <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
-              <span class="rating-badge">★ {{ home.danhGiaTrungBinh || '4.7' }} ({{ home.soDanhGia || '95' }} đánh
-                giá)</span>
-              <span class="homestay-status">Hoạt động</span>
+              <img v-else
+                :src="'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80'"
+                :alt="home.tenHomestay" />
+              <div class="rating-badge" v-if="home.danhGiaTrungBinh !== undefined">
+                <span>★ {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }} đánh giá)</span>
+              </div>
+              <span class="homestay-status" v-if="home.trangThai">
+                {{ home.trangThai === true ? 'Hoạt động' : home.trangThai }}
+              </span>
             </div>
             <div class="homestay-content">
-              <div class="location">
-                <i class="fas fa-map-marker-alt"></i> {{ home.diaChi || 'Bản Áng, Mộc Châu' }}
+              <div class="location" v-if="home.diaChi">
+                <i class="fas fa-map-marker-alt"></i> {{ home.diaChi }}
+              </div>
+              <div class="location" v-else>
+                <i class="fas fa-map-marker-alt"></i> Chưa cập nhật địa chỉ
               </div>
               <h3 class="homestay-title">{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
-                <span><i class="fas fa-home"></i> Homestay</span>
+                <span v-if="home.tenLoaiHomestay"><i class="fas fa-home"></i> {{ home.tenLoaiHomestay }}</span>
+                <span v-else-if="home.loaiHomeStay && home.loaiHomeStay.tenLoai"><i class="fas fa-home"></i> {{
+                  home.loaiHomeStay.tenLoai }}</span>
+                <span v-else><i class="fas fa-home"></i> Homestay</span>
                 <span><i class="fas fa-ruler-combined"></i> {{ home.dienTich || '200.75' }} m²</span>
-                <span><i class="fas fa-users"></i> 2-4 người/căn</span>
+                <span><i class="fas fa-users"></i> {{ home.sucChua || '2-4' }} người/căn</span>
+              </div>
+              <div class="homestay-owner" v-if="home.hotenChuHomestay">
+                <i class="fas fa-user"></i> Chủ homestay: {{ home.hotenChuHomestay }}
               </div>
 
-              <div class="homestay-price">
-                <span class="price-value">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') :
-                  '4.500.000' }}đ</span>
+              <div class="homestay-price" v-if="home.giaCaHomestay">
+                <span class="price-value">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}đ</span>
                 <span class="price-unit">/đêm</span>
+              </div>
+              <div class="homestay-price" v-else>
+                <span class="price-value">Giá chưa cập nhật</span>
               </div>
 
               <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
@@ -134,7 +151,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { getAllHomeStay, getLoaiHomeStay } from '@/Service/HomeStayService';
+import { getAllHomeStay, getLoaiHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
@@ -350,15 +367,37 @@ const fetchHomestayData = async () => {
       console.log('Dữ liệu homestay từ API:', res.data);
 
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-        homestays.value = res.data.map(room => ({
-          ...room,
-          capacity: room.capacity || 2, // Giả định capacity mặc định nếu không có
+        // In ra dữ liệu để kiểm tra
+        console.log('Dữ liệu homestay đầu tiên:', {
+          id: res.data[0].id,
+          ten: res.data[0].tenHomestay,
+          chu: res.data[0].hotenChuHomestay,
+          loai: res.data[0].tenLoaiHomestay || (res.data[0].loaiHomeStay ? res.data[0].loaiHomeStay.tenLoai : undefined),
+          allProps: Object.keys(res.data[0])
+        });
+
+        homestays.value = await Promise.all(res.data.map(async (homestay) => {
+          try {
+            // Tìm hình ảnh cho homestay
+            const anhResponse = await getAnhHomeStayByHomestayId(homestay.id);
+            if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
+              const mainImage = anhResponse.data.find(img => img.trangThai !== false);
+              if (mainImage) {
+                homestay.hinhAnh = mainImage.duongDanAnh;
+              }
+            }
+          } catch (imgError) {
+            console.error(`Lỗi khi lấy ảnh cho homestay ${homestay.id}:`, imgError);
+          }
+          return homestay;
         }));
 
         // Nếu không có dữ liệu loại homestay từ API riêng, trích xuất từ dữ liệu homestay
         if (homestayTypes.value.length === 0) {
           // Extract unique homestay types
-          homestayTypes.value = [...new Set(homestays.value.map(homestay => homestay.loaiHomeStay))].filter(type => type);
+          homestayTypes.value = [...new Set(homestays.value.map(homestay =>
+            homestay.tenLoaiHomestay || (homestay.loaiHomeStay ? homestay.loaiHomeStay.tenLoai : undefined)
+          ))].filter(type => type);
           console.log('Đã trích xuất loại homestay từ dữ liệu homestay:', homestayTypes.value);
         }
       } else {
@@ -661,6 +700,32 @@ watch(currentPage, (newPage) => {
   object-fit: cover;
 }
 
+.rating-badge {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 193, 7, 0.9);
+  color: #fff;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 2;
+}
+
+.homestay-status {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  padding: 6px 12px;
+  background: #28a745;
+  color: #fff;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 2;
+}
+
 .homestay-content {
   padding: 20px;
   display: flex;
@@ -698,6 +763,15 @@ watch(currentPage, (newPage) => {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.homestay-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: #666;
 }
 
 .homestay-price {

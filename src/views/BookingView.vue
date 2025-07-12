@@ -1,222 +1,239 @@
 <template>
-  <div class="booking-container">
-    <!-- Hiển thị trạng thái tải -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="spinner"></div>
-      <p>Đang tải thông tin homestay...</p>
+  <div class="booking-page">
+    <!-- Header với tiến trình đặt phòng -->
+    <div class="booking-header">
+      <div class="booking-progress">
+        <div class="progress-step completed">
+          <div class="step-number">1</div>
+          <div class="step-text">Bạn chọn</div>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step active">
+          <div class="step-number">2</div>
+          <div class="step-text">Chi tiết về bạn</div>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step">
+          <div class="step-number">3</div>
+          <div class="step-text">Hoàn tất đặt phòng</div>
+        </div>
+      </div>
     </div>
 
-    <!-- Hiển thị lỗi nếu có -->
-    <div v-else-if="hasError" class="error-container">
-      <i class="fas fa-exclamation-circle error-icon"></i>
-      <h3>Đã xảy ra lỗi</h3>
-      <p>{{ errorMessage }}</p>
-      <button class="btn primary-btn" @click="goBack">Quay lại</button>
-    </div>
-
-    <!-- Hiển thị thông tin chi tiết homestay -->
-    <div v-else-if="homestay" class="booking-content">
-      <!-- Breadcrumb -->
-      <div class="breadcrumb">
-        <router-link to="/">Trang chủ</router-link>
-        <span class="separator">/</span>
-        <router-link to="/all-homestays">Tất cả homestay</router-link>
-        <span class="separator">/</span>
-        <span class="current">{{ homestay.tenHomestay }}</span>
-      </div>
-
-      <!-- Thông tin cơ bản và hình ảnh -->
-      <div class="homestay-header">
-        <h1>{{ homestay.tenHomestay }}</h1>
-        <div class="homestay-meta">
-          <div class="location">
-            <i class="fas fa-map-marker-alt"></i>
-            <span>{{ homestay.diaChi }}</span>
-          </div>
-          <div class="rating">
-            <span class="stars">★★★★★</span>
-            <span>{{ homestay.danhGiaTrungBinh || '4.7' }} ({{ homestay.soDanhGia || 95 }} đánh giá)</span>
+    <div class="booking-container">
+      <!-- Thông tin homestay đã chọn -->
+      <div class="booking-summary">
+        <div class="homestay-preview">
+          <img :src="homestay.anhDaiDien || defaultImage" alt="Homestay" class="homestay-image" />
+          <div class="homestay-rating">
+            <span class="rating-value">{{ homestay.danhGiaTrungBinh || '7.8' }}</span>
+            <span class="rating-text">Tốt</span>
+            <span class="rating-count">{{ homestay.soDanhGia || '25' }} đánh giá</span>
           </div>
         </div>
-      </div>
-
-      <!-- Gallery hình ảnh -->
-      <div class="homestay-gallery">
-        <div class="main-image">
-          <img :src="homestay.hinhAnh || defaultImage" :alt="homestay.tenHomestay" />
-        </div>
-        <div class="thumbnail-images">
-          <img v-for="(image, index) in additionalImages" :key="index" :src="image"
-            :alt="`${homestay.tenHomestay} - Ảnh ${index + 1}`" @click="setMainImage(image)" />
-        </div>
-      </div>
-
-      <!-- Thông tin chi tiết và đặt phòng -->
-      <div class="booking-details">
         <div class="homestay-info">
-          <h2>Thông tin chi tiết</h2>
-
-          <div class="info-section">
-            <h3>Mô tả</h3>
-            <p>{{ homestay.moTa ||
-              "Homestay xinh đẹp tọa lạc tại trung tâm Mộc Châu với tầm nhìn núi non hùng vĩ, " +
-              "không gian yên bình và thiết kế hiện đại kết hợp với nét văn hóa địa phương. " +
-              "Đây là nơi lý tưởng để nghỉ dưỡng, thư giãn và khám phá vẻ đẹp thiên nhiên của Mộc Châu." }}</p>
+          <div class="homestay-type">Khách sạn căn hộ</div>
+          <h2 class="homestay-name">{{ homestay.tenHomestay || 'The Song Vung Tau Hao\'s Homestay' }}</h2>
+          <div class="homestay-address">
+            <i class="fas fa-map-marker-alt"></i>
+            {{ homestay.diaChi || '28 Thị Sách, Phường Thắng Tam, Thành phố Vũng Tàu, 78000 Vũng Tàu, Việt Nam' }}
           </div>
-
-          <div class="info-section">
-            <h3>Thông tin cơ bản</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <i class="fas fa-ruler"></i>
-                <span>Diện tích: {{ homestay.dienTich || '50' }} m²</span>
-              </div>
-              <div class="info-item">
-                <i class="fas fa-bed"></i>
-                <span>Loại: {{ homestay.loaiHomeStay || 'Homestay' }}</span>
-              </div>
-              <div class="info-item">
-                <i class="fas fa-user"></i>
-                <span>Chủ sở hữu: {{ homestay.chuSoHuu || 'ChillStay' }}</span>
-              </div>
-              <div class="info-item">
-                <i class="fas fa-users"></i>
-                <span>Sức chứa: {{ homestay.sucChua || '4' }} người</span>
-              </div>
+          <div class="homestay-features">
+            <div class="feature">
+              <i class="fas fa-wifi"></i> WiFi miễn phí
             </div>
-          </div>
-
-          <div class="info-section">
-            <h3>Tiện nghi</h3>
-            <div class="amenities-grid">
-              <div class="amenity-item" v-for="(amenity, index) in amenities" :key="index">
-                <i :class="amenity.icon"></i>
-                <span>{{ amenity.name }}</span>
-              </div>
+            <div class="feature">
+              <i class="fas fa-car"></i> Xe đưa đón sân bay
             </div>
-          </div>
-
-          <div class="info-section">
-            <h3>Quy định</h3>
-            <div class="rules">
-              <div class="rule-item">
-                <i class="fas fa-clock"></i>
-                <div>
-                  <strong>Nhận phòng:</strong> Sau 14:00
-                </div>
-              </div>
-              <div class="rule-item">
-                <i class="fas fa-clock"></i>
-                <div>
-                  <strong>Trả phòng:</strong> Trước 12:00
-                </div>
-              </div>
-              <div class="rule-item">
-                <i class="fas fa-smoking-ban"></i>
-                <div>
-                  <strong>Hút thuốc:</strong> Không hút thuốc trong phòng
-                </div>
-              </div>
-              <div class="rule-item">
-                <i class="fas fa-paw"></i>
-                <div>
-                  <strong>Thú cưng:</strong> Không cho phép
-                </div>
-              </div>
+            <div class="feature">
+              <i class="fas fa-parking"></i> Chỗ đỗ xe
             </div>
-          </div>
-
-          <div class="info-section">
-            <h3>Đánh giá từ khách hàng</h3>
-            <div class="reviews-summary">
-              <div class="overall-rating">
-                <span class="rating-number">{{ homestay.danhGiaTrungBinh || '4.7' }}</span>
-                <div class="stars">★★★★★</div>
-                <span class="review-count">{{ homestay.soDanhGia || '95' }} đánh giá</span>
-              </div>
-              <div class="rating-bars">
-                <div class="rating-bar-item">
-                  <span>Sạch sẽ</span>
-                  <div class="bar-container">
-                    <div class="bar" style="width: 95%"></div>
-                  </div>
-                  <span>4.8</span>
-                </div>
-                <div class="rating-bar-item">
-                  <span>Vị trí</span>
-                  <div class="bar-container">
-                    <div class="bar" style="width: 90%"></div>
-                  </div>
-                  <span>4.5</span>
-                </div>
-                <div class="rating-bar-item">
-                  <span>Giá trị</span>
-                  <div class="bar-container">
-                    <div class="bar" style="width: 92%"></div>
-                  </div>
-                  <span>4.6</span>
-                </div>
-                <div class="rating-bar-item">
-                  <span>Dịch vụ</span>
-                  <div class="bar-container">
-                    <div class="bar" style="width: 94%"></div>
-                  </div>
-                  <span>4.7</span>
-                </div>
-              </div>
+            <div class="feature">
+              <i class="fas fa-swimming-pool"></i> Hồ bơi
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Form đặt phòng -->
-        <div class="booking-form-container">
-          <div class="booking-form">
-            <h3>Đặt phòng</h3>
-            <div class="price-info">
-              <span class="price">{{ formatPrice(homestay.giaCaHomestay) }}</span>
-              <span class="price-unit">/ đêm</span>
-            </div>
-
-            <div class="form-group">
-              <label for="check-in">Ngày nhận phòng</label>
-              <input type="date" id="check-in" v-model="checkInDate" :min="today" @change="calculateTotalPrice" />
-            </div>
-
-            <div class="form-group">
-              <label for="check-out">Ngày trả phòng</label>
-              <input type="date" id="check-out" v-model="checkOutDate" :min="minCheckoutDate"
-                @change="calculateTotalPrice" />
-            </div>
-
-            <div class="form-group">
-              <label for="guests">Số khách</label>
-              <select id="guests" v-model="guestCount">
-                <option v-for="i in maxGuests" :key="i" :value="i">{{ i }} khách</option>
-              </select>
-            </div>
-
-            <div class="price-breakdown">
-              <div class="price-row">
-                <span>{{ formatPrice(homestay.giaCaHomestay) }} x {{ nightCount }} đêm</span>
-                <span>{{ formatPrice(basePrice) }}</span>
+      <!-- Thông tin đặt phòng - Đổi vị trí form và sidebar -->
+      <div class="booking-details">
+        <!-- Sidebar chuyển sang bên trái -->
+        <div class="booking-sidebar">
+          <div class="sidebar-section">
+            <h4>Tóm tắt đặt phòng</h4>
+            <div class="booking-dates-summary">
+              <div class="date-item">
+                <div class="date-label">Nhận phòng</div>
+                <div class="date-value">T7, 9 tháng 8 2025</div>
               </div>
-              <div class="price-row">
-                <span>Phí dịch vụ</span>
-                <span>{{ formatPrice(serviceFee) }}</span>
+              <div class="date-item">
+                <div class="date-label">Trả phòng</div>
+                <div class="date-value">CN, 17 tháng 8 2025</div>
               </div>
+              <div class="date-item">
+                <div class="date-label">Tổng thời gian</div>
+                <div class="date-value">8 đêm</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h4>Chi tiết giá</h4>
+            <div class="price-summary-sidebar">
               <div class="price-row">
-                <span>Thuế</span>
-                <span>{{ formatPrice(tax) }}</span>
+                <div class="price-label">Giá gốc (8 đêm)</div>
+                <div class="price-value">{{ formatPrice(homestay.giaCaHomestay * 8) }}</div>
+              </div>
+              <div class="price-row discount" v-if="discount > 0">
+                <div class="price-label">Giảm giá</div>
+                <div class="price-value">- {{ formatPrice(discount) }}</div>
               </div>
               <div class="price-row total">
-                <span>Tổng cộng</span>
-                <span>{{ formatPrice(totalPrice) }}</span>
+                <div class="price-label">Tổng cộng</div>
+                <div class="price-value">{{ formatPrice(totalPrice) }}</div>
+              </div>
+              <div class="price-row deposit">
+                <div class="price-label">Đặt cọc (30%)</div>
+                <div class="price-value">{{ formatPrice(depositAmount) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h4>Chính sách hủy</h4>
+            <div class="cancellation-policy">
+              <p>Miễn phí hủy trước 7 ngày trước ngày nhận phòng.</p>
+              <p>Nếu hủy trong vòng 7 ngày trước ngày nhận phòng, bạn sẽ mất tiền cọc.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form nhập thông tin chuyển sang bên phải và mở rộng -->
+        <div class="booking-form-container">
+          <div class="booking-form-header">
+            <h3>Nhập thông tin chi tiết của bạn</h3>
+            <div class="form-note">
+              <i class="fas fa-info-circle"></i>
+              <span>Gần xong rồi! Chi cần điền phần thông tin còn lại</span>
+            </div>
+          </div>
+
+          <form class="booking-form" @submit.prevent="submitBooking">
+            <!-- Thông tin cá nhân -->
+            <div class="form-section">
+              <h4>Thông tin cá nhân</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="lastName">Họ <span class="required">*</span></label>
+                  <input type="text" id="lastName" v-model="bookingInfo.lastName" placeholder="vd: Nguyễn" required />
+                </div>
+                <div class="form-group">
+                  <label for="firstName">Tên <span class="required">*</span></label>
+                  <input type="text" id="firstName" v-model="bookingInfo.firstName" placeholder="vd: Tuấn" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="email">Địa chỉ email <span class="required">*</span></label>
+                  <input type="email" id="email" v-model="bookingInfo.email" placeholder="Email của bạn" required />
+                  <div class="form-hint">Email xác nhận đặt phòng sẽ được gửi đến địa chỉ này</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="country">Quốc gia/Vùng <span class="required">*</span></label>
+                  <select id="country" v-model="bookingInfo.country" required>
+                    <option value="VN">Việt Nam</option>
+                    <option value="US">Hoa Kỳ</option>
+                    <option value="JP">Nhật Bản</option>
+                    <option value="KR">Hàn Quốc</option>
+                    <option value="CN">Trung Quốc</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="phone">Số điện thoại <span class="required">*</span></label>
+                  <div class="phone-input">
+                    <select id="phoneCode" v-model="bookingInfo.phoneCode">
+                      <option value="+84">VN +84</option>
+                      <option value="+1">US +1</option>
+                      <option value="+81">JP +81</option>
+                      <option value="+82">KR +82</option>
+                      <option value="+86">CN +86</option>
+                    </select>
+                    <input type="tel" id="phone" v-model="bookingInfo.phone" placeholder="Số điện thoại của bạn"
+                      required />
+                  </div>
+                  <div class="form-hint">Để xác minh đơn đặt và để chỗ nghỉ liên lạc khi cần</div>
+                </div>
               </div>
             </div>
 
-            <button class="btn book-now-btn" @click="bookNow">Đặt ngay</button>
-            <p class="booking-note">Bạn chưa bị trừ tiền</p>
-          </div>
+            <!-- Thông tin đặt phòng -->
+            <div class="form-section">
+              <h4>Chi tiết đặt phòng</h4>
+              <div class="booking-dates">
+                <div class="date-box">
+                  <div class="date-label">Nhận phòng</div>
+                  <div class="date-value">T7, 9 tháng 8 2025</div>
+                  <div class="date-time">14:00 - 20:00</div>
+                </div>
+                <div class="date-arrow">→</div>
+                <div class="date-box">
+                  <div class="date-label">Trả phòng</div>
+                  <div class="date-value">CN, 17 tháng 8 2025</div>
+                  <div class="date-time">07:00 - 12:00</div>
+                </div>
+              </div>
+              <div class="stay-duration">
+                <div class="duration-label">Tổng thời gian lưu trú:</div>
+                <div class="duration-value">8 đêm</div>
+              </div>
+            </div>
+
+            <!-- Yêu cầu đặc biệt -->
+            <div class="form-section">
+              <h4>Yêu cầu đặc biệt</h4>
+              <textarea v-model="bookingInfo.specialRequests"
+                placeholder="Nhập yêu cầu đặc biệt của bạn ở đây (không đảm bảo đáp ứng, nhưng chỗ nghỉ sẽ cố gắng hết sức)"
+                rows="4"></textarea>
+            </div>
+
+            <!-- Tổng tiền -->
+            <div class="form-section price-summary">
+              <h4>Tóm tắt giá</h4>
+              <div class="price-details">
+                <div class="price-row">
+                  <div class="price-label">Giá gốc (8 đêm)</div>
+                  <div class="price-value">{{ formatPrice(homestay.giaCaHomestay * 8) }}</div>
+                </div>
+                <div class="price-row discount" v-if="discount > 0">
+                  <div class="price-label">Giảm giá</div>
+                  <div class="price-value">- {{ formatPrice(discount) }}</div>
+                </div>
+                <div class="price-row total">
+                  <div class="price-label">Tổng cộng</div>
+                  <div class="price-value">{{ formatPrice(totalPrice) }}</div>
+                </div>
+                <div class="price-row deposit">
+                  <div class="price-label">Đặt cọc (30%)</div>
+                  <div class="price-value">{{ formatPrice(depositAmount) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Nút đặt phòng -->
+            <div class="form-actions">
+              <button type="submit" class="submit-btn">
+                Đặt ngay
+              </button>
+              <div class="booking-note">
+                <i class="fas fa-shield-alt"></i>
+                <span>Thanh toán an toàn và bảo mật</span>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -227,73 +244,43 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getHomeStayById } from '@/Service/HomeStayService';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 const route = useRoute();
 const router = useRouter();
-const homestay = ref(null);
+const notificationStore = useNotificationStore();
+
+const homestay = ref({});
 const isLoading = ref(true);
-const hasError = ref(false);
-const errorMessage = ref('');
 const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80';
 
-// Dữ liệu đặt phòng
-const today = new Date().toISOString().split('T')[0];
-const checkInDate = ref(today);
-const checkOutDate = ref(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-const guestCount = ref(2);
-const maxGuests = 10;
-
-// Tính toán giá
-const basePrice = ref(0);
-const serviceFee = ref(0);
-const tax = ref(0);
-const totalPrice = ref(0);
-
-// Tính số đêm
-const nightCount = computed(() => {
-  if (!checkInDate.value || !checkOutDate.value) return 1;
-  const start = new Date(checkInDate.value);
-  const end = new Date(checkOutDate.value);
-  const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays || 1;
+const bookingInfo = ref({
+  firstName: '',
+  lastName: '',
+  email: '',
+  country: 'VN',
+  phoneCode: '+84',
+  phone: '',
+  specialRequests: '',
 });
 
-// Ngày checkout tối thiểu
-const minCheckoutDate = computed(() => {
-  if (!checkInDate.value) return today;
-  return checkInDate.value;
-});
+// Giả lập dữ liệu mẫu
+const discount = ref(200000); // Giảm giá 200,000 VND
+const basePrice = computed(() => homestay.value?.giaCaHomestay || 1200000);
+const totalPrice = computed(() => (basePrice.value * 8) - discount.value);
+const depositAmount = computed(() => Math.round(totalPrice.value * 0.3));
 
-// Hình ảnh bổ sung (mô phỏng)
-const additionalImages = ref([
-  'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-  'https://images.unsplash.com/photo-1582719508461-905c673771fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-  'https://images.unsplash.com/photo-1564078516393-cf04bd966897?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-  'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-]);
-
-// Danh sách tiện nghi
-const amenities = [
-  { name: 'WiFi miễn phí', icon: 'fas fa-wifi' },
-  { name: 'Điều hòa', icon: 'fas fa-snowflake' },
-  { name: 'TV', icon: 'fas fa-tv' },
-  { name: 'Bếp', icon: 'fas fa-utensils' },
-  { name: 'Máy giặt', icon: 'fas fa-tshirt' },
-  { name: 'Chỗ đậu xe', icon: 'fas fa-parking' },
-  { name: 'Hồ bơi', icon: 'fas fa-swimming-pool' },
-  { name: 'Bữa sáng', icon: 'fas fa-coffee' }
-];
+// Format giá tiền
+const formatPrice = (price) => {
+  if (!price) return '0₫';
+  return price.toLocaleString('vi-VN') + '₫';
+};
 
 // Lấy thông tin homestay từ API
 const fetchHomestayData = async () => {
   isLoading.value = true;
-  hasError.value = false;
-  errorMessage.value = '';
-
   try {
     const homestayId = route.params.id;
-
     if (!homestayId) {
       throw new Error('Không tìm thấy ID homestay');
     }
@@ -303,68 +290,33 @@ const fetchHomestayData = async () => {
 
     if (response.data) {
       homestay.value = response.data;
-      calculateTotalPrice();
+      console.log('Dữ liệu homestay từ API:', homestay.value);
     } else {
       throw new Error('Không tìm thấy thông tin homestay');
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin homestay:', error);
-    hasError.value = true;
-    errorMessage.value = error.message || 'Đã xảy ra lỗi khi tải thông tin homestay';
+    notificationStore.showNotification({
+      type: 'error',
+      message: 'Không thể tải thông tin homestay. Vui lòng thử lại sau.',
+    });
   } finally {
     isLoading.value = false;
   }
 };
 
-// Tính tổng giá tiền
-const calculateTotalPrice = () => {
-  if (!homestay.value || !homestay.value.giaCaHomestay) {
-    basePrice.value = 0;
-    serviceFee.value = 0;
-    tax.value = 0;
-    totalPrice.value = 0;
-    return;
-  }
-
-  const price = homestay.value.giaCaHomestay;
-  basePrice.value = price * nightCount.value;
-  serviceFee.value = basePrice.value * 0.05; // Phí dịch vụ 5%
-  tax.value = basePrice.value * 0.08; // Thuế 8%
-  totalPrice.value = basePrice.value + serviceFee.value + tax.value;
-};
-
-// Format giá tiền
-const formatPrice = (price) => {
-  if (!price) return '0₫';
-  return price.toLocaleString('vi-VN') + '₫';
-};
-
-// Đặt hình ảnh chính
-const setMainImage = (image) => {
-  if (homestay.value) {
-    homestay.value.hinhAnh = image;
-  }
-};
-
 // Xử lý đặt phòng
-const bookNow = () => {
-  // Kiểm tra đăng nhập
-  // Trong thực tế, bạn sẽ kiểm tra trạng thái đăng nhập từ store
-  const isLoggedIn = false; // Giả định chưa đăng nhập
+const submitBooking = () => {
+  // Hiển thị thông báo đặt phòng thành công
+  notificationStore.showNotification({
+    type: 'success',
+    message: 'Đặt phòng thành công! Vui lòng kiểm tra email để xác nhận.',
+  });
 
-  if (!isLoggedIn) {
-    alert('Vui lòng đăng nhập để đặt phòng');
-    // Hiển thị modal đăng nhập hoặc chuyển hướng đến trang đăng nhập
-    return;
-  }
-
-  // Xử lý đặt phòng
-  alert(`Đặt phòng thành công!\nHomestay: ${homestay.value.tenHomestay}\nNgày nhận phòng: ${checkInDate.value}\nNgày trả phòng: ${checkOutDate.value}\nSố khách: ${guestCount.value}\nTổng tiền: ${formatPrice(totalPrice.value)}`);
-};
-
-// Quay lại trang trước
-const goBack = () => {
-  router.back();
+  // Chuyển hướng đến trang xác nhận
+  setTimeout(() => {
+    router.push('/');
+  }, 2000);
 };
 
 onMounted(() => {
@@ -375,436 +327,442 @@ onMounted(() => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-.booking-container {
+.booking-page {
   font-family: 'Roboto', sans-serif;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  background-color: #f5f5f5;
   color: #333;
+  min-height: 100vh;
 }
 
-/* Loading và Error */
-.loading-container,
-.error-container {
+/* Header và tiến trình */
+.booking-header {
+  background-color: #003580;
+  padding: 20px 0;
+}
+
+.booking-progress {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.progress-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 50px;
-  text-align: center;
-}
-
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  border-top: 4px solid #007bff;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.error-icon {
-  color: #dc3545;
-  font-size: 48px;
-  margin-bottom: 20px;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.3s;
-}
-
-.primary-btn {
-  background-color: #007bff;
   color: white;
+  position: relative;
 }
 
-.primary-btn:hover {
-  background-color: #0056b3;
-}
-
-/* Breadcrumb */
-.breadcrumb {
+.step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
-  font-size: 14px;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 5px;
 }
 
-.breadcrumb a {
-  color: #007bff;
-  text-decoration: none;
+.progress-step.completed .step-number,
+.progress-step.active .step-number {
+  background-color: #fff;
+  color: #003580;
 }
 
-.breadcrumb a:hover {
-  text-decoration: underline;
+.progress-line {
+  height: 2px;
+  width: 100px;
+  background-color: rgba(255, 255, 255, 0.3);
+  margin: 0 15px;
 }
 
-.separator {
-  margin: 0 10px;
-  color: #6c757d;
+.progress-step.completed+.progress-line {
+  background-color: white;
 }
 
-.current {
-  color: #6c757d;
-  font-weight: 500;
+/* Container chính */
+.booking-container {
+  max-width: 1500px;
+  margin: 30px auto;
+  padding: 0 20px;
 }
 
-/* Homestay Header */
-.homestay-header {
-  margin-bottom: 20px;
-}
-
-.homestay-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 10px;
-  color: #212529;
-}
-
-.homestay-meta {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.location,
-.rating {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.stars {
-  color: #ffc107;
-}
-
-/* Gallery */
-.homestay-gallery {
-  margin-bottom: 30px;
-}
-
-.main-image {
-  width: 100%;
-  height: 400px;
+/* Thông tin homestay đã chọn */
+.booking-summary {
+  background-color: white;
   border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 10px;
+  padding: 20px;
+  display: flex;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.main-image img {
+.homestay-preview {
+  position: relative;
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.homestay-image {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.thumbnail-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-}
-
-.thumbnail-images img {
-  width: 100%;
-  height: 80px;
+  height: 150px;
   object-fit: cover;
   border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.3s;
 }
 
-.thumbnail-images img:hover {
+.homestay-rating {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: #003580;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.rating-value {
+  margin-right: 5px;
+}
+
+.rating-text {
+  margin-right: 5px;
+}
+
+.rating-count {
+  font-size: 12px;
   opacity: 0.8;
 }
 
-/* Booking Details */
-.booking-details {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 30px;
-}
-
-@media (max-width: 768px) {
-  .booking-details {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Homestay Info */
 .homestay-info {
-  background-color: #fff;
-  border-radius: 8px;
-  overflow: hidden;
+  margin-left: 20px;
+  flex-grow: 1;
 }
 
-.homestay-info h2 {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #212529;
+.homestay-type {
+  color: #6b6b6b;
+  font-size: 14px;
+  margin-bottom: 5px;
 }
 
-.info-section {
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #dee2e6;
+.homestay-name {
+  font-size: 22px;
+  margin: 0 0 10px;
 }
 
-.info-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.info-section h3 {
-  font-size: 18px;
-  font-weight: 600;
+.homestay-address {
+  color: #6b6b6b;
+  font-size: 14px;
   margin-bottom: 15px;
-  color: #212529;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+.homestay-features {
+  display: flex;
+  flex-wrap: wrap;
   gap: 15px;
 }
 
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.feature {
+  font-size: 14px;
+  color: #333;
 }
 
-.info-item i {
-  color: #007bff;
-  width: 20px;
-  text-align: center;
+.feature i {
+  color: #0071c2;
+  margin-right: 5px;
 }
 
-/* Amenities */
-.amenities-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-}
-
-.amenity-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.amenity-item i {
-  color: #007bff;
-  width: 20px;
-  text-align: center;
-}
-
-/* Rules */
-.rules {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.rule-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.rule-item i {
-  color: #007bff;
-  width: 20px;
-  text-align: center;
-  margin-top: 3px;
-}
-
-/* Reviews */
-.reviews-summary {
+/* Layout form đặt phòng và sidebar - THAY ĐỔI VỊ TRÍ */
+.booking-details {
   display: flex;
   gap: 30px;
 }
 
-.overall-rating {
+.booking-form-container {
+  flex: 1;
+  background-color: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.booking-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+/* Header form */
+.booking-form-header {
+  margin-bottom: 25px;
+}
+
+.booking-form-header h3 {
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+
+.form-note {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-}
-
-.rating-number {
-  font-size: 48px;
-  font-weight: 700;
-  color: #212529;
-  line-height: 1;
-}
-
-.review-count {
-  color: #6c757d;
+  color: #6b6b6b;
   font-size: 14px;
 }
 
-.rating-bars {
-  flex: 1;
+.form-note i {
+  color: #0071c2;
+  margin-right: 8px;
 }
 
-.rating-bar-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
+/* Form sections */
+.form-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e7e7e7;
 }
 
-.rating-bar-item span {
-  width: 60px;
-}
-
-.rating-bar-item span:last-child {
-  width: 30px;
-  text-align: right;
-}
-
-.bar-container {
-  flex: 1;
-  height: 8px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  margin: 0 10px;
-}
-
-.bar {
-  height: 100%;
-  background-color: #007bff;
-  border-radius: 4px;
-}
-
-/* Booking Form */
-.booking-form-container {
-  align-self: flex-start;
-  position: sticky;
-  top: 20px;
-}
-
-.booking-form {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.booking-form h3 {
+.form-section h4 {
   font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #212529;
+  margin: 0 0 15px;
 }
 
-.price-info {
+.form-row {
   display: flex;
-  align-items: baseline;
-  margin-bottom: 20px;
-}
-
-.price {
-  font-size: 24px;
-  font-weight: 700;
-  color: #212529;
-}
-
-.price-unit {
-  color: #6c757d;
-  margin-left: 5px;
+  gap: 20px;
+  margin-bottom: 15px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  flex: 1;
 }
 
-.form-group label {
+label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   font-weight: 500;
 }
 
-.form-group input,
-.form-group select {
+.required {
+  color: #e41749;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+select,
+textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ced4da;
+  padding: 12px;
+  border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: 15px;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #6b6b6b;
+  margin-top: 5px;
+}
+
+.phone-input {
+  display: flex;
+}
+
+.phone-input select {
+  width: 120px;
+  margin-right: 10px;
+}
+
+/* Booking dates */
+.booking-dates {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.date-box {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  flex: 1;
+}
+
+.date-arrow {
+  margin: 0 15px;
+  font-size: 20px;
+  color: #6b6b6b;
+}
+
+.date-label {
+  font-size: 13px;
+  color: #6b6b6b;
+  margin-bottom: 5px;
+}
+
+.date-value {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.date-time {
+  font-size: 13px;
+  color: #6b6b6b;
+  margin-top: 5px;
+}
+
+.stay-duration {
+  display: flex;
+  justify-content: flex-end;
   font-size: 14px;
 }
 
-.price-breakdown {
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #dee2e6;
+.duration-label {
+  margin-right: 10px;
+  color: #6b6b6b;
+}
+
+.duration-value {
+  font-weight: 500;
+}
+
+/* Price summary */
+.price-details {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
 }
 
 .price-row {
   display: flex;
   justify-content: space-between;
   margin-bottom: 10px;
-  font-size: 14px;
+}
+
+.price-row:last-child {
+  margin-bottom: 0;
+}
+
+.price-row.discount {
+  color: #008009;
 }
 
 .price-row.total {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #dee2e6;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: bold;
+  font-size: 18px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
 }
 
-.book-now-btn {
-  width: 100%;
-  padding: 12px;
-  background-color: #007bff;
+.price-row.deposit {
+  font-weight: 500;
+  color: #0071c2;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.submit-btn {
+  background-color: #0071c2;
   color: white;
-  font-size: 16px;
-  margin-top: 20px;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 15px;
+  transition: background-color 0.2s;
 }
 
-.book-now-btn:hover {
-  background-color: #0056b3;
+.submit-btn:hover {
+  background-color: #005999;
 }
 
 .booking-note {
-  text-align: center;
-  margin-top: 10px;
-  font-size: 12px;
-  color: #6c757d;
+  font-size: 14px;
+  color: #6b6b6b;
+  display: flex;
+  align-items: center;
 }
 
-@media (max-width: 576px) {
-  .booking-container {
-    padding: 10px;
-  }
+.booking-note i {
+  margin-right: 8px;
+  color: #0071c2;
+}
 
-  .main-image {
-    height: 250px;
-  }
+/* Sidebar */
+.sidebar-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
-  .reviews-summary {
+.sidebar-section h4 {
+  font-size: 16px;
+  margin: 0 0 15px;
+}
+
+.booking-dates-summary .date-item {
+  margin-bottom: 15px;
+}
+
+.cancellation-policy p {
+  font-size: 14px;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .booking-details {
     flex-direction: column;
-    gap: 20px;
+  }
+
+  .booking-sidebar {
+    width: 100%;
+    order: -1;
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .booking-summary {
+    flex-direction: column;
+  }
+
+  .homestay-preview {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .homestay-info {
+    margin-left: 0;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .booking-progress {
+    padding: 0 20px;
+  }
+
+  .progress-line {
+    width: 50px;
   }
 }
 </style>

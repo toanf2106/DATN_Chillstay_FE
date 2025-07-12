@@ -115,7 +115,7 @@
               </div>
               <div class="homestay-price">
                 <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
-                  }}₫</span>
+                }}₫</span>
                 <span class="price-unit">/đêm</span>
               </div>
               <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>

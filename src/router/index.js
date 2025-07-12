@@ -9,6 +9,8 @@ import EmailConfirmView from '../views/EmailConfirmView.vue'
 
 import BookingView from '../views/BookingView.vue'
 import AllHomestaysView from '../views/AllHomestaysView.vue'
+import NewsView from '../views/NewsView.vue'
+import NewsDetailView from '../views/NewsDetailView.vue'
 
 import { useAuthStore } from '../stores/authStore'
 
@@ -20,6 +22,8 @@ const router = createRouter({
     { path: '/booking', name: 'booking', component: BookingView },
     { path: '/all-homestays', name: 'allHomestays', component: AllHomestaysView },
     { path: '/homestay/:id', name: 'homestayDetail', component: BookingView },
+    { path: '/tin-tuc', name: 'news', component: NewsView },
+    { path: '/tin-tuc/:id', name: 'newsDetail', component: NewsDetailView },
 
     // Route cho quên mật khẩu và đặt lại mật khẩu
     { path: '/quen-mat-khau', name: 'forgot-password', component: ForgotPasswordForm },

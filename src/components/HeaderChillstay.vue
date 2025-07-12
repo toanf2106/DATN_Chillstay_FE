@@ -710,7 +710,7 @@ function resetVerificationForm() {
         <li><router-link to="/">Trang Chủ</router-link></li>
         <li><router-link to="/all-homestays">Tìm Homestay</router-link></li>
         <li><a href="#">Dịch Vụ</a></li>
-        <li><a href="#">Tin Tức</a></li>
+        <li><router-link to="/tin-tuc">Tin Tức</router-link></li>
         <li><a href="#">Giảm Giá</a></li>
       </ul>
 

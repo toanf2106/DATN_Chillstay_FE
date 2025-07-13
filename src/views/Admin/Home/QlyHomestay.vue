@@ -520,7 +520,7 @@ export default {
       viewOnlyImages,
       openAnhModal,
       openAnhModalFromDetails,
-      closeAnhModal
+      closeAnhModal,
     }
   },
 }

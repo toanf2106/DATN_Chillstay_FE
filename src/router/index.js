@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import about from '../views/AboutView.vue'
 import ThongKe from '../views/Admin/ThongKe.vue'
 import DatHomestay from '../views/Admin/DatHome.vue'
+import TestThanhToan from '../views/testThanhToan.vue'
 
 import ForgotPasswordForm from '../components/Password.vue'
 import EmailConfirmView from '../views/EmailConfirmView.vue'
@@ -20,6 +21,7 @@ const router = createRouter({
     { path: '/booking', name: 'booking', component: BookingView },
     { path: '/all-homestays', name: 'allHomestays', component: AllHomestaysView },
     { path: '/homestay/:id', name: 'homestayDetail', component: BookingView },
+    { path: '/test-thanh-toan', name: 'testThanhToan', component: TestThanhToan },
 
     // Route cho quên mật khẩu và đặt lại mật khẩu
     { path: '/quen-mat-khau', name: 'forgot-password', component: ForgotPasswordForm },
@@ -75,6 +77,13 @@ const router = createRouter({
           path: 'dat-homestay',
           name: 'admin-dat-homestay',
           component: DatHomestay,
+        },
+
+        // DatHomeADM - Chi tiết quản lý đặt homestay
+        {
+          path: 'dat-homestay-adm',
+          name: 'DatHomeADM',
+          component: () => import('../views/Admin/DatHomeADM.vue'),
         },
 
         // Các route quản lý Homestay
@@ -147,6 +156,14 @@ const router = createRouter({
           name: 'admin-thanh-toan',
           component: () => import('../views/Admin/ThanhToan.vue'),
         },
+
+        // Trang test thanh toán
+        {
+          path: 'test-thanh-toan',
+          name: 'admin-test-thanh-toan',
+          component: TestThanhToan,
+        },
+
         {
           path: '',
           name: 'admin-welcome',

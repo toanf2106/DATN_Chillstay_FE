@@ -1,7 +1,6 @@
 <template>
   <div class="dathome-container">
     <h1 class="section-title">Quản lý đặt Homestay</h1>
-    <!-- Statistics Cards -->
     <div class="stats-cards">
       <div class="stat-card" @mouseenter="createRipple($event)">
         <div class="card-front">
@@ -127,7 +126,6 @@
       </div>
     </div>
 
-    <!-- View Toggle Button -->
     <div class="view-toggle-container">
       <button
         class="view-toggle-btn"
@@ -145,16 +143,17 @@
         <font-awesome-icon icon="fa-solid fa-list" class="btn-icon" />
         Xem chi tiết
       </button>
+      <button class="view-toggle-btn" @click="navigateToDatHomeADM">
+        <font-awesome-icon icon="fa-solid fa-tasks" class="btn-icon" />
+        Đặt Homestay
+      </button>
     </div>
 
-    <!-- Main Content -->
     <div class="content-section">
-      <!-- Calendar View -->
       <div v-show="currentView === 'calendar'" class="calendar-container">
         <div id="calendar" ref="fullCalendar"></div>
       </div>
 
-      <!-- Detailed Bookings View -->
       <div v-show="currentView === 'detail'" class="bookings-detail-view">
         <h2>Danh sách đặt phòng</h2>
         <div class="table-container">
@@ -165,10 +164,11 @@
                 <th>Mã đặt phòng</th>
                 <th>Khách hàng</th>
                 <th>Homestay</th>
-                <th>Thời gian bắt đầu</th>
-                <th>Thời gian kết thúc</th>
+                <th>Ngày tạo</th>
+                <th>Thời gian nhận phòng</th>
+                <th>Thời gian trả phòng</th>
                 <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>Lịch sử thay đổi</th>
               </tr>
             </thead>
             <tbody v-if="isLoading">
@@ -184,34 +184,28 @@
                 <td>#{{ booking.maDatHome }}</td>
                 <td>{{ booking.tenKhachHang }}</td>
                 <td>{{ booking.tenHomestay }}</td>
-                <td>{{ formatDate(booking.ngayNhanPhong) }}</td>
-                <td>{{ formatDate(booking.ngayTraPhong) }}</td>
+                <td>{{ formatDateOnly(booking.ngayDat) }}</td>
+                <td>{{ formatDateOnly(booking.ngayNhanPhong) }}</td>
+                <td>{{ formatDateOnly(booking.ngayTraPhong) }}</td>
                 <td>
                   <span class="status-badge" :class="getStatusClass(booking.trangThai)">
                     {{ getStatusLabel(booking.trangThai) }}
                   </span>
                 </td>
                 <td>
-                  <button class="action-btn view-btn" @click="viewBookingDetails(booking)">
-                    <font-awesome-icon icon="fa-solid fa-eye" />
-                  </button>
-                  <button class="action-btn edit-btn" @click="editBooking(booking)">
-                    <font-awesome-icon icon="fa-solid fa-edit" />
-                  </button>
-                  <button class="action-btn delete-btn" @click="deleteBooking(booking.id)">
-                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  <button class="action-btn history-btn" @click="showBookingLogs(booking.id)">
+                    <font-awesome-icon icon="fa-solid fa-history" />
+                    <span>Xem lịch sử</span>
                   </button>
                 </td>
               </tr>
-              <!-- Empty rows to always show exactly 5 rows -->
               <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
-                <td colspan="8">&nbsp;</td>
+                <td colspan="9">&nbsp;</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Fixed Pagination -->
         <div class="pagination-container">
           <div class="pagination-info">
             Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} đặt phòng
@@ -243,12 +237,9 @@
             </ul>
           </nav>
         </div>
-
-        <!-- Card View -->
       </div>
     </div>
 
-    <!-- Card View Section -->
     <div class="booking-cards-section" v-show="currentView === 'detail'">
       <h2 class="section-title">Xem đặt phòng dạng thẻ</h2>
       <div v-if="isLoading" class="loading">Đang tải dữ liệu...</div>
@@ -306,7 +297,6 @@
       </div>
     </div>
 
-    <!-- Booking Details Modal (Hidden by default) -->
     <div class="booking-modal" v-if="showModal">
       <div class="modal-content">
         <div class="modal-header">
@@ -373,7 +363,6 @@
                 </div>
               </div>
 
-              <!-- Thêm trường ghi chú khi cập nhật trạng thái -->
               <div class="booking-section status-section" v-if="showStatusActions">
                 <div class="section-content">
                   <h3>Cập nhật trạng thái</h3>
@@ -385,7 +374,6 @@
                       selectedBooking.trangThai === 'DaCheckOut'
                     "
                   >
-                    <!-- <label for="statusNote">Ghi chú:</label> -->
                     <textarea
                       id="statusNote"
                       class="form-control"
@@ -475,7 +463,6 @@
                 </div>
               </div>
 
-              <!-- Các nút hành động -->
               <div class="booking-actions">
                 <button
                   v-if="selectedBooking.trangThai === 'ChoXacNhan'"
@@ -525,6 +512,81 @@
         </div>
       </div>
     </div>
+
+    <div class="booking-modal" v-if="showLogModal">
+      <div class="modal-content logs-modal-content">
+        <div class="modal-header">
+          <div class="header-left">
+            <h2 class="modal-title">Lịch sử thay đổi trạng thái</h2>
+            <div class="booking-id" v-if="currentBookingInfo">
+              <span class="info-label">Mã đặt phòng:</span>
+              <strong>{{ currentBookingInfo.maDatHome }}</strong> |
+              <span class="info-label">Khách hàng:</span>
+              <strong>{{ currentBookingInfo.tenKhachHang }}</strong> |
+              <span class="info-label">Homestay:</span>
+              <strong>{{ currentBookingInfo.tenHomestay }}</strong>
+            </div>
+          </div>
+          <div class="header-right">
+            <button class="close-btn" @click="showLogModal = false">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="booking-details">
+          <div class="log-table-container">
+            <div v-if="loadingLogs" class="loading">Đang tải dữ liệu...</div>
+
+            <table
+              class="log-table"
+              v-else-if="currentBookingLogs && currentBookingLogs.length > 0"
+            >
+              <thead>
+                <tr>
+                  <th width="5%">STT</th>
+                  <th width="15%">Thời gian thay đổi</th>
+                  <th width="35%">Thay đổi trạng thái</th>
+                  <th width="15%">Người thực hiện</th>
+                  <th width="10%">Mã NV</th>
+                  <th width="20%">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(log, index) in sortedLogs" :key="log.id">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ formatDate(log.thoiGianThayDoi) }}</td>
+                  <td>
+                    <div class="status-change">
+                      <span
+                        v-if="log.trangThaiCu"
+                        class="status-badge"
+                        :class="getStatusClass(log.trangThaiCu)"
+                      >
+                        {{ getStatusLabel(log.trangThaiCu) }}
+                      </span>
+                      <span v-else class="status-badge status-new">Mới tạo</span>
+                      <i class="fas fa-arrow-right status-arrow"></i>
+                      <span class="status-badge" :class="getStatusClass(log.trangThaiMoi)">
+                        {{ getStatusLabel(log.trangThaiMoi) }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>{{ log.hoTenThucHien || 'N/A' }}</td>
+                  <td>{{ log.maNhanVienThucHien || 'N/A' }}</td>
+                  <td>{{ log.ghiChu || 'Không có ghi chú' }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div v-else class="no-logs">
+              <i class="fas fa-history"></i>
+              <p>Chưa có lịch sử thay đổi nào</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -532,13 +594,14 @@
 import {
   getAllDatHome,
   getDatHomeById,
-  deleteDatHome,
   getDatHomeByTrangThai,
   updateStatus,
   checkIn,
   checkOut,
 } from '@/Service/DatHomeService'
+import axios from 'axios' // Used for fetching booking logs
 import { useAuthStore } from '@/stores/authStore'
+import notification from '@/utils/notification' // Import notification utility
 
 export default {
   name: 'DatHome',
@@ -574,6 +637,12 @@ export default {
       // Check-in/out notes
       checkInNote: '',
       checkOutNote: '',
+      // Lịch sử thay đổi
+      datHomeLogs: [],
+      showLogModal: false,
+      currentBookingLogs: [],
+      currentBookingInfo: null,
+      loadingLogs: false,
     }
   },
   computed: {
@@ -647,6 +716,16 @@ export default {
       const authStore = useAuthStore()
       return authStore.user
     },
+    // Sắp xếp logs theo thời gian gần nhất
+    sortedLogs() {
+      if (!this.currentBookingLogs || this.currentBookingLogs.length === 0) return []
+
+      return [...this.currentBookingLogs].sort((a, b) => {
+        const dateA = new Date(a.thoiGianThayDoi).getTime()
+        const dateB = new Date(b.thoiGianThayDoi).getTime()
+        return dateB - dateA
+      })
+    },
   },
   mounted() {
     this.fetchBookings()
@@ -669,6 +748,10 @@ export default {
 
       // Add the animation
       ripple.style.animation = 'ripple 0.6s ease-out'
+    },
+    navigateToDatHomeADM() {
+      // Sử dụng tên route đã được định nghĩa trong router
+      this.$router.push({ name: 'DatHomeADM' })
     },
     async fetchBookings() {
       try {
@@ -722,7 +805,7 @@ export default {
 
     async updateBookingStatus(id, newStatus) {
       if (!this.currentUser) {
-        alert('Bạn cần đăng nhập để thực hiện thao tác này!')
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
         return
       }
 
@@ -741,24 +824,10 @@ export default {
         this.checkInNote = ''
         this.checkOutNote = ''
 
-        alert(`Cập nhật trạng thái thành công!`)
+        notification.success(`Cập nhật trạng thái thành công!`)
       } catch (error) {
         console.error('Lỗi khi cập nhật trạng thái:', error)
-        alert('Đã xảy ra lỗi khi cập nhật trạng thái')
-      }
-    },
-
-    async deleteBooking(id) {
-      if (confirm('Bạn có chắc chắn muốn xóa đặt phòng này không?')) {
-        try {
-          await deleteDatHome(id)
-          await this.fetchBookings()
-          await this.fetchStatistics()
-          alert('Xóa đặt phòng thành công!')
-        } catch (error) {
-          console.error('Lỗi khi xóa đặt phòng:', error)
-          alert('Đã xảy ra lỗi khi xóa đặt phòng')
-        }
+        notification.error('Đã xảy ra lỗi khi cập nhật trạng thái')
       }
     },
 
@@ -770,7 +839,7 @@ export default {
         this.showStatusActions = true
       } catch (error) {
         console.error('Lỗi khi tải chi tiết đặt phòng:', error)
-        alert('Đã xảy ra lỗi khi tải chi tiết đặt phòng')
+        notification.error('Đã xảy ra lỗi khi tải chi tiết đặt phòng')
       }
     },
 
@@ -927,13 +996,8 @@ export default {
     },
     formatDate(date) {
       if (!date) return ''
-      return new Date(date).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+      const d = new Date(date)
+      return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
     },
     formatDateShort(date) {
       if (!date) return ''
@@ -941,6 +1005,11 @@ export default {
         day: '2-digit',
         month: '2-digit',
       })
+    },
+    formatDateOnly(date) {
+      if (!date) return ''
+      const d = new Date(date)
+      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
     },
     formatDateDay(date) {
       if (!date) return ''
@@ -989,7 +1058,7 @@ export default {
     },
     async handleCheckIn(bookingId) {
       if (!this.currentUser) {
-        alert('Bạn cần đăng nhập để thực hiện thao tác này!')
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
         return
       }
 
@@ -999,16 +1068,16 @@ export default {
         await this.fetchBookings()
         await this.fetchStatistics()
         this.checkInNote = '' // Reset note
-        alert('Check-in thành công!')
+        notification.success('Check-in thành công!')
         this.showModal = false // Đóng modal sau khi thực hiện thao tác
       } catch (error) {
         console.error('Lỗi khi check-in:', error)
-        alert('Đã xảy ra lỗi khi check-in')
+        notification.error('Đã xảy ra lỗi khi check-in')
       }
     },
     async handleCheckOut(bookingId) {
       if (!this.currentUser) {
-        alert('Bạn cần đăng nhập để thực hiện thao tác này!')
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
         return
       }
 
@@ -1018,16 +1087,36 @@ export default {
         await this.fetchBookings()
         await this.fetchStatistics()
         this.checkOutNote = '' // Reset note
-        alert('Check-out thành công!')
+        notification.success('Check-out thành công!')
         this.showModal = false // Đóng modal sau khi thực hiện thao tác
       } catch (error) {
         console.error('Lỗi khi check-out:', error)
-        alert('Đã xảy ra lỗi khi check-out')
+        notification.error('Đã xảy ra lỗi khi check-out')
       }
     },
     loadMoreBookings() {
       // Tăng số lượng thẻ hiển thị lên theo bước
       this.visibleBookingsCount += this.loadMoreStep
+    },
+
+    async showBookingLogs(bookingId) {
+      try {
+        this.loadingLogs = true
+
+        // Lấy thông tin booking để hiển thị trong header
+        const bookingInfo = this.bookings.find((booking) => booking.id === bookingId)
+        this.currentBookingInfo = bookingInfo
+
+        // Lấy lịch sử thay đổi
+        const response = await axios.get(`http://localhost:8080/api/datHomeLog/${bookingId}`)
+        this.currentBookingLogs = response.data
+        this.showLogModal = true
+        this.loadingLogs = false
+      } catch (error) {
+        console.error('Lỗi khi tải lịch sử thay đổi:', error)
+        notification.error('Đã xảy ra lỗi khi tải lịch sử thay đổi')
+        this.loadingLogs = false
+      }
     },
   },
 }
@@ -1328,8 +1417,16 @@ export default {
   color: #ff9800;
 }
 
-.delete-btn {
-  color: #f44336;
+.history-btn {
+  color: #8e24aa;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+}
+
+.history-btn span {
+  font-size: 0.85rem;
 }
 
 .action-btn:hover svg {
@@ -1498,7 +1595,7 @@ export default {
 .bookings-table th,
 .bookings-table td {
   padding: 14px 18px;
-  text-align: left;
+  text-align: center;
   border-bottom: 1px solid #eee;
   vertical-align: middle;
 }
@@ -1807,46 +1904,59 @@ textarea.form-control {
 }
 
 /* Status badges */
-.status-confirmed {
-  background-color: rgba(67, 160, 71, 0.15);
-  color: #43a047;
-  border-left: 3px solid #43a047;
+.status-confirmed,
+.status-DaXacNhan {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
 }
 
-.status-pending {
-  background-color: rgba(255, 160, 0, 0.15);
-  color: #ffa000;
-  border-left: 3px solid #ffa000;
+.status-pending,
+.status-ChoXacNhan {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
 }
 
-.status-in-progress {
-  background-color: rgba(229, 57, 53, 0.15);
-  color: #e53935;
-  border-left: 3px solid #e53935;
+.status-in-progress,
+.status-DaCheckIn {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
 }
 
-.status-deposit {
-  background-color: rgba(0, 172, 193, 0.15);
-  color: #00acc1;
-  border-left: 3px solid #00acc1;
+.status-deposit,
+.status-DaCoc {
+  background-color: #e0f7fa;
+  color: #006064;
+  border: 1px solid #80deea;
 }
 
-.status-completed {
-  background-color: rgba(2, 136, 209, 0.15);
+.status-completed,
+.status-HoanThanh {
+  background-color: #e1f5fe;
+  color: #01579b;
+  border: 1px solid #81d4fa;
+}
+
+.status-cancelled,
+.status-DaHuy {
+  background-color: #efebe9;
+  color: #3e2723;
+  border: 1px solid #bcaaa4;
+}
+
+.status-check-out,
+.status-DaCheckOut {
+  background-color: #f3e5f5;
+  color: #4a148c;
+  border: 1px solid #ce93d8;
+}
+
+.status-new {
+  background-color: #e1f5fe;
   color: #0288d1;
-  border-left: 3px solid #0288d1;
-}
-
-.status-cancelled {
-  background-color: rgba(93, 64, 55, 0.15);
-  color: #5d4037;
-  border-left: 3px solid #5d4037;
-}
-
-.status-check-out {
-  background-color: rgba(142, 36, 170, 0.15);
-  color: #8e24aa;
-  border-left: 3px solid #8e24aa;
+  border: 1px solid #81d4fa;
 }
 
 /* Modal */
@@ -2995,5 +3105,149 @@ textarea.form-control {
   color: #6c757d;
   font-size: 0.9rem;
   text-align: center;
+}
+
+.log-table-container {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 15px 0;
+  border-radius: 8px;
+  box-shadow: rgba(17, 12, 46, 0.05) 0px 5px 15px 0px;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.log-table th,
+.log-table td {
+  padding: 5px 15px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.log-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid #4e73df;
+}
+
+.log-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.log-table tbody tr:hover {
+  background-color: #edf2f7;
+}
+
+.no-logs {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.no-logs i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  color: #adb5bd;
+}
+
+.status-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+}
+
+.status-badge {
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  min-width: 130px;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  border-left: none;
+}
+
+.status-arrow {
+  color: #6c757d;
+  font-size: 1.4rem;
+  margin: 0 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Add box shadow to status badges in the log modal */
+.log-table .status-badge {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.log-table .status-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Add animation for status changes */
+.log-table tr:hover .status-arrow {
+  animation: pulse-arrow 1.5s infinite;
+}
+
+@keyframes pulse-arrow {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .log-table-container {
+    max-height: 300px;
+  }
+
+  .log-table th,
+  .log-table td {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Specific styling for the logs modal */
+.logs-modal-content {
+  max-width: 1300px !important;
+}
+
+@keyframes modal-backdrop-in {
+  from {
+    backdrop-filter: blur(0px);
+    background-color: rgba(0, 0, 0, 0);
+  }
+  to {
+    backdrop-filter: blur(5px);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
 }
 </style>

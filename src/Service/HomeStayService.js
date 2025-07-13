@@ -105,11 +105,18 @@ export function uploadAnhHomeStay(file, homestayId) {
     }
   });
 }
-
-
-// Lấy số lượng phòng theo ID homestay
 export function getSoPhongByHomestayId(homestayId) {
   return api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`);
+}
+
+// Lấy số lượng phòng theo ID homestay
+
+export function getSoPhongByHomestayId2(homestayId) {
+  return api.get(`/api/homestay/Phong/${homestayId}`);
+
+export function getSoPhongByHomestayId(homestayId) {
+  return api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`);
+
 }
 // Xóa ảnh homestay
 export function deleteAnhHomeStay(id) {

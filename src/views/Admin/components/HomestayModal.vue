@@ -75,18 +75,23 @@
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="loaiHomestay"
+                      <label for="idLoaiHomeStay"
                         >Loại Homestay <span class="text-danger">*</span></label
                       >
                       <select
-                        id="loaiHomestay"
+                        id="idLoaiHomeStay"
                         v-model="formData.idLoaiHomeStay"
                         class="form-select"
                         :class="{ 'is-invalid': errors.idLoaiHomeStay }"
                         required
                       >
-                        <option value="" disabled selected>-- Chọn loại --</option>
-                        <option v-for="loai in loaiList" :key="loai.id" :value="loai.id">
+                        <option value="" disabled selected>Chọn loại homestay</option>
+                        <option
+                          v-for="loai in loaiList"
+                          :key="loai.id"
+                          :value="loai.id"
+                          :disabled="!loai.trangThai"
+                        >
                           {{ loai.tenLoaiHomestay || loai.tenLoai }}
                         </option>
                       </select>
@@ -97,16 +102,23 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="chuSoHuu">Quản lý Homestay <span class="text-danger">*</span></label>
+                      <label for="idChuHomeStay"
+                        >Chủ sở hữu <span class="text-danger">*</span></label
+                      >
                       <select
-                        id="chuSoHuu"
+                        id="idChuHomeStay"
                         v-model="formData.idChuHomeStay"
                         class="form-select"
                         :class="{ 'is-invalid': errors.idChuHomeStay }"
                         required
                       >
-                        <option value="" disabled selected>-- Chọn quản lý--</option>
-                        <option v-for="chu in chuList" :key="chu.id" :value="chu.id">
+                        <option value="" disabled selected>Chọn chủ homestay</option>
+                        <option
+                          v-for="chu in chuList"
+                          :key="chu.id"
+                          :value="chu.id"
+                          :disabled="!chu.trangThai"
+                        >
                           {{ chu.hotenChuHomestay || chu.hoTen }}
                         </option>
                       </select>
@@ -183,10 +195,12 @@
                         id="tinhTrang"
                         v-model="formData.tinhTrang"
                         class="form-select"
-                        required
                       >
-                        <option value="Còn phòng">Còn phòng</option>
-                        <option value="Hết phòng">Hết phòng</option>
+                        <option value="Trống và sạch">Trống và sạch</option>
+                        <option value="Đã có người ở">Đã có người ở</option>
+                        <option value="Trống nhưng bẩn">Trống nhưng bẩn</option>
+                        <option value="Đang sửa chữa">Đang sửa chữa</option>
+                        <option value="Đang dọn dẹp">Đang dọn dẹp</option>
                       </select>
                     </div>
                   </div>
@@ -202,6 +216,235 @@
                         <option :value="true">Hoạt động</option>
                         <option :value="false">Khóa</option>
                       </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Phần Tiện Nghi -->
+                <div class="form-group mt-4">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="fw-bold">Tiện Nghi</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @click="showAddTienNghi = true">
+                      <i class="fas fa-plus"></i> Thêm tiện nghi khác
+                    </button>
+                  </div>
+
+                  <div class="tien-nghi-container">
+                    <div v-if="loading" class="text-center py-3">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                      </div>
+                    </div>
+
+                    <div v-else-if="tienNghiList.length === 0" class="text-center py-3 text-muted">
+                      <i class="fas fa-info-circle me-1"></i> Chưa có tiện nghi nào
+                    </div>
+
+                    <div v-else class="tien-nghi-list">
+                      <div v-for="item in tienNghiList" :key="item.id" class="tien-nghi-item">
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            :id="`tiennghi-${item.id}`"
+                            v-model="selectedTienNghi[item.id].selected"
+                          >
+                          <label class="form-check-label" :for="`tiennghi-${item.id}`">
+                            {{ item.tenTienNghi }}
+                          </label>
+                        </div>
+
+                        <div v-if="selectedTienNghi[item.id].selected" class="tien-nghi-details">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">Số lượng</span>
+                            <input
+                              type="number"
+                              class="form-control"
+                              v-model="selectedTienNghi[item.id].soLuong"
+                              min="1"
+                            >
+                            <span class="input-group-text">{{ item.donVi }}</span>
+                          </div>
+
+                          <div class="form-check form-switch mt-2">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              :id="`tiennghi-status-${item.id}`"
+                              v-model="selectedTienNghi[item.id].trangThai"
+                            >
+                            <label class="form-check-label" :for="`tiennghi-status-${item.id}`">
+                              {{ selectedTienNghi[item.id].trangThai ? 'Hoạt động' : 'Không hoạt động' }}
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Modal thêm tiện nghi mới -->
+                <div v-if="showAddTienNghi" class="modal-overlay" @click.self="showAddTienNghi = false">
+                  <div class="modal-form">
+                    <div class="modal-header">
+                      <h3>Thêm Tiện Nghi Mới</h3>
+                      <button class="close-button" @click="showAddTienNghi = false">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                      <form @submit.prevent="addNewTienNghi">
+                        <div class="form-group">
+                          <label for="tenTienNghi">Tên Tiện Nghi <span class="text-danger">*</span></label>
+                          <input
+                            id="tenTienNghi"
+                            v-model="newTienNghi.tenTienNghi"
+                            type="text"
+                            class="form-control"
+                            required
+                          />
+                        </div>
+
+                        <div class="form-group">
+                          <label for="donVi">Đơn Vị <span class="text-danger">*</span></label>
+                          <input
+                            id="donVi"
+                            v-model="newTienNghi.donVi"
+                            type="text"
+                            class="form-control"
+                            required
+                          />
+                        </div>
+
+                        <div class="form-group">
+                          <label for="moTa">Mô Tả</label>
+                          <textarea
+                            id="moTa"
+                            v-model="newTienNghi.moTa"
+                            class="form-control"
+                            rows="3"
+                          ></textarea>
+                        </div>
+
+                        <div class="form-group">
+                          <label for="soLuong">Số Lượng <span class="text-danger">*</span></label>
+                          <input
+                            id="soLuong"
+                            v-model="newTienNghi.soLuong"
+                            type="number"
+                            class="form-control"
+                            min="1"
+                            required
+                          />
+                        </div>
+
+                        <div class="form-check form-switch mt-3">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="trangThaiTienNghi"
+                            v-model="newTienNghi.trangThai"
+                          >
+                          <label class="form-check-label" for="trangThaiTienNghi">
+                            {{ newTienNghi.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
+                          </label>
+                        </div>
+
+                        <div class="form-actions mt-3">
+                          <button type="button" class="btn btn-secondary" @click="showAddTienNghi = false">Hủy</button>
+                          <button type="submit" class="btn btn-primary">Thêm</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Phần Dịch Vụ -->
+                <div class="form-group mt-4">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="fw-bold">Dịch Vụ</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @click="showAddDichVu = true">
+                      <i class="fas fa-plus"></i> Thêm dịch vụ khác
+                    </button>
+                  </div>
+
+                  <div class="dich-vu-container">
+                    <div v-if="loadingDichVu" class="text-center py-3">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                      </div>
+                    </div>
+
+                    <div v-else-if="dichVuList.length === 0" class="text-center py-3 text-muted">
+                      <i class="fas fa-info-circle me-1"></i> Chưa có dịch vụ nào
+                    </div>
+
+                    <div v-else class="dich-vu-list">
+                      <div v-for="item in dichVuList" :key="item.id" class="dich-vu-item">
+                        <div class="form-check">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            :id="`dichvu-${item.id}`"
+                            v-model="selectedDichVu[item.id].selected"
+                          >
+                          <label class="form-check-label" :for="`dichvu-${item.id}`">
+                            {{ item.tenDichVu }} - {{ formatCurrency(item.gia) }}
+                          </label>
+                        </div>
+
+                        <div v-if="selectedDichVu[item.id].selected" class="dich-vu-details">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">Số lượng</span>
+                            <input
+                              type="number"
+                              class="form-control"
+                              v-model="selectedDichVu[item.id].soLuong"
+                              min="1"
+                            >
+                            <span class="input-group-text">{{ item.donVi }}</span>
+                          </div>
+
+                          <div class="form-check form-switch mt-2">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              :id="`dichvu-status-${item.id}`"
+                              v-model="selectedDichVu[item.id].trangThai"
+                            >
+                            <label class="form-check-label" :for="`dichvu-status-${item.id}`">
+                              {{ selectedDichVu[item.id].trangThai ? 'Hoạt động' : 'Không hoạt động' }}
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Modal thêm dịch vụ mới -->
+                <div v-if="showAddDichVu" class="modal-overlay" @click.self="showAddDichVu = false">
+                  <div class="modal-form">
+                    <div class="modal-header">
+                      <h3>Thêm Dịch Vụ Mới</h3>
+                      <button class="close-button" @click="showAddDichVu = false">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                      <form @submit.prevent="addNewDichVu">
+                        <div class="form-group">
+                          <label for="tenDichVu">Tên Dịch Vụ <span class="text-danger">*</span></label>
+                          <input
+                            id="tenDichVu"
+                            v-model="newDichVu.tenDichVu"
+                            type="text"
+                            class="form-control"
+                            required
+                          />
+                        </div>
+
+                        <div class="form-actions mt-3">
+                          <button type="button" class="btn btn-secondary" @click="showAddDichVu = false">Hủy</button>
+                          <button type="submit" class="btn btn-primary">Thêm</button>
+                        </div>
+                      </form>
                     </div>
                   </div>
                 </div>
@@ -352,7 +595,11 @@
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
+import { getAllTienNghi, addTienNghi } from '@/Service/TienNghiService'
+import { getAllDichVu } from '@/Service/dichVuService'
+import notification from '@/utils/notification'
+import api from '@/utils/api'
 
 export default {
   name: 'HomestayModal',
@@ -387,7 +634,7 @@ export default {
       dienTich: 0,
       giaCaHomestay: 0,
       diaChi: '',
-      tinhTrang: 'Còn phòng',
+      tinhTrang: 'Trống và sạch',
       trangThai: true,
       hinhAnh: '',
       maHomestay: '',
@@ -400,6 +647,160 @@ export default {
     const fileInput = ref(null)
     const previewImage = ref(null)
     const selectedFile = ref(null)
+    const loading = ref(false)
+
+    // Tiện nghi
+    const tienNghiList = ref([])
+    const selectedTienNghi = ref({})
+    const showAddTienNghi = ref(false)
+    const newTienNghi = ref({
+      tenTienNghi: '',
+      donVi: '',
+      moTa: '',
+      soLuong: 1,
+      trangThai: true
+    })
+
+    // Dịch vụ
+    const dichVuList = ref([])
+    const selectedDichVu = ref({})
+    const showAddDichVu = ref(false)
+    const loadingDichVu = ref(false)
+    const newDichVu = ref({
+      tenDichVu: '',
+      gia: 0,
+      donVi: 'VND',
+      moTa: '',
+      soLuong: 1,
+      trangThai: true
+    })
+
+    // Lấy danh sách tiện nghi
+    const fetchTienNghi = async () => {
+      try {
+        loading.value = true
+        const response = await getAllTienNghi()
+        tienNghiList.value = response.data || []
+
+        // Khởi tạo đối tượng selectedTienNghi
+        tienNghiList.value.forEach(item => {
+          selectedTienNghi.value[item.id] = {
+            selected: false,
+            soLuong: 1,
+            trangThai: true
+          }
+        })
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách tiện nghi:', error)
+        notification.error('Không thể tải danh sách tiện nghi')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // Lấy danh sách dịch vụ
+    const fetchDichVu = async () => {
+      try {
+        loadingDichVu.value = true
+        const response = await getAllDichVu()
+        dichVuList.value = response.data || []
+
+        // Khởi tạo đối tượng selectedDichVu
+        dichVuList.value.forEach(item => {
+          selectedDichVu.value[item.id] = {
+            selected: false,
+            soLuong: 1,
+            trangThai: true
+          }
+        })
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách dịch vụ:', error)
+        notification.error('Không thể tải danh sách dịch vụ')
+      } finally {
+        loadingDichVu.value = false
+      }
+    }
+
+    // Lấy thông tin tiện nghi của homestay
+    const fetchHomestayTienNghi = async (homestayId) => {
+      try {
+        const response = await api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`)
+        const homestayTienNghi = response.data || []
+
+        // Cập nhật trạng thái đã chọn
+        homestayTienNghi.forEach(item => {
+          if (selectedTienNghi.value[item.tienNghi.id]) {
+            selectedTienNghi.value[item.tienNghi.id] = {
+              selected: true,
+              soLuong: item.soLuong || 1,
+              trangThai: item.trangThai
+            }
+          }
+        })
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin tiện nghi của homestay:', error)
+      }
+    }
+
+    // Lấy thông tin dịch vụ của homestay
+    const fetchHomestayDichVu = async (homestayId) => {
+      try {
+        const response = await api.get(`/api/dich-vu/by-homestay/${homestayId}`)
+        const homestayDichVu = response.data || []
+
+        // Cập nhật selectedDichVu dựa trên dữ liệu từ API
+        homestayDichVu.forEach(item => {
+          if (selectedDichVu.value[item.id]) {
+            selectedDichVu.value[item.id] = {
+              selected: true,
+              soLuong: item.soLuong || 1,
+              trangThai: item.trangThai
+            }
+          }
+        })
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin dịch vụ homestay:', error)
+      }
+    }
+
+    // Thêm tiện nghi mới
+    const addNewTienNghi = async () => {
+      try {
+        // Validate
+        if (!newTienNghi.value.tenTienNghi || !newTienNghi.value.donVi) {
+          notification.error('Vui lòng điền đầy đủ thông tin tiện nghi')
+          return
+        }
+
+        const response = await addTienNghi(newTienNghi.value)
+        const addedTienNghi = response.data
+
+        // Thêm vào danh sách
+        tienNghiList.value.push(addedTienNghi)
+
+        // Thêm vào đối tượng selectedTienNghi
+        selectedTienNghi.value[addedTienNghi.id] = {
+          selected: true,
+          soLuong: newTienNghi.value.soLuong,
+          trangThai: newTienNghi.value.trangThai
+        }
+
+        // Reset form
+        newTienNghi.value = {
+          tenTienNghi: '',
+          donVi: '',
+          moTa: '',
+          soLuong: 1,
+          trangThai: true
+        }
+
+        showAddTienNghi.value = false
+        notification.success('Thêm tiện nghi thành công')
+      } catch (error) {
+        console.error('Lỗi khi thêm tiện nghi mới:', error)
+        notification.error('Không thể thêm tiện nghi mới')
+      }
+    }
 
     // Computed property for modal title based on mode
     const modalTitle = computed(() => {
@@ -475,32 +876,21 @@ export default {
       fileInput.value.click()
     }
 
-    const handleImageError = (event) => {
-      // Use default avatar image if loading fails
-      event.target.src = '/images/default-avatar.png'
-    }
-
     const handleFileUpload = (event) => {
       const file = event.target.files[0]
       if (file) {
-        try {
-          // Lưu file đã chọn
           selectedFile.value = file
 
-          // Hiển thị preview trước khi upload
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            previewImage.value = e.target.result
-          }
-          reader.readAsDataURL(file)
-
-          // Lưu tên file cho hiển thị
-          formData.value.hinhAnh = file.name
-        } catch (error) {
-          console.error('Lỗi xử lý ảnh:', error)
-          alert('Có lỗi xảy ra khi xử lý ảnh. Vui lòng thử lại hoặc chọn ảnh khác.')
+        // Tạo URL cho preview
+        if (previewImage.value) {
+          URL.revokeObjectURL(previewImage.value)
         }
+        previewImage.value = URL.createObjectURL(file)
       }
+    }
+
+    const handleImageError = (event) => {
+      event.target.src = '/images/placeholder-house.jpg'
     }
 
     const handleSubmit = async () => {
@@ -544,6 +934,33 @@ export default {
           homestayData.idChuHomeStay = parseInt(homestayData.idChuHomeStay, 10)
         }
 
+        // Thêm dữ liệu tiện nghi
+        const selectedTienNghiData = []
+        for (const [id, data] of Object.entries(selectedTienNghi.value)) {
+          if (data.selected) {
+            selectedTienNghiData.push({
+              tienNghiId: parseInt(id, 10),
+              soLuong: data.soLuong,
+              trangThai: data.trangThai
+            })
+          }
+        }
+
+        homestayData.tienNghi = selectedTienNghiData
+
+        // Thêm dữ liệu dịch vụ
+        const selectedDichVuData = []
+        for (const [id, data] of Object.entries(selectedDichVu.value)) {
+          if (data.selected) {
+            selectedDichVuData.push({
+              dichVuId: parseInt(id, 10),
+              soLuong: data.soLuong,
+              trangThai: data.trangThai
+            })
+          }
+        }
+        homestayData.dichVu = selectedDichVuData
+
         // Thêm dữ liệu homestay dạng JSON
         formDataToSend.append('homestay', JSON.stringify(homestayData))
 
@@ -558,6 +975,57 @@ export default {
 
     const viewDetailImages = () => {
       emit('view-images', formData.value)
+    }
+
+    // Thêm dịch vụ mới
+    const addNewDichVu = async () => {
+      try {
+        // Validate
+        if (!newDichVu.value.tenDichVu) {
+          notification.error('Vui lòng điền tên dịch vụ')
+          return
+        }
+
+        // Thêm dịch vụ mới
+        const response = await api.post('/api/dich-vu/add', {
+          tenDichVu: newDichVu.value.tenDichVu,
+          homeStay: {
+            id: props.isEdit ? formData.value.id : null
+          },
+          trangThai: true
+        })
+
+        if (response.status === 200 || response.status === 201) {
+          // Thêm dịch vụ mới vào danh sách
+          const newItem = response.data
+          dichVuList.value.push(newItem)
+
+          // Thêm vào selectedDichVu
+          selectedDichVu.value[newItem.id] = {
+            selected: true,
+            soLuong: 1,
+            trangThai: true
+          }
+
+          // Reset form
+          newDichVu.value = {
+            tenDichVu: '',
+            gia: 0,
+            donVi: 'VND',
+            moTa: '',
+            soLuong: 1,
+            trangThai: true
+          }
+
+          // Đóng modal
+          showAddDichVu.value = false
+
+          notification.success('Thêm dịch vụ thành công')
+        }
+      } catch (error) {
+        console.error('Lỗi khi thêm dịch vụ:', error)
+        notification.error('Có lỗi xảy ra khi thêm dịch vụ')
+      }
     }
 
     // Nếu là chỉnh sửa, điền dữ liệu hiện có
@@ -582,7 +1050,7 @@ export default {
             dienTich: 0,
             giaCaHomestay: 0,
             diaChi: '',
-            tinhTrang: 'Còn phòng',
+            tinhTrang: 'Trống và sạch',
             trangThai: true,
             hinhAnh: '',
             maHomestay: '',
@@ -595,6 +1063,30 @@ export default {
       },
       { immediate: true },
     )
+
+    // Tải danh sách tiện nghi khi component được tạo
+    onMounted(() => {
+      fetchTienNghi()
+      fetchDichVu()
+
+      // Nếu là chỉnh sửa, điền dữ liệu hiện có
+      if (props.isEdit && props.homestay) {
+        fillExistingData()
+      }
+    })
+
+    // Nếu là chỉnh sửa, điền dữ liệu hiện có
+    const fillExistingData = async () => {
+      if (props.isEdit && props.homestay) {
+        formData.value = { ...props.homestay }
+
+        // Lấy thông tin tiện nghi và dịch vụ của homestay
+        if (props.homestay.id) {
+          await fetchHomestayTienNghi(props.homestay.id)
+          await fetchHomestayDichVu(props.homestay.id)
+        }
+      }
+    }
 
     return {
       formData,
@@ -614,6 +1106,20 @@ export default {
       formatCurrency,
       formatDate,
       viewDetailImages,
+      // Tiện nghi
+      loading,
+      tienNghiList,
+      selectedTienNghi,
+      showAddTienNghi,
+      newTienNghi,
+      addNewTienNghi,
+      // Dịch vụ
+      loadingDichVu,
+      dichVuList,
+      selectedDichVu,
+      showAddDichVu,
+      newDichVu,
+      addNewDichVu
     }
   },
 }
@@ -634,6 +1140,8 @@ export default {
   z-index: 1050;
   backdrop-filter: blur(4px);
   transition: opacity 0.3s ease;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 /* Modal container */
@@ -641,23 +1149,15 @@ export default {
   position: relative;
   background-color: #fff;
   border-radius: 16px;
-  width: 800px;
-  max-width: 95%;
+  width: 950px;
+  max-width: 100%;
   max-height: 95vh;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: modal-fade-in 0.3s ease;
-}
-
-@keyframes modal-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Modal header */
@@ -667,90 +1167,135 @@ export default {
   align-items: center;
   padding: 20px 25px;
   border-bottom: 1px solid #e5e7eb;
-  background: #f8f9fa;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  background-color: #f8f9fa;
+  overflow: hidden;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #343a40;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
 }
 
 .close-button {
-  position: relative;
-  top: -2px;
-  background: #f1f5f9;
+  background: none;
   border: none;
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 24px;
+  color: #6b7280;
   cursor: pointer;
-  color: #64748b;
+  line-height: 1;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 5;
+  margin-right: 5px;
 }
 
 .close-button:hover {
-  background-color: #e2e8f0;
-  color: #1e293b;
+  background-color: #f3f4f6;
+  color: #111827;
 }
 
 /* Modal body */
 .modal-body {
   padding: 25px;
+  overflow-y: auto; /* Added overflow-y: auto here instead */
+  max-height: calc(95vh - 140px); /* Adjusted to account for header and footer */
+}
+
+/* Form groups */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-control,
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background-color: #fff;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  outline: none;
+}
+
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+  background-color: #f9fafb;
+  opacity: 1;
+}
+
+.invalid-feedback {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 4px;
 }
 
 /* Avatar section */
 .homestay-avatar-display {
-  padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 20px;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  height: 100%;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .avatar-preview {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   border-radius: 12px;
-  border: 2px dashed #d1d5db;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
   overflow: hidden;
-  background-color: #f9fafb;
-  transition: all 0.3s ease;
-  margin-bottom: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
-
-.avatar-preview:hover {
-  border-color: #3b82f6;
-  transform: scale(1.05);
-}
-
-.avatar-placeholder {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  color: #9ca3af;
-  height: 100%;
-  width: 100%;
   justify-content: center;
+  background-color: #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.avatar-placeholder i {
-  font-size: 50px;
-  margin-bottom: 10px;
+.avatar-preview:hover:not(.view-mode) {
+  background-color: #d1d5db;
 }
 
-.avatar-placeholder span {
+.avatar-preview:hover:not(.view-mode)::after {
+  content: 'Thay đổi ảnh';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px;
   font-size: 14px;
   text-align: center;
 }
@@ -761,148 +1306,208 @@ export default {
   object-fit: cover;
 }
 
-.homestay-avatar-display h4 {
-  font-size: 1.2rem;
-  margin-top: 0.8rem;
-  margin-bottom: 0.3rem;
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
 }
 
-.homestay-avatar-display .homestay-id {
-  font-size: 0.85rem;
-  color: #6c757d;
+.avatar-placeholder i {
+  font-size: 48px;
+  margin-bottom: 10px;
 }
 
-.status-badge {
-  padding-top: 15px;
-  text-align: center;
-}
-
-.status-badge label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.status-badge .badge {
-  font-size: 0.9rem;
-  padding: 6px 12px;
-}
-
-/* Form styles */
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.form-control,
-.form-select {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-
-.form-control:focus,
-.form-select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
-}
-
-.form-control.is-invalid,
-.form-select.is-invalid {
-  border-color: #ef4444;
-}
-
-.invalid-feedback {
-  color: #ef4444;
+.homestay-id {
+  color: #6b7280;
   font-size: 14px;
   margin-top: 5px;
 }
 
-/* Footer */
+.status-badge {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bg-success {
+  background-color: #10b981;
+  color: white;
+}
+
+.bg-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+/* Modal footer */
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 15px 0;
+  padding: 20px 25px;
   border-top: 1px solid #e5e7eb;
-  margin-top: 20px;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  background-color: #f8f9fa;
+  overflow: hidden;
 }
 
 .btn {
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 10px 20px;
+  padding: 10px 16px;
   border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   transition: all 0.2s ease;
 }
 
-.btn-secondary {
-  background-color: #e2e8f0;
-  color: #475569;
-  border: none;
-}
-
-.btn-secondary:hover {
-  background-color: #cbd5e1;
-}
-
 .btn-primary {
-  background-color: #0d6efd;
+  background-color: #3b82f6;
+  color: white;
   border: none;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  background-color: #2563eb;
+}
+
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+.btn-info {
+  background-color: #0ea5e9;
+  color: white;
+  border: none;
+}
+
+.btn-info:hover {
+  background-color: #0284c7;
+}
+
+/* Staff info (view mode) */
+.staff-info .form-control {
+  background-color: #f9fafb;
+  cursor: not-allowed;
+}
+
+/* Animation */
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+}
+}
+
+/* Tiện nghi container */
+.tien-nghi-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #f9fafb;
+}
+
+.tien-nghi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tien-nghi-item {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.tien-nghi-item:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 
-.btn-primary:disabled {
-  opacity: 0.7;
-  transform: none;
+.tien-nghi-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+  animation: fade-in 0.3s ease;
 }
 
-/* Add additional styles for view mode */
-.staff-info .form-control[readonly] {
-  background-color: #f9fafb;
-  border-color: #e5e7eb;
-  cursor: text;
-  padding: 8px 12px;
-  font-size: 0.95rem;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+}
+  to {
+    opacity: 1;
+    transform: translateY(0);
+}
 }
 
-.staff-info .form-group {
-  margin-bottom: 12px;
+.form-check-input {
+  cursor: pointer;
 }
 
-.staff-info label {
-  font-size: 0.9rem;
-  margin-bottom: 5px;
+.form-check-label {
+  cursor: pointer;
+  user-select: none;
   font-weight: 500;
-  color: #333;
 }
 
-/* Avatar preview in view mode shouldn't have pointer cursor */
-.avatar-preview.view-mode {
-  cursor: default;
-  pointer-events: none;
+.form-check-input:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
 }
 
-.avatar-preview.view-mode:hover {
-  border-color: #d1d5db;
-  transform: none;
+.form-switch .form-check-input {
+  width: 2.5em;
+  margin-left: -2.5em;
+}
+
+.modal-form {
+  position: relative;
+  background-color: #fff;
+  border-radius: 16px;
+  width: 550px;
+  max-width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modal-fade-in 0.3s ease;
+  z-index: 1060;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 </style>
 

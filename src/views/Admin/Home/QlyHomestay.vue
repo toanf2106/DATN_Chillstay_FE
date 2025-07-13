@@ -34,6 +34,9 @@
         <button class="btn btn-info loai-homestay-btn" @click="navigateToLoaiHomestay">
           <i class="fas fa-tags"></i>
         </button>
+        <button class="btn btn-success tiennghi-homestay-btn" @click="navigateToTienNghiHomestay">
+          <i class="fas fa-concierge-bell"></i>
+        </button>
         <button class="btn btn-primary add-button" @click="openAddModal">
           <font-awesome-icon icon="fa-solid fa-building-user" />
         </button>
@@ -84,7 +87,7 @@
             <td class="text-center">{{ hs.dienTich }} m²</td>
             <td class="text-center">{{ formatCurrency(hs.giaCaHomestay) }} đ</td>
             <td class="text-center">{{ hs.diaChi }}</td>
-            <td class="text-center">{{ hs.tinhTrang }}</td>
+            <td class="text-center">{{ formatTinhTrang(hs.tinhTrang) }}</td>
             <td class="text-center">{{ getLoaiName(hs.idLoaiHomeStay) }}</td>
             <td class="text-center">
               <span :class="`badge ${hs.trangThai ? 'bg-success' : 'bg-danger'}`">
@@ -152,8 +155,8 @@
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 0 }">
-            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage - 1)">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
@@ -161,15 +164,15 @@
             v-for="page in totalPages"
             :key="page"
             class="page-item"
-            :class="{ active: page - 1 === currentPage }"
+            :class="{ active: page === currentPage }"
           >
-            <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
           </li>
           <li
             class="page-item"
-            :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            :class="{ disabled: currentPage === totalPages || totalPages === 0 }"
           >
-            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
             </a>
           </li>
@@ -235,7 +238,7 @@ export default {
     const loading = ref(false)
 
     // Pagination
-    const currentPage = ref(0)
+    const currentPage = ref(1)
     const pageSize = ref(10)
     const totalPages = ref(1)
 
@@ -303,6 +306,16 @@ export default {
       return img
     }
 
+    const formatTinhTrang = (tinhTrang) => {
+      // Map old values to new values if they still exist in the database
+      if (tinhTrang === 'Còn phòng') {
+        return 'Đã có người ở'
+      } else if (tinhTrang === 'Hết phòng') {
+        return 'Trống nhưng bẩn'
+      }
+      return tinhTrang
+    }
+
     const filteredHomestays = computed(() => {
       let filtered = homestays.value
 
@@ -326,7 +339,7 @@ export default {
 
     // Computed properties cho phân trang
     const paginatedHomestays = computed(() => {
-      const start = currentPage.value * pageSize.value
+      const start = (currentPage.value - 1) * pageSize.value
       const end = start + pageSize.value
       return filteredHomestays.value.slice(start, end)
     })
@@ -334,11 +347,11 @@ export default {
     const totalItems = computed(() => filteredHomestays.value.length)
 
     const startItem = computed(() => {
-      return totalItems.value === 0 ? 0 : currentPage.value * pageSize.value + 1
+      return totalItems.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1
     })
 
     const endItem = computed(() => {
-      const end = (currentPage.value + 1) * pageSize.value
+      const end = currentPage.value * pageSize.value
       return end > totalItems.value ? totalItems.value : end
     })
 
@@ -348,16 +361,16 @@ export default {
     })
 
     const handleSearch = () => {
-      currentPage.value = 0
+      currentPage.value = 1
     }
 
     const handleStatusChange = (status) => {
       selectedStatus.value = status
-      currentPage.value = 0
+      currentPage.value = 1
     }
 
     const changePage = (page) => {
-      if (page >= 0 && page < totalPages.value) {
+      if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page
       }
     }
@@ -455,6 +468,10 @@ export default {
       router.push('/admin/loai-homestay')
     }
 
+    const navigateToTienNghiHomestay = () => {
+      router.push({ name: 'admin-homestay-tien-nghi' })
+    }
+
     // Quản lý modal ảnh chi tiết
     const openAnhModal = (homestay) => {
       selectedHomestay.value = { ...homestay }
@@ -516,11 +533,16 @@ export default {
       loaiList,
       chuList,
       navigateToLoaiHomestay,
+      navigateToTienNghiHomestay,
       showAnhModal,
       viewOnlyImages,
       openAnhModal,
       openAnhModalFromDetails,
       closeAnhModal,
+
+
+      formatTinhTrang
+
     }
   },
 }
@@ -654,6 +676,27 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
   background: linear-gradient(45deg, #0a58ca, #0077cc);
+}
+
+.tiennghi-homestay-btn {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 21px;
+  font-weight: 600;
+  padding: 0 20px;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+  transition: all 0.3s ease;
+  background: linear-gradient(45deg, #28a745, #218838);
+  border: none;
+}
+
+.tiennghi-homestay-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+  background: linear-gradient(45deg, #218838, #1e7e34);
 }
 
 .add-button {
@@ -828,38 +871,64 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
+  padding: 15px 0;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .pagination-info {
-  color: #6c757d;
-  font-size: 0.95rem;
+  color: #6b7280;
+  font-size: 14px;
 }
 
 .pagination {
-  margin-bottom: 0;
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 8px;
+}
+
+.page-item {
+  margin: 0;
 }
 
 .page-link {
-  color: #0d6efd;
-  border: 1px solid #dee2e6;
-  margin: 0 2px;
-  border-radius: 4px;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #4b5563;
+  background-color: #f9fafb;
+  border: none;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .page-link:hover {
-  background-color: #e9ecef;
+  background-color: #e5e7eb;
 }
 
 .page-item.active .page-link {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: #2563eb;
+  color: #fff;
 }
 
 .page-item.disabled .page-link {
-  color: #6c757d;
+  color: #d1d5db;
   pointer-events: none;
+  cursor: default;
+  opacity: 0.6;
+  background-color: #f3f4f6;
+}
+
+.nav-arrow {
+  color: #6b7280;
+  font-size: 12px;
+  background-color: #f9fafb;
 }
 
 /* Empty rows */

@@ -16,30 +16,23 @@
               </div>
               <img v-else :src="previewImage" alt="Preview" class="preview-image" />
             </div>
-            <input
-              type="file"
-              ref="fileInput"
-              @change="handleFileUpload"
-              accept="image/*"
-              style="display: none"
-            />
+            <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/*" style="display: none" />
             <div class="mt-3 d-flex justify-content-end">
-              <button
-                type="button"
-                class="btn btn-secondary me-2"
-                @click="resetUpload"
-                v-if="previewImage"
-              >
+              <button type="button" class="btn btn-secondary me-2" @click="resetUpload" v-if="previewImage">
                 <i class="fas fa-xmark"></i> Hủy
               </button>
-              <button
-                type="button"
-                class="btn btn-primary"
-                @click="uploadImage"
-                :disabled="isUploading || !selectedFile"
-              >
+              <button type="button" class="btn btn-primary" @click="uploadImage"
+                :disabled="isUploading || !selectedFile">
                 <i class="fas fa-save"></i> Lưu ảnh
               </button>
+            </div>
+            <div class="mt-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" v-model="isAnhBia" id="anhBiaSwitch">
+                <label class="form-check-label" for="anhBiaSwitch">
+                  {{ isAnhBia ? 'Sử dụng làm ảnh bìa' : 'Ảnh thường' }}
+                </label>
+              </div>
             </div>
           </div>
 
@@ -63,28 +56,23 @@
                 <div class="image-container">
                   <img :src="image.duongDanAnh" :alt="`Ảnh ${index + 1}`" />
                   <div class="image-actions" v-if="!viewOnly">
-                    <button
-                      class="btn btn-sm btn-danger"
-                      @click="deleteImage(image.id)"
-                      :disabled="isDeleting === image.id"
-                    >
+                    <button class="btn btn-sm btn-primary me-1" @click="setAsCoverImage(image)"
+                      :disabled="isSettingCover || image.isAnhBia" title="Đặt làm ảnh bìa">
+                      <i class="fas fa-image"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" @click="deleteImage(image.id)"
+                      :disabled="isDeleting === image.id" title="Xóa ảnh">
                       <i class="fas fa-trash"></i>
                     </button>
+                  </div>
+                  <div class="image-badge" v-if="image.isAnhBia">
+                    <span class="badge bg-success">Ảnh bìa</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          @click="$emit('close')"
-        >
-          <i class="fas fa-times"></i> Đóng
-        </button>
       </div>
     </div>
   </div>
@@ -93,16 +81,19 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import {
-  getAnhHomeStayByHomestayId,
-  uploadAnhHomeStay,
-  deleteAnhHomeStay,
-} from '@/Service/HomeStayService'
+  getAnhTinTucByTinTucId,
+  getDeletedAnhTinTucByTinTucId,
+  addAnhTinTucWithImage,
+  deleteAnhTinTuc,
+  restoreAnhTinTuc,
+  setAnhBia
+} from '@/Service/AnhTinTucService'
 import { useToast } from '@/stores/notificationStore'
 
 export default {
-  name: 'AnhHomestayModal',
+  name: 'AnhTinTucModal',
   props: {
-    homestay: {
+    tinTuc: {
       type: Object,
       required: true,
     },
@@ -114,29 +105,62 @@ export default {
   setup(props) {
     const toast = useToast()
     const images = ref([])
+    const deletedImages = ref([])
     const loading = ref(true)
     const isUploading = ref(false)
     const isDeleting = ref(null)
+    const isRestoring = ref(null)
+    const isSettingCover = ref(false)
     const fileInput = ref(null)
     const selectedFile = ref(null)
     const previewImage = ref(null)
+    const isAnhBia = ref(false)
+    const showDeleted = ref(false)
 
     const modalTitle = computed(() => {
       return props.viewOnly
-        ? `Ảnh chi tiết - ${props.homestay.tenHomestay}`
-        : `Quản lý ảnh - ${props.homestay.tenHomestay}`
-    })
+        ? `Ảnh chi tiết - ${props.tinTuc.tieuDe}`
+        : `Quản lý ảnh - ${props.tinTuc.tieuDe}`
+    });
 
     const fetchImages = async () => {
       try {
         loading.value = true
-        const response = await getAnhHomeStayByHomestayId(props.homestay.id)
-        images.value = response.data || []
+        const response = await getAnhTinTucByTinTucId(props.tinTuc.id)
+
+        // Xử lý dữ liệu để xác định ảnh bìa
+        const imageList = response.data || []
+        images.value = imageList.map(img => ({
+          ...img,
+          isAnhBia: props.tinTuc.anhBia === img.duongDanAnh
+        }))
       } catch (error) {
         console.error('Lỗi khi tải ảnh:', error)
         toast.error('Không thể tải danh sách ảnh. Vui lòng thử lại sau.')
       } finally {
         loading.value = false
+      }
+    }
+
+    const fetchDeletedImages = async () => {
+      try {
+        loading.value = true
+        const response = await getDeletedAnhTinTucByTinTucId(props.tinTuc.id)
+        deletedImages.value = response.data || []
+      } catch (error) {
+        console.error('Lỗi khi tải ảnh đã xóa:', error)
+        toast.error('Không thể tải danh sách ảnh đã xóa. Vui lòng thử lại sau.')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const toggleShowDeleted = async () => {
+      showDeleted.value = !showDeleted.value
+      if (showDeleted.value) {
+        await fetchDeletedImages()
+      } else {
+        await fetchImages()
       }
     }
 
@@ -159,6 +183,7 @@ export default {
     const resetUpload = () => {
       selectedFile.value = null
       previewImage.value = null
+      isAnhBia.value = false
       if (fileInput.value) {
         fileInput.value.value = ''
       }
@@ -171,9 +196,10 @@ export default {
         isUploading.value = true
         const formData = new FormData()
         formData.append('file', selectedFile.value)
-        formData.append('homestayId', props.homestay.id)
+        formData.append('tinTucId', props.tinTuc.id)
+        formData.append('isAnhBia', isAnhBia.value)
 
-        await uploadAnhHomeStay(selectedFile.value, props.homestay.id)
+        await addAnhTinTucWithImage(formData)
         toast.success('Tải ảnh lên thành công!')
         resetUpload()
         await fetchImages()
@@ -190,7 +216,7 @@ export default {
 
       try {
         isDeleting.value = imageId
-        await deleteAnhHomeStay(imageId)
+        await deleteAnhTinTuc(imageId)
         toast.success('Xóa ảnh thành công!')
         await fetchImages()
       } catch (error) {
@@ -201,22 +227,58 @@ export default {
       }
     }
 
+    const restoreImage = async (imageId) => {
+      try {
+        isRestoring.value = imageId
+        await restoreAnhTinTuc(imageId)
+        toast.success('Khôi phục ảnh thành công!')
+        await fetchDeletedImages()
+      } catch (error) {
+        console.error('Lỗi khi khôi phục ảnh:', error)
+        toast.error('Có lỗi xảy ra khi khôi phục ảnh. Vui lòng thử lại sau.')
+      } finally {
+        isRestoring.value = null
+      }
+    }
+
+    const setAsCoverImage = async (image) => {
+      try {
+        isSettingCover.value = true
+        await setAnhBia(props.tinTuc.id, image.id)
+        toast.success('Đã đặt làm ảnh bìa thành công!')
+        await fetchImages()
+      } catch (error) {
+        console.error('Lỗi khi đặt ảnh bìa:', error)
+        toast.error('Có lỗi xảy ra khi đặt ảnh bìa. Vui lòng thử lại sau.')
+      } finally {
+        isSettingCover.value = false
+      }
+    }
+
     onMounted(fetchImages)
 
     return {
       modalTitle,
       images,
+      deletedImages,
       loading,
       isUploading,
       isDeleting,
+      isRestoring,
+      isSettingCover,
       fileInput,
       selectedFile,
       previewImage,
+      isAnhBia,
+      showDeleted,
       triggerFileInput,
       handleFileUpload,
       resetUpload,
       uploadImage,
       deleteImage,
+      restoreImage,
+      setAsCoverImage,
+      toggleShowDeleted
     }
   },
 }
@@ -227,37 +289,35 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(30, 41, 59, 0.6);
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1050;
-  backdrop-filter: blur(4px);
-  transition: opacity 0.3s ease;
+  z-index: 1000;
 }
 
 .anh-homestay-details-modal {
-  position: relative;
-  background-color: #fff;
-  border-radius: 16px;
+  background-color: white;
+  border-radius: 10px;
   width: 800px;
   max-width: 95%;
-  max-height: 95vh;
+  max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modal-fade-in 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
 }
 
-@keyframes modal-fade-in {
+@keyframes slideIn {
   from {
+    transform: translateY(-50px);
     opacity: 0;
-    transform: translateY(-20px);
   }
+
   to {
-    opacity: 1;
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
@@ -265,39 +325,26 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: 1.5rem;
   color: #343a40;
 }
 
 .close-button {
-  position: relative;
-  top: -2px;
-  background: #f1f5f9;
+  background: none;
   border: none;
-  font-size: 1.25rem;
-  font-weight: bold;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #64748b;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s ease;
+  color: #6c757d;
 }
 
 .close-button:hover {
-  background-color: #e2e8f0;
-  color: #1e293b;
+  color: #343a40;
 }
 
 .modal-body {
@@ -355,7 +402,8 @@ export default {
 
 .image-container {
   position: relative;
-  padding-top: 75%; /* 4:3 Aspect Ratio */
+  padding-top: 75%;
+  /* 4:3 Aspect Ratio */
 }
 
 .image-container img {
@@ -373,10 +421,18 @@ export default {
   right: 10px;
   opacity: 0;
   transition: opacity 0.3s ease;
+  z-index: 2;
 }
 
-.image-item:hover .image-actions {
+.image-container:hover .image-actions {
   opacity: 1;
+}
+
+.image-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
 }
 
 .btn {

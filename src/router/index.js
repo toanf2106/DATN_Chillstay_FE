@@ -8,8 +8,14 @@ import TestThanhToan from '../views/testThanhToan.vue'
 import ForgotPasswordForm from '../components/Password.vue'
 import EmailConfirmView from '../views/EmailConfirmView.vue'
 
-import BookingView from '../views/BookingView.vue'
+import DetailHome from '../views/DetailHome.vue'
 import AllHomestaysView from '../views/AllHomestaysView.vue'
+
+import BookingView from '../views/BookingView.vue'
+
+import NewsView from '../views/NewsView.vue'
+import NewsDetailView from '../views/NewsDetailView.vue'
+
 
 import { useAuthStore } from '../stores/authStore'
 
@@ -18,10 +24,19 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     { path: '/about', name: 'about', component: about },
-    { path: '/booking', name: 'booking', component: BookingView },
+    { path: '/booking/:id', name: 'booking', component: BookingView },
     { path: '/all-homestays', name: 'allHomestays', component: AllHomestaysView },
-    { path: '/homestay/:id', name: 'homestayDetail', component: BookingView },
+
+
     { path: '/test-thanh-toan', name: 'testThanhToan', component: TestThanhToan },
+
+
+    { path: '/homestay/:id', name: 'homestayDetail', component: DetailHome },
+
+    { path: '/tin-tuc', name: 'news', component: NewsView },
+    { path: '/tin-tuc/:id', name: 'newsDetail', component: NewsDetailView },
+
+
 
     // Route cho quên mật khẩu và đặt lại mật khẩu
     { path: '/quen-mat-khau', name: 'forgot-password', component: ForgotPasswordForm },
@@ -56,6 +71,26 @@ const router = createRouter({
           path: 'loai-homestay',
           name: 'admin-loai-homestay',
           component: () => import('../views/Admin/Home/QlyLoaiHomestay.vue'),
+        },
+
+        // Quản lý Tiện nghi Homestay
+        {
+          path: 'homestay-tien-nghi',
+          name: 'admin-homestay-tien-nghi',
+          component: () => import('../views/Admin/Home/QlyHomestayTienNghi.vue'),
+        },
+
+        // Quản lý Dịch vụ Homestay
+        {
+          path: 'homestay-dich-vu',
+          name: 'admin-homestay-dich-vu',
+          component: () => import('../views/Admin/Home/QlyHomestayDichVu.vue'),
+        },
+
+        // Alias cho URL tien-nghi-homestay
+        {
+          path: 'tien-nghi-homestay',
+          redirect: { name: 'admin-homestay-tien-nghi' },
         },
 
         // Quản lý Phòng - Thông tin về các phòng trong homestay

@@ -46,42 +46,6 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Giá trị tối thiểu</label>
-              <input
-                type="number"
-                class="form-control"
-                :class="{ 'is-invalid': errors.giaTriToiThieu }"
-                v-model.number="form.giaTriToiThieu"
-                min="0"
-                step="1000"
-                placeholder="Nhập giá trị tối thiểu để áp dụng"
-              />
-              <div class="invalid-feedback" v-if="errors.giaTriToiThieu">
-                {{ errors.giaTriToiThieu }}
-              </div>
-              <small class="text-muted">Giá trị đơn hàng tối thiểu để áp dụng voucher</small>
-            </div>
-
-            <!-- Thêm trường giảm tối đa cho loại phần trăm -->
-            <div class="form-group">
-              <label class="form-label">Giảm tối đa </label>
-              <input
-                type="number"
-                class="form-control"
-                :class="{ 'is-invalid': errors.giamToiDa }"
-                v-model.number="form.giamToiDa"
-                min="0"
-                step="1000"
-                placeholder="Nhập giá trị giảm tối đa"
-              />
-              <div class="invalid-feedback" v-if="errors.giamToiDa">
-                {{ errors.giamToiDa }}
-              </div>
-              <small class="text-muted">Giới hạn số tiền tối đa được giảm (để trống nếu không giới hạn)</small>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-group">
               <label class="form-label">Ngày bắt đầu <span class="text-danger">*</span></label>
               <input
                 type="date"
@@ -107,6 +71,25 @@
               <div class="invalid-feedback" v-if="errors.ngayKetThuc">
                 {{ errors.ngayKetThuc }}
               </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <!-- Thêm trường giảm tối đa cho loại phần trăm -->
+            <div class="form-group">
+              <label class="form-label">Giảm tối đa </label>
+              <input
+                type="number"
+                class="form-control"
+                :class="{ 'is-invalid': errors.giamToiDa }"
+                v-model.number="form.giamToiDa"
+                min="0"
+                step="1000"
+                placeholder="Nhập giá trị giảm tối đa"
+              />
+              <div class="invalid-feedback" v-if="errors.giamToiDa">
+                {{ errors.giamToiDa }}
+              </div>
+              <small class="text-muted">Giới hạn số tiền tối đa được giảm (để trống nếu không giới hạn)</small>
             </div>
 
             <div class="form-group">
@@ -197,7 +180,6 @@ export default {
       tenGiamGia: '',
       loaiGiamGia: 'PhanTram',
       giaTri: 0,
-      giaTriToiThieu: 0,
       giamToiDa: null,
       ngayBatDau: null,
       ngayKetThuc: null,
@@ -222,7 +204,6 @@ export default {
           tenGiamGia: props.voucher.tenGiamGia || '',
           loaiGiamGia: props.voucher.loaiGiamGia || 'PhanTram',
           giaTri: props.voucher.giaTri || 0,
-          giaTriToiThieu: props.voucher.giaTriToiThieu || 0,
           giamToiDa: props.voucher.giamToiDa || null,
           ngayBatDau: props.voucher.ngayBatDau ? new Date(props.voucher.ngayBatDau).toISOString().split('T')[0] : null,
           ngayKetThuc: props.voucher.ngayKetThuc ? new Date(props.voucher.ngayKetThuc).toISOString().split('T')[0] : null,
@@ -274,11 +255,6 @@ export default {
       // Validate giảm tối đa khi loại giảm giá là phần trăm
       if (form.value.loaiGiamGia === 'PhanTram' && form.value.giamToiDa !== null && form.value.giamToiDa <= 0) {
         newErrors.giamToiDa = 'Giá trị giảm tối đa phải lớn hơn 0';
-      }
-
-      // Kiểm tra giá trị tối thiểu không được lớn hơn giá trị tối đa
-      if (form.value.giaTriToiThieu > 0 && form.value.giamToiDa !== null && form.value.giaTriToiThieu > form.value.giamToiDa) {
-        newErrors.giaTriToiThieu = 'Giá trị tối thiểu không được lớn hơn giá trị giảm tối đa';
       }
 
       errors.value = newErrors;

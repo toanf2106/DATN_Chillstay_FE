@@ -86,17 +86,6 @@
 
           <div class="modal-footer">
             <div v-if="isViewMode">
-              <button type="button" class="btn btn-primary" @click="$emit('edit')">
-                <i class="fas fa-edit"></i> Sửa
-              </button>
-              <button
-                type="button"
-                class="btn btn-danger"
-                @click="confirmDelete"
-                :disabled="isDeleting"
-              >
-                <i class="fas fa-trash-alt"></i> Xóa
-              </button>
             </div>
             <div v-else class="button-container">
               <button type="button" class="btn btn-secondary" @click="$emit('close')">
@@ -232,34 +221,37 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  background-color: rgba(30, 41, 59, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1050;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
 }
 
 .loai-homestay-details-modal {
-  background-color: white;
-  border-radius: 10px;
-  width: 600px;
+  position: relative;
+  background-color: #fff;
+  border-radius: 16px;
+  width: 800px;
   max-width: 95%;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow-y: auto;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modal-fade-in 0.3s ease;
 }
 
-@keyframes slideIn {
+@keyframes modal-fade-in {
   from {
-    transform: translateY(-50px);
     opacity: 0;
+    transform: translateY(-20px);
   }
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -267,26 +259,39 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
+  padding: 20px 25px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8f9fa;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 700;
   color: #343a40;
 }
 
 .close-button {
-  background: none;
+  position: relative;
+  top: -2px;
+  background: #f1f5f9;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
   cursor: pointer;
-  color: #6c757d;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
 }
 
 .close-button:hover {
-  color: #343a40;
+  background-color: #e2e8f0;
+  color: #1e293b;
 }
 
 .modal-body {

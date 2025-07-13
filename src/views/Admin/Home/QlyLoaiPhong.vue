@@ -1,6 +1,6 @@
 <template>
-  <div class="homestay-container">
-    <h1 class="page-title">Quản Lý Homestay</h1>
+  <div class="loai-phong-container">
+    <h1 class="page-title">Quản Lý Loại Phòng</h1>
 
     <div class="controls-container">
       <div class="search-box">
@@ -10,7 +10,7 @@
             <input
               type="text"
               v-model="searchTerm"
-              placeholder="Tìm kiếm homestay..."
+              placeholder="Tìm kiếm loại phòng..."
               class="search-input"
               @input="handleSearch"
             />
@@ -31,11 +31,11 @@
           <option value="active">Đang hoạt động</option>
           <option value="inactive">Đã khóa</option>
         </select>
-        <button class="btn btn-info loai-homestay-btn" @click="navigateToLoaiHomestay">
-          <i class="fas fa-tags"></i>
+        <button class="btn btn-info phong-btn" @click="navigateToPhong" title="Quản lý phòng">
+          <i class="fas fa-door-open"></i>
         </button>
         <button class="btn btn-primary add-button" @click="openAddModal">
-          <font-awesome-icon icon="fa-solid fa-building-user" />
+          <i class="fas fa-plus"></i>
         </button>
       </div>
     </div>
@@ -54,77 +54,50 @@
       </div>
     </div>
 
-    <!-- Homestay Table -->
+    <!-- Loại Phòng Table -->
     <div class="table-responsive" v-if="!loading">
       <table class="table table-hover table-bordered table-sm">
         <thead>
           <tr>
-            <th>STT</th>
-            <th>Tên Homestay</th>
-            <th>Quản lý Homestay</th>
-            <th>Diện tích</th>
-            <th>Giá gốc</th>
-            <th>Địa chỉ</th>
-            <th>Tình trạng</th>
-            <th>Loại Homestay</th>
+            <th>ID</th>
+            <th>Tên Loại Phòng</th>
+            <th>Mô tả</th>
+            <th>Số lượng</th>
             <th>Trạng thái</th>
-            <th>Hình ảnh</th>
             <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="(hs, index) in filteredHomestays"
-            :key="hs.id"
-            @dblclick="viewHomestayDetails(hs)"
+            v-for="loaiPhong in paginatedLoaiPhongs"
+            :key="loaiPhong.id"
+            @dblclick="viewLoaiPhongDetails(loaiPhong)"
           >
-            <td class="text-center">{{ index + 1 }}</td>
-            <td class="text-center">{{ hs.tenHomestay }}</td>
-            <td class="text-center">{{ getChuName(hs.idChuHomeStay) }}</td>
-            <td class="text-center">{{ hs.dienTich }} m²</td>
-            <td class="text-center">{{ formatCurrency(hs.giaCaHomestay) }} đ</td>
-            <td class="text-center">{{ hs.diaChi }}</td>
-            <td class="text-center">{{ hs.tinhTrang }}</td>
-            <td class="text-center">{{ getLoaiName(hs.idLoaiHomeStay) }}</td>
+            <td class="text-center">{{ loaiPhong.id }}</td>
+            <td class="text-center">{{ loaiPhong.tenLoaiPhong }}</td>
+            <td class="text-center">{{ loaiPhong.moTa || 'Không có mô tả' }}</td>
+            <td class="text-center">{{ loaiPhong.soLuong || 0 }}</td>
             <td class="text-center">
-              <span :class="`badge ${hs.trangThai ? 'bg-success' : 'bg-danger'}`">
-                {{ hs.trangThai ? 'Hoạt động' : 'Khóa' }}
+              <span
+                :class="`badge ${loaiPhong.trangThai ? 'bg-success' : 'bg-danger'} status-badge`"
+                @click="toggleStatus(loaiPhong.id)"
+              >
+                {{ loaiPhong.trangThai ? 'Hoạt động' : 'Khóa' }}
               </span>
-            </td>
-            <td class="text-center">
-              <div class="image-wrapper">
-                <img
-                  v-if="hs.hinhAnh"
-                  :src="getImageUrl(hs.hinhAnh)"
-                  :alt="hs.tenHomestay"
-                  class="homestay-image"
-                />
-                <div v-else class="no-image-placeholder">
-                  <i class="fas fa-home"></i>
-                  <span>Không có ảnh</span>
-                </div>
-              </div>
             </td>
             <td class="text-center">
               <div class="action-buttons">
                 <button
-                  class="btn btn-icon btn-info-light"
-                  title="Quản lý ảnh"
-                  @click="openAnhModal(hs)"
-                >
-                  <i class="fas fa-images"></i>
-                </button>
-                <button
                   class="btn btn-icon btn-warning-light"
                   title="Chỉnh sửa"
-                  @click="editHomestay(hs)"
+                  @click="editLoaiPhong(loaiPhong)"
                 >
                   <i class="fas fa-edit"></i>
                 </button>
                 <button
                   class="btn btn-icon btn-danger-light"
                   title="Xóa"
-                  @click="deleteHomestay(hs.id)"
+                  @click="confirmDelete(loaiPhong.id)"
                 >
                   <i class="fas fa-trash"></i>
                 </button>
@@ -133,22 +106,22 @@
           </tr>
           <!-- Empty rows to ensure space for 10 rows -->
           <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
-            <td colspan="11">&nbsp;</td>
+            <td colspan="6">&nbsp;</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <!-- Empty state -->
-    <div v-if="!loading && filteredHomestays.length === 0" class="empty-state">
+    <div v-if="!loading && filteredLoaiPhongs.length === 0" class="empty-state">
       <i class="fas fa-box-open empty-icon"></i>
-      <p>Không tìm thấy homestay nào.</p>
+      <p>Không tìm thấy loại phòng nào.</p>
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-container" v-if="!loading && filteredHomestays.length > 0">
+    <div class="pagination-container" v-if="!loading && filteredLoaiPhongs.length > 0">
       <div class="pagination-info">
-        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} homestay
+        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} loại phòng
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
@@ -179,55 +152,40 @@
   </div>
 
   <!-- Modal component cho thêm/sửa/xem chi tiết -->
-  <HomestayModal
+  <LoaiPhongModal
     v-if="showModal"
-    :homestay="selectedHomestay"
-    :loaiList="loaiList"
-    :chuList="chuList"
+    :loaiPhong="selectedLoaiPhong"
     :isEdit="isEdit"
     :isViewMode="isViewMode"
     @close="closeModal"
-    @save="saveHomestay"
+    @save="saveLoaiPhong"
     @edit="editFromViewMode"
-    @view-images="openAnhModalFromDetails"
-  />
-
-  <!-- Modal component cho quản lý ảnh chi tiết -->
-  <AnhHomestayModal
-    v-if="showAnhModal"
-    :homestay="selectedHomestay"
-    :viewOnly="viewOnlyImages"
-    @close="closeAnhModal"
+    @delete="handleDeleteLoaiPhong"
   />
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue'
 import {
-  getAllHomeStay,
-  getLoaiHomeStay,
-  getChuHomeStay,
-  createHomestay,
-  updateHomestay,
-  deleteHomestayAPI,
-} from '@/Service/HomeStayService'
-import HomestayModal from '../components/HomestayModal.vue'
-import AnhHomestayModal from '../components/AnhHomestayModal.vue'
+  getLoaiPhongList as getLoaiPhong,
+  addLoaiPhong as createLoaiPhong,
+  updateLoaiPhong,
+  deleteLoaiPhongAPI as deleteLoaiPhong,
+} from '@/Service/phongService'
+import LoaiPhongModal from '../components/LoaiPhongModal.vue'
 import { useToast } from '@/stores/notificationStore'
 import { useRouter } from 'vue-router'
+import api from '@/utils/api'
 
 export default {
-  name: 'QlyHomestay',
+  name: 'QlyLoaiPhong',
   components: {
-    HomestayModal,
-    AnhHomestayModal,
+    LoaiPhongModal,
   },
   setup() {
     const toast = useToast()
     const router = useRouter()
-    const homestays = ref([])
-    const loaiList = ref([])
-    const chuList = ref([])
+    const loaiPhongs = ref([])
     const searchTerm = ref('')
     const apiError = ref(false)
     const apiErrorMessage = ref('')
@@ -241,100 +199,67 @@ export default {
 
     // State for modal
     const showModal = ref(false)
-    const selectedHomestay = ref(null)
+    const selectedLoaiPhong = ref(null)
     const isEdit = ref(false)
     const isViewMode = ref(false)
-
-    // Quản lý modal ảnh chi tiết
-    const showAnhModal = ref(false)
-    const viewOnlyImages = ref(false)
 
     // API calls
     const fetchData = async () => {
       try {
         loading.value = true
-        const [hsRes, loaiRes, chuRes] = await Promise.all([
-          getAllHomeStay(),
-          getLoaiHomeStay(),
-          getChuHomeStay(),
-        ])
-        homestays.value = hsRes.data || []
-        loaiList.value = loaiRes.data || []
-        chuList.value = chuRes.data || []
+        const response = await getLoaiPhong()
+        // Đảm bảo dữ liệu được cập nhật
+        loaiPhongs.value = []
+        setTimeout(() => {
+          loaiPhongs.value = response.data || []
+        }, 0)
+
         apiError.value = false
 
         // Cập nhật thông tin phân trang
-        totalPages.value = Math.ceil(homestays.value.length / pageSize.value) || 1
+        totalPages.value = Math.ceil(loaiPhongs.value.length / pageSize.value) || 1
       } catch (e) {
         apiError.value = true
-
-        // Kiểm tra lỗi cụ thể để hiển thị thông báo phù hợp
-        if (e.response && e.response.status === 404) {
-          apiErrorMessage.value =
-            'Không thể kết nối đến API chủ homestay. Vui lòng kiểm tra đường dẫn API hoặc khởi động lại server.'
-        } else {
-          apiErrorMessage.value = 'Không thể tải dữ liệu. Vui lòng thử lại sau.'
-        }
+        apiErrorMessage.value = 'Không thể tải dữ liệu loại phòng. Vui lòng thử lại sau.'
+        console.error('Error fetching loai phong data:', e)
       } finally {
         loading.value = false
       }
     }
 
-    // Helpers
-    const getLoaiName = (id) => {
-      const loai = loaiList.value.find((l) => l.id === id)
-      return loai?.tenLoaiHomestay || 'Không xác định'
+    // Format date
+    const formatDate = (date) => {
+      if (!date) return 'N/A'
+      return new Date(date).toLocaleDateString('vi-VN')
     }
 
-    const getChuName = (id) => {
-      const chu = chuList.value.find((c) => c.id === id)
-      if (!chu) return 'Không xác định'
-      return chu.hotenChuHomestay || 'Không xác định'
-    }
-
-    const formatCurrency = (num) => new Intl.NumberFormat('vi-VN').format(num)
-    const getImageUrl = (img) => {
-      // Nếu không có ảnh
-      if (!img) return '/images/placeholder-house.jpg'
-
-      // Nếu là URL GCS hoặc URL đầy đủ
-      if (img.startsWith('http')) {
-        // Đảm bảo URL an toàn bằng cách mã hóa các ký tự đặc biệt
-        return encodeURI(img)
-      }
-
-      return img
-    }
-
-    const filteredHomestays = computed(() => {
-      let filtered = homestays.value
+    // Filtered loai phongs
+    const filteredLoaiPhongs = computed(() => {
+      let filtered = loaiPhongs.value
 
       // Lọc theo từ khóa tìm kiếm
       if (searchTerm.value) {
         const key = searchTerm.value.toLowerCase()
-        filtered = filtered.filter(
-          (h) =>
-            h.tenHomestay?.toLowerCase().includes(key) || h.diaChi?.toLowerCase().includes(key),
-        )
+        filtered = filtered.filter((l) => l.tenLoaiPhong?.toLowerCase().includes(key))
       }
 
       // Lọc theo trạng thái
       if (selectedStatus.value !== 'all') {
         const isActive = selectedStatus.value === 'active'
-        filtered = filtered.filter((h) => h.trangThai === isActive)
+        filtered = filtered.filter((l) => l.trangThai === isActive)
       }
 
       return filtered
     })
 
     // Computed properties cho phân trang
-    const paginatedHomestays = computed(() => {
+    const paginatedLoaiPhongs = computed(() => {
       const start = currentPage.value * pageSize.value
       const end = start + pageSize.value
-      return filteredHomestays.value.slice(start, end)
+      return filteredLoaiPhongs.value.slice(start, end)
     })
 
-    const totalItems = computed(() => filteredHomestays.value.length)
+    const totalItems = computed(() => filteredLoaiPhongs.value.length)
 
     const startItem = computed(() => {
       return totalItems.value === 0 ? 0 : currentPage.value * pageSize.value + 1
@@ -346,7 +271,7 @@ export default {
     })
 
     const emptyRows = computed(() => {
-      const rowsCount = paginatedHomestays.value.length
+      const rowsCount = paginatedLoaiPhongs.value.length
       return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0
     })
 
@@ -369,26 +294,29 @@ export default {
     const openAddModal = () => {
       isEdit.value = false
       isViewMode.value = false
-      selectedHomestay.value = null
+      selectedLoaiPhong.value = {
+        tenLoaiPhong: '',
+        moTa: '',
+        soLuong: 0,
+        trangThai: true
+      }
       showModal.value = true
     }
 
-    const editHomestay = (homestay) => {
+    const editLoaiPhong = (loaiPhong) => {
       isEdit.value = true
       isViewMode.value = false
-      selectedHomestay.value = { ...homestay }
+      selectedLoaiPhong.value = { ...loaiPhong }
       showModal.value = true
     }
 
-    // View homestay details
-    const viewHomestayDetails = (homestay) => {
+    const viewLoaiPhongDetails = (loaiPhong) => {
       isEdit.value = false
       isViewMode.value = true
-      selectedHomestay.value = { ...homestay }
+      selectedLoaiPhong.value = { ...loaiPhong }
       showModal.value = true
     }
 
-    // Handle edit from view mode
     const editFromViewMode = () => {
       isViewMode.value = false
       isEdit.value = true
@@ -397,97 +325,86 @@ export default {
     const closeModal = () => {
       showModal.value = false
       setTimeout(() => {
-        selectedHomestay.value = null
+        selectedLoaiPhong.value = null
         isEdit.value = false
         isViewMode.value = false
-      }, 300) // Delay để hoàn tất animation
+      }, 300)
     }
 
-    const saveHomestay = async (formData) => {
+    // Save loai phong (create or update)
+    const saveLoaiPhong = async (loaiPhongData) => {
       try {
-        // Kiểm tra xem formData có phải là FormData object không
-        if (formData instanceof FormData) {
-          // Lấy homestay JSON từ FormData
-          const homestayJson = formData.get('homestay')
-          if (homestayJson) {
-            if (isEdit.value && selectedHomestay.value && selectedHomestay.value.id) {
-              const homestayId = parseInt(selectedHomestay.value.id, 10)
-              await updateHomestay(homestayId, formData)
-              toast.success('Cập nhật homestay thành công')
-            } else {
-              await createHomestay(formData)
-              toast.success('Thêm homestay thành công')
-            }
-          } else {
-            throw new Error('Dữ liệu homestay không hợp lệ')
-          }
+        // Ensure we have valid data
+        const formattedData = {
+          ...loaiPhongData,
+          soLuong: parseInt(loaiPhongData.soLuong || 0, 10),
+          trangThai: loaiPhongData.trangThai !== undefined ? loaiPhongData.trangThai : true
+        };
+
+        if (formattedData.id) {
+          // Update existing loai phong
+          await updateLoaiPhong(formattedData)
+          toast.success('Cập nhật loại phòng thành công!')
         } else {
-          // Xử lý trường hợp dữ liệu không phải FormData (trường hợp cũ)
-          if (isEdit.value && formData.id) {
-            const homestayId = parseInt(formData.id, 10)
-            await updateHomestay(homestayId, formData)
-            toast.success('Cập nhật homestay thành công')
-          } else {
-            await createHomestay(formData)
-            toast.success('Thêm homestay thành công')
-          }
+          // Create new loai phong
+          await createLoaiPhong(formattedData)
+          toast.success('Thêm loại phòng mới thành công!')
         }
-
         closeModal()
-        fetchData() // Tải lại danh sách sau khi lưu
+        fetchData()
       } catch (error) {
-        const errorMessage =
-          error.response?.data?.message || error.message || 'Có lỗi xảy ra khi lưu homestay'
-        toast.error(errorMessage)
+        console.error('Error saving loai phong:', error)
+        toast.error(
+          'Có lỗi xảy ra khi lưu loại phòng. Vui lòng thử lại sau!'
+        )
       }
     }
 
-    const deleteHomestay = async (id) => {
-      if (confirm('Bạn có chắc chắn muốn xóa homestay này?')) {
-        try {
-          await deleteHomestayAPI(id)
-          toast.success('Xóa homestay thành công')
-          fetchData()
-        } catch {
-          toast.error('Lỗi khi xóa homestay')
-        }
+    // Delete loai phong
+    const confirmDelete = (id) => {
+      if (confirm('Bạn có chắc chắn muốn xóa loại phòng này không?')) {
+        handleDeleteLoaiPhong(id)
       }
     }
 
-    const navigateToLoaiHomestay = () => {
-      router.push('/admin/loai-homestay')
+    const handleDeleteLoaiPhong = async (id) => {
+      try {
+        await deleteLoaiPhong(id)
+        toast.success('Xóa loại phòng thành công!')
+        fetchData()
+        if (showModal.value) closeModal()
+      } catch (error) {
+        console.error('Error deleting loai phong:', error)
+        toast.error(
+          'Có lỗi xảy ra khi xóa loại phòng. Vui lòng thử lại sau!'
+        )
+      }
     }
 
-    // Quản lý modal ảnh chi tiết
-    const openAnhModal = (homestay) => {
-      selectedHomestay.value = { ...homestay }
-      showAnhModal.value = true
-      viewOnlyImages.value = false
+    const toggleStatus = async (id) => {
+      try {
+        const response = await api.put(`/api/loai-phong/change-status/${id}`)
+        console.log('Kết quả đổi trạng thái:', response.data)
+        toast.success('Cập nhật trạng thái loại phòng thành công!')
+        fetchData()
+      } catch (error) {
+        console.error('Error toggling loai phong status:', error)
+        toast.error('Có lỗi xảy ra khi cập nhật trạng thái loại phòng. Vui lòng thử lại sau!')
+      }
     }
 
-    const openAnhModalFromDetails = (homestay) => {
-      // Đóng modal chi tiết homestay
-      showModal.value = false
-      // Mở modal ảnh ở chế độ chỉ xem
-      selectedHomestay.value = { ...homestay }
-      showAnhModal.value = true
-      viewOnlyImages.value = true
-    }
-
-    const closeAnhModal = () => {
-      showAnhModal.value = false
+    const navigateToPhong = () => {
+      router.push({ name: 'admin-phong' })
+      console.log('Chuyển hướng đến trang quản lý phòng')
     }
 
     onMounted(fetchData)
 
     return {
       searchTerm,
-      filteredHomestays,
-      paginatedHomestays,
-      getLoaiName,
-      getChuName,
-      formatCurrency,
-      getImageUrl,
+      filteredLoaiPhongs,
+      paginatedLoaiPhongs,
+      formatDate,
       handleSearch,
       apiError,
       apiErrorMessage,
@@ -505,25 +422,19 @@ export default {
       changePage,
       // Modal state và functions
       showModal,
-      selectedHomestay,
+      selectedLoaiPhong,
       isEdit,
       isViewMode,
       openAddModal,
-      editHomestay,
-      viewHomestayDetails,
+      editLoaiPhong,
+      viewLoaiPhongDetails,
       editFromViewMode,
       closeModal,
-      saveHomestay,
-      deleteHomestay,
-      // Các danh sách để truyền xuống modal
-      loaiList,
-      chuList,
-      navigateToLoaiHomestay,
-      showAnhModal,
-      viewOnlyImages,
-      openAnhModal,
-      openAnhModalFromDetails,
-      closeAnhModal
+      saveLoaiPhong,
+      confirmDelete,
+      handleDeleteLoaiPhong,
+      toggleStatus,
+      navigateToPhong,
     }
   },
 }
@@ -531,7 +442,7 @@ export default {
 
 <style scoped>
 /* GENERAL CONTAINER & TITLE */
-.homestay-container {
+.loai-phong-container {
   background-color: #f8f9fa;
   padding: 25px;
   border-radius: 15px;
@@ -638,7 +549,7 @@ export default {
   color: #495057;
 }
 
-.loai-homestay-btn {
+.phong-btn {
   height: 42px;
   display: flex;
   align-items: center;
@@ -647,16 +558,17 @@ export default {
   font-weight: 600;
   padding: 0 20px;
   gap: 8px;
-  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+  box-shadow: 0 4px 10px rgba(13, 202, 240, 0.3);
   transition: all 0.3s ease;
-  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  background: linear-gradient(45deg, #0dcaf0, #31d2f2);
   border: none;
+  margin-right: 10px;
 }
 
-.loai-homestay-btn:hover {
+.phong-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
-  background: linear-gradient(45deg, #0a58ca, #0077cc);
+  box-shadow: 0 6px 15px rgba(13, 202, 240, 0.4);
+  background: linear-gradient(45deg, #0ab2d2, #25c2e0);
 }
 
 .add-button {
@@ -714,51 +626,6 @@ export default {
   background-color: #f8f9fa;
 }
 
-/* Image styling */
-.image-wrapper {
-  position: relative;
-  width: 70px;
-  height: 50px;
-  margin: 0 auto;
-  overflow: hidden;
-  border-radius: 5px;
-}
-
-.homestay-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.no-image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 5px;
-  color: #6c757d;
-}
-
-.no-image-placeholder i {
-  font-size: 1.2rem;
-  margin-bottom: 2px;
-}
-
-.no-image-placeholder span {
-  font-size: 0.7rem;
-}
-
-/* Badge styling */
-.badge {
-  padding: 6px 10px;
-  font-weight: 500;
-  font-size: 0.8rem;
-}
-
 /* Action buttons */
 .action-buttons {
   display: flex;
@@ -799,6 +666,74 @@ export default {
   color: #bd2130;
 }
 
+/* Badge styling */
+.badge {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.bg-success {
+  background-color: #198754 !important;
+}
+
+.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+.status-badge {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 10px 15px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.pagination {
+  margin: 0;
+  gap: 5px;
+}
+
+.page-item .page-link {
+  border-radius: 4px;
+  color: #0d6efd;
+  border: 1px solid #dee2e6;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+.page-item.active .page-link {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.page-item.disabled .page-link {
+  color: #6c757d;
+  pointer-events: none;
+  background-color: #fff;
+  border-color: #dee2e6;
+}
+
 /* Loading indicator */
 .loading-indicator {
   display: flex;
@@ -806,13 +741,44 @@ export default {
   padding: 40px 0;
 }
 
+/* Alert styling */
+.alert {
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+}
+
+.alert-warning {
+  background-color: #fff3cd;
+  border-color: #ffecb5;
+  color: #664d03;
+}
+
+.btn-close {
+  background: transparent;
+  border: 0;
+  font-size: 1.25rem;
+  padding: 0.25rem;
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.btn-close:hover {
+  opacity: 1;
+}
+
 /* Empty state */
 .empty-state {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 50px 0;
   background-color: #fff;
   border-radius: 12px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
 }
 
 .empty-icon {
@@ -824,57 +790,6 @@ export default {
 .empty-state p {
   color: #6c757d;
   font-size: 1.1rem;
-}
-
-/* Pagination */
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-}
-
-.pagination-info {
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
-.pagination {
-  margin-bottom: 0;
-}
-
-.page-link {
-  color: #0d6efd;
-  border: 1px solid #dee2e6;
-  margin: 0 2px;
-  border-radius: 4px;
-  padding: 8px 12px;
-}
-
-.page-link:hover {
-  background-color: #e9ecef;
-}
-
-.page-item.active .page-link {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.page-item.disabled .page-link {
-  color: #6c757d;
-  pointer-events: none;
-}
-
-/* Empty rows */
-.empty-row td {
-  padding: 10px !important;
-  border-bottom: none !important;
-}
-
-/* Alert styling */
-.alert {
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
+  margin: 0;
 }
 </style>

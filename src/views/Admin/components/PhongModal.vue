@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="homestay-details-modal">
+    <div class="phong-details-modal">
       <div class="modal-header">
         <h3>{{ modalTitle }}</h3>
         <button class="close-button" @click="$emit('close')">&times;</button>
@@ -8,21 +8,21 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-4">
-            <div class="homestay-avatar-display">
+            <div class="phong-avatar-display">
               <div
                 class="avatar-preview"
                 :class="{ 'view-mode': isViewMode }"
                 @click="triggerFileInput"
               >
                 <img
-                  v-if="previewImage || formData.hinhAnh"
-                  :src="previewImage || getImageUrl(formData.hinhAnh)"
-                  alt="Ảnh Homestay"
+                  v-if="previewImage || formData.anhBia"
+                  :src="previewImage || getImageUrl(formData.anhBia)"
+                  alt="Ảnh Phòng"
                   class="uploaded-avatar"
                   @error="handleImageError"
                 />
                 <div v-else class="avatar-placeholder">
-                  <i class="fas fa-home"></i>
+                  <i class="fas fa-door-open"></i>
                   <span>{{ isViewMode ? 'Chưa có ảnh' : 'Thêm ảnh' }}</span>
                 </div>
               </div>
@@ -34,9 +34,9 @@
                 style="display: none"
               />
 
-              <h4 class="text-center mt-3">{{ formData.tenHomestay || 'Homestay mới' }}</h4>
-              <p class="text-center homestay-id" v-if="formData.maHomestay">
-                Mã: {{ formData.maHomestay }}
+              <h4 class="text-center mt-3">{{ formData.tenPhong || 'Phòng mới' }}</h4>
+              <p class="text-center phong-id" v-if="formData.maPhong">
+                Mã: {{ formData.maPhong }}
               </p>
 
               <div class="status-badge" v-if="isEdit || isViewMode">
@@ -58,60 +58,66 @@
               <!-- Form for edit/add mode -->
               <div v-if="!isViewMode">
                 <div class="form-group">
-                  <label for="tenHomestay">Tên Homestay <span class="text-danger">*</span></label>
+                  <label for="tenPhong">Tên Phòng <span class="text-danger">*</span></label>
                   <input
-                    id="tenHomestay"
-                    v-model="formData.tenHomestay"
+                    id="tenPhong"
+                    v-model="formData.tenPhong"
                     type="text"
                     class="form-control"
-                    :class="{ 'is-invalid': errors.tenHomestay }"
+                    :class="{ 'is-invalid': errors.tenPhong }"
                     required
                   />
-                  <div v-if="errors.tenHomestay" class="invalid-feedback">
-                    {{ errors.tenHomestay }}
+                  <div v-if="errors.tenPhong" class="invalid-feedback">
+                    {{ errors.tenPhong }}
                   </div>
                 </div>
 
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="loaiHomestay"
-                        >Loại Homestay <span class="text-danger">*</span></label
-                      >
+                      <label for="idloaiPhong">Loại Phòng <span class="text-danger">*</span></label>
                       <select
-                        id="loaiHomestay"
-                        v-model="formData.idLoaiHomeStay"
+                        id="idloaiPhong"
+                        v-model="formData.idloaiPhong.id"
                         class="form-select"
-                        :class="{ 'is-invalid': errors.idLoaiHomeStay }"
+                        :class="{ 'is-invalid': errors.idloaiPhong }"
                         required
                       >
-                        <option value="" disabled selected>-- Chọn loại --</option>
-                        <option v-for="loai in loaiList" :key="loai.id" :value="loai.id">
-                          {{ loai.tenLoaiHomestay || loai.tenLoai }}
+                        <option value="" disabled selected>Chọn loại phòng</option>
+                        <option
+                          v-for="loai in loaiPhongList"
+                          :key="loai.id"
+                          :value="loai.id"
+                        >
+                          {{ loai.tenLoai || loai.tenLoaiPhong }}
                         </option>
                       </select>
-                      <div v-if="errors.idLoaiHomeStay" class="invalid-feedback">
-                        {{ errors.idLoaiHomeStay }}
+                      <div v-if="errors.idloaiPhong" class="invalid-feedback">
+                        {{ errors.idloaiPhong }}
                       </div>
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="chuSoHuu">Quản lý Homestay <span class="text-danger">*</span></label>
+                      <label for="idhomeStay">Homestay <span class="text-danger">*</span></label>
                       <select
-                        id="chuSoHuu"
-                        v-model="formData.idChuHomeStay"
+                        id="idhomeStay"
+                        v-model="formData.idhomeStay.id"
                         class="form-select"
-                        :class="{ 'is-invalid': errors.idChuHomeStay }"
+                        :class="{ 'is-invalid': errors.idhomeStay }"
                         required
                       >
-                        <option value="" disabled selected>-- Chọn quản lý--</option>
-                        <option v-for="chu in chuList" :key="chu.id" :value="chu.id">
-                          {{ chu.hotenChuHomestay || chu.hoTen }}
+                        <option value="" disabled selected>Chọn Homestay</option>
+                        <option
+                          v-for="homestay in homestayList"
+                          :key="homestay.id"
+                          :value="homestay.id"
+                        >
+                          {{ homestay.tenHomestay }}
                         </option>
                       </select>
-                      <div v-if="errors.idChuHomeStay" class="invalid-feedback">
-                        {{ errors.idChuHomeStay }}
+                      <div v-if="errors.idhomeStay" class="invalid-feedback">
+                        {{ errors.idhomeStay }}
                       </div>
                     </div>
                   </div>
@@ -120,9 +126,7 @@
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="dienTich"
-                        >Diện tích (m²) <span class="text-danger">*</span></label
-                      >
+                      <label for="dienTich">Diện tích (m²) <span class="text-danger">*</span></label>
                       <input
                         id="dienTich"
                         v-model="formData.dienTich"
@@ -141,55 +145,46 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="giaCaHomestay"
-                        >Giá (VND) <span class="text-danger">*</span></label
-                      >
+                      <label for="soNguoiToiDa">Số người tối đa <span class="text-danger">*</span></label>
                       <input
-                        id="giaCaHomestay"
-                        v-model.number="formData.giaCaHomestay"
+                        id="soNguoiToiDa"
+                        v-model.number="formData.soNguoiToiDa"
                         type="number"
                         class="form-control"
-                        :class="{ 'is-invalid': errors.giaCaHomestay }"
-                        min="1000"
+                        :class="{ 'is-invalid': errors.soNguoiToiDa }"
+                        min="1"
                         required
                       />
-                      <div v-if="errors.giaCaHomestay" class="invalid-feedback">
-                        {{ errors.giaCaHomestay }}
+                      <div v-if="errors.soNguoiToiDa" class="invalid-feedback">
+                        {{ errors.soNguoiToiDa }}
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div class="form-group">
-                  <label for="diaChi">Địa chỉ <span class="text-danger">*</span></label>
+                  <label for="moTa">Mô tả</label>
                   <textarea
-                    id="diaChi"
-                    v-model="formData.diaChi"
+                    id="moTa"
+                    v-model="formData.moTa"
                     class="form-control"
-                    :class="{ 'is-invalid': errors.diaChi }"
                     rows="3"
-                    required
+                    placeholder="Nhập mô tả về phòng"
                   ></textarea>
-                  <div v-if="errors.diaChi" class="invalid-feedback">
-                    {{ errors.diaChi }}
-                  </div>
                 </div>
 
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="tinhTrang">Tình trạng</label>
-                      <select
-                        id="tinhTrang"
-                        v-model="formData.tinhTrang"
-                        class="form-select"
+                      <label for="tangSo">Tầng số <span class="text-danger">*</span></label>
+                      <input
+                        id="tangSo"
+                        v-model.number="formData.tangSo"
+                        type="number"
+                        class="form-control"
+                        min="1"
                         required
-                      >
-                        <option value="Đã có người ở">Đã có người ở</option>
-                        <option value="Trống và sạch">Trống và sạch</option>
-                        <option value="Trống nhưng bẩn">Trống nhưng bẩn</option>
-                        <option value="Hỏng hóc">Hỏng hóc</option>
-                      </select>
+                      />
                     </div>
                   </div>
                   <div class="col-md-6">
@@ -210,28 +205,28 @@
               </div>
 
               <!-- Read-only view for view mode -->
-              <div v-if="isViewMode" class="staff-info">
+              <div v-if="isViewMode" class="phong-info">
                 <div class="form-group">
-                  <label>Tên Homestay</label>
-                  <input type="text" class="form-control" :value="formData.tenHomestay" readonly />
+                  <label>Tên Phòng</label>
+                  <input type="text" class="form-control" :value="formData.tenPhong" readonly />
                 </div>
 
                 <div class="form-group">
-                  <label>Loại Homestay</label>
+                  <label>Loại Phòng</label>
                   <input
                     type="text"
                     class="form-control"
-                    :value="getLoaiName(formData.idLoaiHomeStay)"
+                    :value="getLoaiPhongName(formData.idloaiPhong.id)"
                     readonly
                   />
                 </div>
 
                 <div class="form-group">
-                  <label>Quản lý Homestay</label>
+                  <label>Homestay</label>
                   <input
                     type="text"
                     class="form-control"
-                    :value="getChuName(formData.idChuHomeStay)"
+                    :value="getHomestayName(formData.idhomeStay.id)"
                     readonly
                   />
                 </div>
@@ -250,11 +245,11 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label>Giá</label>
+                      <label>Số người tối đa</label>
                       <input
                         type="text"
                         class="form-control"
-                        :value="formatCurrency(formData.giaCaHomestay)"
+                        :value="formData.soNguoiToiDa"
                         readonly
                       />
                     </div>
@@ -262,11 +257,11 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Địa chỉ</label>
+                  <label>Mô tả</label>
                   <textarea
                     class="form-control"
                     rows="3"
-                    :value="formData.diaChi"
+                    :value="formData.moTa"
                     readonly
                   ></textarea>
                 </div>
@@ -274,11 +269,11 @@
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label>Tình trạng</label>
+                      <label>Tầng số</label>
                       <input
                         type="text"
                         class="form-control"
-                        :value="formData.tinhTrang"
+                        :value="formData.tangSo"
                         readonly
                       />
                     </div>
@@ -286,17 +281,16 @@
                   <div class="col-md-6">
                     <div class="form-group">
                       <label>Trạng thái</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="formData.trangThai ? 'Đang hoạt động' : 'Đã khóa'"
-                        readonly
-                      />
+                      <div class="form-control bg-light">
+                        <span :class="`badge ${formData.trangThai ? 'bg-success' : 'bg-danger'}`">
+                          {{ formData.trangThai ? 'Hoạt động' : 'Khóa' }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div class="row" v-if="formData.ngayTao">
+                <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
                       <label>Ngày tạo</label>
@@ -307,9 +301,8 @@
                         readonly
                       />
                     </div>
-
                   </div>
-                  <div class="col-md-6" v-if="formData.ngayUpdate">
+                  <div class="col-md-6">
                     <div class="form-group">
                       <label>Ngày cập nhật</label>
                       <input
@@ -326,6 +319,14 @@
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" @click="$emit('close')">
                   <i class="fas fa-times me-1"></i> {{ isViewMode ? 'Đóng' : 'Hủy' }}
+                </button>
+                <button
+                  v-if="isViewMode"
+                  type="button"
+                  class="btn btn-primary"
+                  @click="$emit('edit')"
+                >
+                  <i class="fas fa-edit me-1"></i> Chỉnh sửa
                 </button>
                 <button
                   v-if="!isViewMode"
@@ -354,20 +355,27 @@
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useToast } from '@/stores/notificationStore'
+import {
+  addPhong,
+  updatePhong,
+  addPhongWithImage,
+  updatePhongWithImage
+} from '@/Service/phongService'
 
 export default {
-  name: 'HomestayModal',
+  name: 'PhongModal',
   props: {
-    homestay: {
+    phong: {
       type: Object,
       default: null,
     },
-    loaiList: {
+    loaiPhongList: {
       type: Array,
       required: true,
     },
-    chuList: {
+    homestayList: {
       type: Array,
       required: true,
     },
@@ -382,19 +390,22 @@ export default {
   },
   emits: ['save', 'close', 'edit', 'view-images'],
   setup(props, { emit }) {
+    const toast = useToast()
     const formData = ref({
-      tenHomestay: '',
-      idLoaiHomeStay: null,
-      idChuHomeStay: null,
+      idloaiPhong: { id: null },
+      idhomeStay: { id: null },
+      tenPhong: '',
       dienTich: 0,
-      giaCaHomestay: 0,
-      diaChi: '',
-      tinhTrang: 'Trống và sạch',
-      trangThai: true,
-      hinhAnh: '',
-      maHomestay: '',
+      moTa: '',
+      tangSo: 1,
+      soNguoiLon: 0,
+      soNguoiNho: 0,
+      soNguoiToiDa: 0,
       ngayTao: null,
       ngayUpdate: null,
+      anhBia: '',
+      trangThai: true,
+      maPhong: '',
     })
 
     const isSubmitting = ref(false)
@@ -405,23 +416,23 @@ export default {
 
     // Computed property for modal title based on mode
     const modalTitle = computed(() => {
-      if (props.isViewMode) return 'Chi tiết Homestay'
-      return props.isEdit ? 'Chỉnh sửa Homestay' : 'Thêm mới Homestay'
+      if (props.isViewMode) return 'Chi tiết Phòng'
+      return props.isEdit ? 'Chỉnh sửa Phòng' : 'Thêm mới Phòng'
     })
 
     const validateForm = () => {
       const newErrors = {}
 
-      if (!formData.value.tenHomestay?.trim()) {
-        newErrors.tenHomestay = 'Tên Homestay không được để trống'
+      if (!formData.value.tenPhong?.trim()) {
+        newErrors.tenPhong = 'Tên Phòng không được để trống'
       }
 
-      if (!formData.value.idLoaiHomeStay) {
-        newErrors.idLoaiHomeStay = 'Vui lòng chọn loại Homestay'
+      if (!formData.value.idloaiPhong.id) {
+        newErrors.idloaiPhong = 'Vui lòng chọn loại phòng'
       }
 
-      if (!formData.value.idChuHomeStay) {
-        newErrors.idChuHomeStay = 'Vui lòng chọn chủ sở hữu'
+      if (!formData.value.idhomeStay.id) {
+        newErrors.idhomeStay = 'Vui lòng chọn homestay'
       }
 
       // Kiểm tra diện tích là số hợp lệ và lớn hơn 0
@@ -430,12 +441,8 @@ export default {
         newErrors.dienTich = 'Diện tích phải là số dương lớn hơn 0'
       }
 
-      if (!formData.value.giaCaHomestay || formData.value.giaCaHomestay <= 0) {
-        newErrors.giaCaHomestay = 'Giá phải lớn hơn 0'
-      }
-
-      if (!formData.value.diaChi?.trim()) {
-        newErrors.diaChi = 'Địa chỉ không được để trống'
+      if (!formData.value.soNguoiToiDa || formData.value.soNguoiToiDa <= 0) {
+        newErrors.soNguoiToiDa = 'Số người tối đa phải lớn hơn 0'
       }
 
       errors.value = newErrors
@@ -451,61 +458,86 @@ export default {
         return encodeURI(img)
       }
 
-      return img
+      // Nếu không có http prefix, thêm vào
+      return `http://localhost:8080${img.startsWith('/') ? '' : '/'}${img}`
     }
 
     // Helper functions for view mode
-    const getLoaiName = (id) => {
-      const loai = props.loaiList.find((l) => l.id === id)
-      return loai ? loai.tenLoaiHomestay || loai.tenLoai : 'Không xác định'
+    const getLoaiPhongName = (id) => {
+      const loai = props.loaiPhongList.find((l) => l.id === id)
+      return loai ? loai.tenLoai || loai.tenLoaiPhong : 'Không xác định'
     }
 
-    const getChuName = (id) => {
-      const chu = props.chuList.find((c) => c.id === id)
-      return chu ? chu.hotenChuHomestay || chu.hoTen : 'Không xác định'
-    }
-
-    const formatCurrency = (value) => {
-      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
+    const getHomestayName = (id) => {
+      const homestay = props.homestayList.find((h) => h.id === id)
+      return homestay ? homestay.tenHomestay : 'Không xác định'
     }
 
     const formatDate = (dateString) => {
-      if (!dateString) return ''
+      if (!dateString) return 'N/A'
       const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'Ngày không hợp lệ'
+
       return date.toLocaleDateString('vi-VN')
     }
 
+    // Xử lý tải lên ảnh
     const triggerFileInput = () => {
       if (props.isViewMode) return
       fileInput.value.click()
     }
 
-    const handleImageError = (event) => {
-      // Use default avatar image if loading fails
-      event.target.src = '/images/default-avatar.png'
-    }
-
     const handleFileUpload = (event) => {
       const file = event.target.files[0]
       if (file) {
-        try {
-          // Lưu file đã chọn
-          selectedFile.value = file
-
-          // Hiển thị preview trước khi upload
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            previewImage.value = e.target.result
-          }
-          reader.readAsDataURL(file)
-
-          // Lưu tên file cho hiển thị
-          formData.value.hinhAnh = file.name
-        } catch (error) {
-          console.error('Lỗi xử lý ảnh:', error)
-          alert('Có lỗi xảy ra khi xử lý ảnh. Vui lòng thử lại hoặc chọn ảnh khác.')
+        // Kiểm tra kích thước file
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Kích thước file không được vượt quá 5MB')
+          return
         }
+
+        // Kiểm tra loại file
+        if (!file.type.startsWith('image/')) {
+          toast.error('Vui lòng chọn file hình ảnh')
+          return
+        }
+
+        selectedFile.value = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          previewImage.value = e.target.result
+
+          // Cập nhật anhBia trong formData để hiển thị preview
+          // Lưu ý: Đây chỉ là hiển thị tạm thời, anhBia thực sự sẽ được cập nhật khi lưu
+
+          // Hiển thị thông báo cho người dùng biết ảnh sẽ được lưu khi lưu phòng
+          toast.info('Ảnh bìa sẽ được cập nhật khi bạn lưu thông tin phòng')
+        }
+        reader.readAsDataURL(file)
       }
+    }
+
+    const handleImageError = (event) => {
+      event.target.src = '/images/placeholder-house.jpg'
+    }
+
+    const handleImageLoaded = () => {
+      // Xử lý khi ảnh đã tải xong
+    }
+
+    // Computed property để tính tổng số người
+    const calculateTotalPeople = computed(() => {
+      const nguoiLon = parseInt(formData.value.soNguoiLon) || 0
+      const nguoiNho = parseInt(formData.value.soNguoiNho) || 0
+      return nguoiLon + nguoiNho
+    })
+
+    const updateTotalPeople = () => {
+      formData.value.soNguoiToiDa = calculateTotalPeople.value
+    }
+
+    const updateTotalCapacity = () => {
+      updateTotalPeople()
     }
 
     const handleSubmit = async () => {
@@ -521,59 +553,121 @@ export default {
         // Thêm file ảnh nếu có
         if (selectedFile.value) {
           formDataToSend.append('file', selectedFile.value)
+          // Log để kiểm tra
+          console.log('Đã thêm file:', selectedFile.value.name)
         }
 
-        // Chuyển đổi dữ liệu homestay thành JSON string
-        const homestayData = { ...formData.value }
+        // Chuẩn bị dữ liệu phòng
+        const phongData = { ...formData.value }
+
+        // Sử dụng ID trực tiếp thay vì đối tượng lồng nhau
+        if (phongData.idloaiPhong && phongData.idloaiPhong.id) {
+          phongData.LoaiPhong_ID = parseInt(phongData.idloaiPhong.id, 10)
+          delete phongData.idloaiPhong
+        }
+
+        if (phongData.idhomeStay && phongData.idhomeStay.id) {
+          phongData.HomeStay_ID = parseInt(phongData.idhomeStay.id, 10)
+          delete phongData.idhomeStay
+        }
 
         // Đảm bảo các trường số được chuyển đổi đúng
-        if (homestayData.dienTich) {
-          homestayData.dienTich = parseFloat(homestayData.dienTich)
+        if (phongData.dienTich) {
+          phongData.dienTich = parseFloat(phongData.dienTich)
         }
 
-        if (homestayData.giaCaHomestay) {
-          homestayData.giaCaHomestay = parseFloat(homestayData.giaCaHomestay)
+        if (phongData.soNguoiToiDa) {
+          phongData.soNguoiToiDa = parseInt(phongData.soNguoiToiDa, 10)
+        }
+
+        if (phongData.tangSo) {
+          phongData.tangSo = parseInt(phongData.tangSo, 10)
+        }
+
+        if (phongData.soNguoiLon) {
+          phongData.soNguoiLon = parseInt(phongData.soNguoiLon, 10)
+        }
+
+        if (phongData.soNguoiNho) {
+          phongData.soNguoiNho = parseInt(phongData.soNguoiNho, 10)
         }
 
         // Nếu là chỉnh sửa, đảm bảo có ID
-        if (props.isEdit && props.homestay && props.homestay.id) {
-          homestayData.id = parseInt(props.homestay.id, 10)
+        if (props.isEdit && props.phong && props.phong.id) {
+          phongData.id = parseInt(props.phong.id, 10)
         }
 
-        // Đảm bảo idLoaiHomeStay và idChuHomeStay là số nguyên
-        if (homestayData.idLoaiHomeStay) {
-          homestayData.idLoaiHomeStay = parseInt(homestayData.idLoaiHomeStay, 10)
-        }
+        // Thêm dữ liệu phòng dạng JSON
+        formDataToSend.append('phong', JSON.stringify(phongData))
+        console.log('FormData đã sẵn sàng để gửi')
 
-        if (homestayData.idChuHomeStay) {
-          homestayData.idChuHomeStay = parseInt(homestayData.idChuHomeStay, 10)
-        }
+        let response;
 
-        // Thêm dữ liệu homestay dạng JSON
-        formDataToSend.append('homestay', JSON.stringify(homestayData))
+        // Sử dụng API endpoints mới nếu có file ảnh, ngược lại sử dụng API cũ
+        if (selectedFile.value) {
+          // Có file ảnh, sử dụng API mới với hỗ trợ upload ảnh
+          if (props.isEdit && phongData.id) {
+            // Cập nhật phòng với ảnh
+            toast.info('Đang cập nhật phòng và tải lên ảnh bìa...')
+            response = await updatePhongWithImage(phongData.id, formDataToSend)
+          } else {
+            // Thêm mới phòng với ảnh
+            toast.info('Đang thêm phòng mới và tải lên ảnh bìa...')
+            response = await addPhongWithImage(formDataToSend)
+          }
+        } else {
+          // Không có file ảnh, sử dụng API cũ
+          if (props.isEdit && phongData.id) {
+            response = await updatePhong(phongData.id, formDataToSend)
+          } else {
+            response = await addPhong(formDataToSend)
+          }
+        }
 
         // Gọi hàm lưu từ component cha
-        await emit('save', formDataToSend)
-      } catch {
-        // Lỗi được xử lý bởi component cha
+        await emit('save', response.data)
+
+        // Reset file input sau khi lưu thành công
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
+
+        // Thông báo thành công
+        const action = props.isEdit ? 'cập nhật' : 'thêm mới'
+        toast.success(`Đã ${action} phòng thành công`)
+      } catch (error) {
+        console.error('Lỗi khi lưu phòng:', error)
+        toast.error('Có lỗi xảy ra khi lưu phòng')
       } finally {
         isSubmitting.value = false
       }
     }
 
     const viewDetailImages = () => {
+      // Đóng modal chi tiết phòng trước khi mở modal ảnh
+      emit('close')
+      // Sau đó gọi sự kiện để mở modal ảnh
       emit('view-images', formData.value)
     }
 
     // Nếu là chỉnh sửa, điền dữ liệu hiện có
     watch(
-      () => props.homestay,
+      () => props.phong,
       (newVal) => {
         if (newVal) {
           // Copy dữ liệu từ props vào form
           formData.value = { ...newVal }
 
-          // Chỉ reset preview image khi mở một homestay mới hoặc thêm mới
+          // Đảm bảo idloaiPhong và idhomeStay có cấu trúc đúng
+          if (typeof formData.value.idloaiPhong !== 'object' || formData.value.idloaiPhong === null) {
+            formData.value.idloaiPhong = { id: formData.value.idloaiPhong ? parseInt(formData.value.idloaiPhong, 10) : null }
+          }
+
+          if (typeof formData.value.idhomeStay !== 'object' || formData.value.idhomeStay === null) {
+            formData.value.idhomeStay = { id: formData.value.idhomeStay ? parseInt(formData.value.idhomeStay, 10) : null }
+          }
+
+          // Chỉ reset preview image khi mở một phòng mới hoặc thêm mới
           if (!props.isEdit || selectedFile.value === null) {
             previewImage.value = null
             selectedFile.value = null
@@ -581,43 +675,57 @@ export default {
         } else {
           // Reset form khi thêm mới
           formData.value = {
-            tenHomestay: '',
-            idLoaiHomeStay: null,
-            idChuHomeStay: null,
+            idloaiPhong: { id: null },
+            idhomeStay: { id: null },
+            tenPhong: '',
             dienTich: 0,
-            giaCaHomestay: 0,
-            diaChi: '',
-            tinhTrang: 'Còn phòng',
-            trangThai: true,
-            hinhAnh: '',
-            maHomestay: '',
+            moTa: '',
+            tangSo: 1,
+            soNguoiLon: 0,
+            soNguoiNho: 0,
+            soNguoiToiDa: 0,
             ngayTao: null,
             ngayUpdate: null,
+            anhBia: '',
+            trangThai: true,
+            maPhong: '',
           }
           previewImage.value = null
           selectedFile.value = null
         }
       },
-      { immediate: true },
+      { immediate: true }
+    )
+
+    // Watch để cập nhật số người tối đa khi thay đổi số người lớn hoặc trẻ em
+    watch(
+      [() => formData.value.soNguoiLon, () => formData.value.soNguoiNho],
+      () => {
+        updateTotalPeople()
+      }
     )
 
     return {
       formData,
-      handleFileUpload,
-      handleSubmit,
-      getImageUrl,
-      isSubmitting,
       errors,
+      isSubmitting,
       fileInput,
-      triggerFileInput,
       previewImage,
       selectedFile,
-      handleImageError,
       modalTitle,
-      getLoaiName,
-      getChuName,
-      formatCurrency,
+      calculateTotalPeople,
+      updateTotalPeople,
+      validateForm,
+      triggerFileInput,
+      handleFileUpload,
+      handleImageError,
+      handleImageLoaded,
+      handleSubmit,
+      getImageUrl,
+      getLoaiPhongName,
+      getHomestayName,
       formatDate,
+      updateTotalCapacity,
       viewDetailImages,
     }
   },
@@ -642,7 +750,7 @@ export default {
 }
 
 /* Modal container */
-.homestay-details-modal {
+.phong-details-modal {
   position: relative;
   background-color: #fff;
   border-radius: 16px;
@@ -683,26 +791,16 @@ export default {
 }
 
 .close-button {
-  position: relative;
-  top: -2px;
-  background: #f1f5f9;
+  background: none;
   border: none;
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 24px;
   cursor: pointer;
-  color: #64748b;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s ease;
+  color: #6c757d;
+  transition: color 0.2s;
 }
 
 .close-button:hover {
-  background-color: #e2e8f0;
-  color: #1e293b;
+  color: #dc3545;
 }
 
 /* Modal body */
@@ -710,54 +808,49 @@ export default {
   padding: 25px;
 }
 
-/* Avatar section */
-.homestay-avatar-display {
-  padding: 15px;
+/* Avatar display */
+.phong-avatar-display {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .avatar-preview {
-  width: 180px;
-  height: 180px;
-  border-radius: 12px;
-  border: 2px dashed #d1d5db;
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+  border: 2px dashed #cbd5e1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   overflow: hidden;
-  background-color: #f9fafb;
+  cursor: pointer;
+  position: relative;
+  background-color: #f1f5f9;
   transition: all 0.3s ease;
-  margin-bottom: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 .avatar-preview:hover {
   border-color: #3b82f6;
-  transform: scale(1.05);
+}
+
+.avatar-preview.view-mode {
+  cursor: default;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .avatar-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #9ca3af;
-  height: 100%;
-  width: 100%;
-  justify-content: center;
+  color: #64748b;
 }
 
 .avatar-placeholder i {
-  font-size: 50px;
+  font-size: 48px;
   margin-bottom: 10px;
-}
-
-.avatar-placeholder span {
-  font-size: 14px;
-  text-align: center;
 }
 
 .uploaded-avatar {
@@ -766,148 +859,135 @@ export default {
   object-fit: cover;
 }
 
-.homestay-avatar-display h4 {
-  font-size: 1.2rem;
-  margin-top: 0.8rem;
-  margin-bottom: 0.3rem;
-}
-
-.homestay-avatar-display .homestay-id {
+.phong-id {
+  color: #64748b;
   font-size: 0.85rem;
-  color: #6c757d;
 }
 
 .status-badge {
-  padding-top: 15px;
+  margin-top: 15px;
   text-align: center;
 }
 
 .status-badge label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  margin-right: 5px;
+  font-weight: 600;
+  color: #4b5563;
 }
 
 .status-badge .badge {
-  font-size: 0.9rem;
-  padding: 6px 12px;
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  border-radius: 6px;
 }
 
-/* Form styles */
+/* Form styling */
 .form-group {
   margin-bottom: 20px;
 }
 
-.form-group label {
+label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
   color: #4b5563;
 }
 
-.form-control,
-.form-select {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #d1d5db;
+.form-control, .form-select {
   border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+  border: 1px solid #cbd5e1;
+  padding: 10px 12px;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.form-control:focus,
-.form-select:focus {
+.form-control:focus, .form-select:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
 }
 
-.form-control.is-invalid,
-.form-select.is-invalid {
-  border-color: #ef4444;
+.form-control.is-invalid, .form-select.is-invalid {
+  border-color: #dc3545;
 }
 
 .invalid-feedback {
-  color: #ef4444;
-  font-size: 14px;
+  color: #dc3545;
+  font-size: 0.85rem;
   margin-top: 5px;
 }
 
-/* Footer */
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Modal footer */
 .modal-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 15px 0;
-  border-top: 1px solid #e5e7eb;
-  margin-top: 20px;
 }
 
 .btn {
-  font-size: 1rem;
-  font-weight: 600;
   padding: 10px 20px;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .btn-secondary {
-  background-color: #e2e8f0;
-  color: #475569;
+  background-color: #6c757d;
+  color: white;
   border: none;
 }
 
 .btn-secondary:hover {
-  background-color: #cbd5e1;
+  background-color: #5a6268;
 }
 
 .btn-primary {
   background-color: #0d6efd;
+  color: white;
   border: none;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
+  background-color: #0b5ed7;
 }
 
-.btn-primary:disabled {
-  opacity: 0.7;
-  transform: none;
+.btn-info {
+  background-color: #0dcaf0;
+  color: white;
+  border: none;
 }
 
-/* Add additional styles for view mode */
-.staff-info .form-control[readonly] {
-  background-color: #f9fafb;
-  border-color: #e5e7eb;
-  cursor: text;
-  padding: 8px 12px;
-  font-size: 0.95rem;
+.btn-info:hover {
+  background-color: #0bacce;
 }
 
-.staff-info .form-group {
-  margin-bottom: 12px;
+/* Read-only view styling */
+.phong-info .form-control,
+.phong-info .form-select,
+.phong-info textarea {
+  background-color: #f8f9fa;
 }
 
-.staff-info label {
-  font-size: 0.9rem;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #333;
-}
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .avatar-preview {
+    width: 150px;
+    height: 150px;
+    margin-bottom: 20px;
+  }
 
-/* Avatar preview in view mode shouldn't have pointer cursor */
-.avatar-preview.view-mode {
-  cursor: default;
-  pointer-events: none;
-}
+  .modal-footer {
+    flex-direction: column;
+  }
 
-.avatar-preview.view-mode:hover {
-  border-color: #d1d5db;
-  transform: none;
+  .btn {
+    width: 100%;
+  }
 }
 </style>
-

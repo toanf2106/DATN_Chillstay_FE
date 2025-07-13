@@ -25,6 +25,17 @@ export const addNhanVien = (formData) => {
 };
 
 export const updateNhanVien = (id, formData) => {
+  // Log to debug
+  console.log(`Updating employee with ID: ${id}`);
+
+  // Check if formData contains file
+  const fileData = formData.get('file');
+  if (fileData) {
+    console.log('File included in update:', fileData.name, fileData.type, fileData.size);
+  } else {
+    console.log('No file included in this update');
+  }
+
   return api.put(`/api/nhanVien/update/${id}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'

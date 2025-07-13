@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="anh-homestay-details-modal">
+    <div class="anh-phong-details-modal">
       <div class="modal-header">
         <h3>{{ modalTitle }}</h3>
         <button class="close-button" @click="$emit('close')">&times;</button>
@@ -44,24 +44,37 @@
           </div>
 
           <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h4>Danh sách ảnh ({{ images.length }})</h4>
-              <button v-if="viewOnly" type="button" class="btn btn-primary" @click="$emit('close')">
-                <i class="fas fa-times me-1"></i> Đóng
-              </button>
-            </div>
-            <div v-if="loading" class="text-center py-4">
+            <div class="divider mb-4"><span>Danh sách ảnh</span></div>
+            <div v-if="loading" class="text-center py-5">
               <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Đang tải...</span>
               </div>
+              <p class="mt-2">Đang tải ảnh...</p>
             </div>
-            <div v-else-if="images.length === 0" class="text-center py-4">
-              <p>Chưa có ảnh nào</p>
+            <div v-else-if="images.length === 0" class="text-center py-5">
+              <i class="fas fa-image text-muted" style="font-size: 3rem"></i>
+              <p class="mt-3 text-muted">Chưa có ảnh nào cho phòng này</p>
             </div>
             <div v-else class="image-gallery">
-              <div v-for="(image, index) in images" :key="index" class="image-item">
+              <div v-for="(image, index) in images" :key="image.id || index" class="image-item">
                 <div class="image-container">
-                  <img :src="getImageUrl(image.duongDanAnh)" :alt="`Ảnh ${index + 1}`" @error="handleImageError" />
+                  <div class="loading-overlay" v-if="loadingImages[index]">
+                    <div class="spinner-border text-light" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <img
+                    :src="getImageUrl(image.duongDanAnh)"
+                    :alt="`Ảnh ${index + 1}`"
+                    @error="handleImageError"
+                    @load="handleImageLoaded(index)"
+                    loading="lazy"
+                    class="room-image"
+                    crossorigin="anonymous"
+                  />
+                  <div class="image-overlay">
+                    <p class="image-info">{{ index + 1 }}/{{ images.length }}</p>
+                  </div>
                   <div class="image-actions" v-if="!viewOnly">
                     <button
                       class="btn btn-sm btn-danger"
@@ -84,16 +97,16 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import {
-  getAnhHomeStayByHomestayId,
-  uploadAnhHomeStay,
-  deleteAnhHomeStay,
-} from '@/Service/HomeStayService'
+  getAnhPhongByPhongId,
+  uploadAnhPhong,
+  deleteAnhPhong,
+} from '@/Service/phongService'
 import { useToast } from '@/stores/notificationStore'
 
 export default {
-  name: 'AnhHomestayModal',
+  name: 'AnhPhongModal',
   props: {
-    homestay: {
+    phong: {
       type: Object,
       required: true,
     },
@@ -102,7 +115,8 @@ export default {
       default: false
     }
   },
-  setup(props) {
+  emits: ['close', 'updated'],
+  setup(props, { emit }) {
     const toast = useToast()
     const images = ref([])
     const loading = ref(true)
@@ -111,11 +125,12 @@ export default {
     const fileInput = ref(null)
     const selectedFile = ref(null)
     const previewImage = ref(null)
+    const loadingImages = ref([])
 
     const modalTitle = computed(() => {
       return props.viewOnly
-        ? `Ảnh chi tiết - ${props.homestay.tenHomestay}`
-        : `Quản lý ảnh - ${props.homestay.tenHomestay}`
+        ? `Ảnh chi tiết - ${props.phong.tenPhong}`
+        : `Quản lý ảnh - ${props.phong.tenPhong}`
     })
 
     // Xử lý URL ảnh an toàn
@@ -128,7 +143,8 @@ export default {
         return encodeURI(img)
       }
 
-      return img
+      // Nếu không có http prefix, thêm vào
+      return `http://localhost:8080${img.startsWith('/') ? '' : '/'}${img}`
     }
 
     const handleImageError = (event) => {
@@ -136,11 +152,21 @@ export default {
       event.target.src = '/images/placeholder-house.jpg'
     }
 
+    const handleImageLoaded = (index) => {
+      // Mark this image as loaded
+      if (loadingImages.value[index] !== undefined) {
+        loadingImages.value[index] = false
+      }
+    }
+
     const fetchImages = async () => {
       try {
         loading.value = true
-        const response = await getAnhHomeStayByHomestayId(props.homestay.id)
+        const response = await getAnhPhongByPhongId(props.phong.id)
         images.value = response.data || []
+
+        // Initialize loading state for each image
+        loadingImages.value = Array(images.value.length).fill(true)
       } catch (error) {
         console.error('Lỗi khi tải ảnh:', error)
         toast.error('Không thể tải danh sách ảnh. Vui lòng thử lại sau.')
@@ -174,18 +200,33 @@ export default {
     }
 
     const uploadImage = async () => {
-      if (!selectedFile.value) return
+      if (!selectedFile.value) {
+        toast.error('Vui lòng chọn một ảnh để tải lên')
+        return
+      }
 
       try {
         isUploading.value = true
-        const formData = new FormData()
-        formData.append('file', selectedFile.value)
-        formData.append('homestayId', props.homestay.id)
+        toast.info('Đang tải ảnh lên...')
 
-        await uploadAnhHomeStay(selectedFile.value, props.homestay.id)
+        const response = await uploadAnhPhong(selectedFile.value, props.phong.id)
         toast.success('Tải ảnh lên thành công!')
         resetUpload()
         await fetchImages()
+
+        // Lấy URL của ảnh từ response để cập nhật anhBia của phòng
+        if (response && response.data) {
+          // Cập nhật anhBia của phòng với URL ảnh mới
+          const updatedRoom = {
+            ...props.phong,
+            anhBia: response.data.duongDanAnh
+          }
+
+          console.log('Đã cập nhật phòng với ảnh bìa mới:', updatedRoom)
+          emit('updated', updatedRoom)
+        } else {
+          emit('updated', props.phong)
+        }
       } catch (error) {
         console.error('Lỗi khi tải ảnh lên:', error)
         toast.error('Có lỗi xảy ra khi tải ảnh lên. Vui lòng thử lại sau.')
@@ -199,9 +240,12 @@ export default {
 
       try {
         isDeleting.value = imageId
-        await deleteAnhHomeStay(imageId)
+        await deleteAnhPhong(imageId)
         toast.success('Xóa ảnh thành công!')
         await fetchImages()
+
+        // Emit sự kiện để thông báo phòng đã được cập nhật
+        emit('updated', props.phong)
       } catch (error) {
         console.error('Lỗi khi xóa ảnh:', error)
         toast.error('Có lỗi xảy ra khi xóa ảnh. Vui lòng thử lại sau.')
@@ -221,6 +265,7 @@ export default {
       fileInput,
       selectedFile,
       previewImage,
+      loadingImages,
       triggerFileInput,
       handleFileUpload,
       resetUpload,
@@ -228,6 +273,7 @@ export default {
       deleteImage,
       getImageUrl,
       handleImageError,
+      handleImageLoaded,
     }
   },
 }
@@ -247,7 +293,7 @@ export default {
   z-index: 1000;
 }
 
-.anh-homestay-details-modal {
+.anh-phong-details-modal {
   background-color: white;
   border-radius: 10px;
   width: 800px;
@@ -292,7 +338,7 @@ export default {
 }
 
 .close-button:hover {
-  color: #343a40;
+  color: #dc3545;
 }
 
 .modal-body {
@@ -300,66 +346,111 @@ export default {
 }
 
 .upload-area {
-  border: 2px dashed #d1d5db;
+  border: 2px dashed #ced4da;
   border-radius: 8px;
   padding: 30px;
   text-align: center;
-  cursor: pointer;
+  background-color: #f8f9fa;
   transition: all 0.3s ease;
-  background-color: #f9fafb;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
 }
 
 .upload-area:hover {
-  border-color: #3b82f6;
-  background-color: #f0f7ff;
+  background-color: #e9ecef;
+  border-color: #6c757d;
 }
 
 .upload-placeholder {
-  color: #6b7280;
+  color: #6c757d;
 }
 
 .upload-placeholder i {
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin-bottom: 10px;
 }
 
 .preview-image {
   max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  max-height: 200px;
+  border-radius: 5px;
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: #dee2e6;
+}
+
+.divider span {
+  position: relative;
+  background: white;
+  padding: 0 15px;
+  color: #495057;
+  font-weight: 500;
 }
 
 .image-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 15px;
-  margin-top: 15px;
 }
 
 .image-item {
   position: relative;
-  border-radius: 8px;
   overflow: hidden;
+  border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .image-container {
   position: relative;
-  padding-top: 75%; /* 4:3 Aspect Ratio */
+  padding-top: 75%; /* 4:3 aspect ratio */
+  width: 100%;
 }
 
-.image-container img {
+.room-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.image-item:hover .room-image {
+  transform: scale(1.05);
+}
+
+.image-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.image-item:hover .image-overlay {
+  opacity: 1;
+}
+
+.image-info {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .image-actions {
@@ -374,58 +465,16 @@ export default {
   opacity: 1;
 }
 
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
-  display: inline-flex;
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-  font-size: 14px;
-}
-
-.btn-primary {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-  color: white;
-}
-
-.btn-secondary {
-  background-color: #f0f2f5;
-  border-color: #f0f2f5;
-  color: #495057;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
-}
-
-.btn-secondary:hover {
-  background-color: #e2e6ea;
-  border-color: #dae0e5;
-  color: #343a40;
-}
-
-.btn-danger:hover {
-  background-color: #bb2d3b;
-  border-color: #b02a37;
-}
-
-.btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.btn i {
-  font-size: 0.9rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2;
 }
 </style>

@@ -98,7 +98,7 @@
                   :alt="`Ảnh ${nhanVien.hoTen}`"
                   class="staff-avatar"
                   :class="{ loading: imageLoadingStates[nhanVien.id] }"
-                  @click="openImagePreview(nhanVien.anh, nhanVien.hoTen)"
+                  @click="openImagePreview(processImageUrl(nhanVien.anh), nhanVien.hoTen)"
                   @load="handleImageLoad(nhanVien.id)"
                   @error="handleImageError(nhanVien.id)"
                 />
@@ -595,6 +595,7 @@
                     :src="editPreviewAvatar || processImageUrl(selectedStaff.anh)"
                     alt="Avatar Preview"
                     class="uploaded-avatar"
+                    @error="handlePreviewImageError"
                   />
                   <div v-else class="avatar-placeholder">
                     <i class="fas fa-user"></i>
@@ -833,13 +834,14 @@ export default {
 
       // Nếu là URL đầy đủ từ GCS hoặc khác
       if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-        return imagePath
+        // Đảm bảo URL không có ký tự đặc biệt
+        return encodeURI(imagePath)
       }
 
       // Nếu là đường dẫn tương đối hoặc tên file
       // Điều chỉnh theo cấu hình server của bạn
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-      return `${baseUrl}/images/${imagePath}`
+      return `${baseUrl}/images/${encodeURIComponent(imagePath)}`
     }
 
     // Image loading handlers
@@ -851,7 +853,23 @@ export default {
     const handleImageError = (staffId) => {
       imageLoadingStates[staffId] = false
       imageErrors[staffId] = true
-      console.warn(`Failed to load image for staff ID: ${staffId}`)
+
+      // Find the staff member with this ID
+      const staff = nhanVienList.value.find(s => s.id === staffId)
+      if (staff) {
+        console.warn(`Failed to load image for staff ID: ${staffId}, name: ${staff.hoTen}`)
+        console.warn(`Image URL that failed: ${staff.anh}`)
+        console.warn(`Processed URL was: ${processImageUrl(staff.anh)}`)
+
+        // Attempt to fix the image by setting a default image
+        // This helps when viewing details later
+        staff._brokenImage = staff.anh // Store the broken URL
+
+        // Optional: Set a default avatar
+        // staff.anh = '/images/default-avatar.png'
+      } else {
+        console.warn(`Failed to load image for unknown staff ID: ${staffId}`)
+      }
     }
 
     const handleProfileImageError = (event) => {
@@ -916,16 +934,35 @@ export default {
       loading.value = true
       try {
         const response = await getAllNhanVien()
-        nhanVienList.value = response.data
-        totalItems.value = nhanVienList.value.length
-        totalPages.value = Math.ceil(totalItems.value / pageSize.value)
 
-        // Initialize image loading states
-        nhanVienList.value.forEach((staff) => {
+        // Process the data - ensure all image URLs are clean
+        const processedData = response.data.map(staff => {
           if (staff.anh) {
-            imageLoadingStates[staff.id] = true
+            // Store the original image URL for debugging
+            staff._originalAnh = staff.anh;
+
+            // Set loading state for this image
+            imageLoadingStates[staff.id] = true;
+
+            // Make sure image errors are reset
+            if (imageErrors[staff.id]) {
+              delete imageErrors[staff.id];
+            }
           }
-        })
+          return staff;
+        });
+
+        nhanVienList.value = processedData;
+        totalItems.value = nhanVienList.value.length;
+        totalPages.value = Math.ceil(totalItems.value / pageSize.value);
+
+        // Log for debugging
+        console.log(`Loaded ${nhanVienList.value.length} employees`);
+
+        // Check which employees have images
+        const withImages = nhanVienList.value.filter(e => e.anh).length;
+        console.log(`${withImages} employees have images`);
+
       } catch (error) {
         console.error('Error fetching staff data:', error)
         notification.error('Không thể tải dữ liệu nhân viên.')
@@ -1370,7 +1407,10 @@ export default {
 
         // Thêm file ảnh nếu có
         if (editSelectedFile.value) {
+          console.log('Adding file to form data:', editSelectedFile.value.name);
           formData.append('file', editSelectedFile.value)
+        } else {
+          console.log('No file selected for upload');
         }
 
         // Chuyển đổi dữ liệu nhân viên thành JSON string
@@ -1380,25 +1420,43 @@ export default {
           soDienThoai: selectedStaff.value.soDienThoai,
           diaChi: selectedStaff.value.diaChi,
           gioiTinh: selectedStaff.value.gioiTinh,
+          // Giữ nguyên ảnh hiện tại nếu không upload ảnh mới
+          anh: selectedStaff.value.anh || null,
         }
+
+        // Log dữ liệu sẽ gửi đi
+        console.log('Staff data to be updated:', staffData);
 
         // Thêm dữ liệu nhân viên dạng JSON
         formData.append('nhanVien', JSON.stringify(staffData))
 
         // Gọi API cập nhật nhân viên
         const response = await updateNhanVien(selectedStaff.value.id, formData)
+        console.log('Update employee response:', response.data);
 
         if (response.data && response.data.success) {
+          // Xem URL ảnh trong phản hồi
+          if (response.data.data && response.data.data.anh) {
+            console.log('Image URL in response:', response.data.data.anh);
+          }
+
           notification.success(response.data.message || 'Cập nhật nhân viên thành công')
           showEditModal.value = false
           editPreviewAvatar.value = null
           editSelectedFile.value = null
-          fetchNhanVien() // Tải lại danh sách nhân viên
+
+          // Tạo timeout nhỏ trước khi tải lại dữ liệu để đảm bảo dữ liệu đã được cập nhật
+          setTimeout(() => {
+            fetchNhanVien() // Tải lại danh sách nhân viên
+          }, 300)
         } else {
           notification.error(response.data?.message || 'Có lỗi xảy ra khi cập nhật nhân viên')
         }
       } catch (error) {
         console.error('Error updating staff:', error)
+        if (error.response) {
+          console.error('Error response:', error.response.data);
+        }
         notification.error(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật nhân viên')
       } finally {
         isEditing.value = false

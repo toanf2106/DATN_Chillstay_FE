@@ -5,15 +5,31 @@ const getSessionId = () => {
   return sessionStorage.getItem('current_tab_id')
 }
 
+// Xác định baseURL dựa trên môi trường
+let apiBaseUrl = 'http://localhost:8080'
+
+// Nếu có baseURL được lưu trong localStorage, sử dụng nó (cho phép thay đổi runtime)
+const savedBaseUrl = localStorage.getItem('api_base_url')
+if (savedBaseUrl) {
+  apiBaseUrl = savedBaseUrl
+}
+
 // Tạo instance axios với cấu hình mặc định
 const api = axios.create({
-  baseURL: 'http://localhost:8080', // URL API backend Spring Boot
+  baseURL: apiBaseUrl, // URL API backend Spring Boot
   timeout: 30000, // Tăng timeout lên 30 giây
   headers: {
     'Content-Type': 'application/json; charset=utf-8',
     'Accept': 'application/json; charset=utf-8',
   },
 })
+
+// Thêm hàm helper để thay đổi baseURL khi cần
+api.changeBaseURL = (newBaseURL) => {
+  api.defaults.baseURL = newBaseURL
+  localStorage.setItem('api_base_url', newBaseURL)
+  console.log(`API base URL changed to: ${newBaseURL}`)
+}
 
 // Interceptor để thêm token vào header của mỗi request
 api.interceptors.request.use(
@@ -71,11 +87,21 @@ api.interceptors.request.use(
 // Interceptor để xử lý response
 api.interceptors.response.use(
   (response) => {
-
     // Log success response
     console.log(`API Response [${response.status}]:`, response.config.url)
 
-    // Đảm bảo xử lý dữ liệu UTF-8 đúng cách
+    // Nếu response là FormData hoặc File, không log nội dung
+    if (response.data instanceof FormData || response.data instanceof File) {
+      console.log('Response contains binary data (not logging content)')
+    } else {
+      // Giới hạn kích thước log để tránh quá tải console
+      const responseSize = JSON.stringify(response.data).length
+      if (responseSize > 10000) {
+        console.log(`Response data (truncated): ${JSON.stringify(response.data).substring(0, 1000)}... [${responseSize} bytes total]`)
+      } else {
+        console.log('Response data:', response.data)
+      }
+    }
 
     return response
   },
@@ -93,6 +119,7 @@ api.interceptors.response.use(
       }
     } else if (error.request) {
       console.error('No response received:', error.request)
+      console.error('This might be a network issue or the server is not running at', api.defaults.baseURL)
     }
 
     // Xử lý lỗi 401 Unauthorized

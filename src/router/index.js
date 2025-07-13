@@ -63,6 +63,13 @@ const router = createRouter({
           component: () => import('../views/Admin/Home/QlyPhong.vue'),
         },
 
+        // Quản lý Loại Phòng
+        {
+          path: 'loai-phong',
+          name: 'admin-loai-phong',
+          component: () => import('../views/Admin/Home/QlyLoaiPhong.vue'),
+        },
+
         // Thống kê - Hiển thị dữ liệu tổng quan
         {
           path: 'thong-ke',

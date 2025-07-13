@@ -250,13 +250,8 @@ export const useVoucherManagement = () => {
   }
 
   const formatGiaTri = (giaTri, loai) => {
-    if (loai === 'Phần trăm' || loai === 'PhanTram') {
-      return `${giaTri}%`;
-    }
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(giaTri);
+    // Always return percentage format regardless of the type
+    return `${giaTri}%`;
   }
 
   const formatDate = (date) => {

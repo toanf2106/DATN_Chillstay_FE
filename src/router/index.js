@@ -67,6 +67,26 @@ const router = createRouter({
           component: () => import('../views/Admin/Home/QlyLoaiHomestay.vue'),
         },
 
+        // Quản lý Tiện nghi Homestay
+        {
+          path: 'homestay-tien-nghi',
+          name: 'admin-homestay-tien-nghi',
+          component: () => import('../views/Admin/Home/QlyHomestayTienNghi.vue'),
+        },
+
+        // Quản lý Dịch vụ Homestay
+        {
+          path: 'homestay-dich-vu',
+          name: 'admin-homestay-dich-vu',
+          component: () => import('../views/Admin/Home/QlyHomestayDichVu.vue'),
+        },
+
+        // Alias cho URL tien-nghi-homestay
+        {
+          path: 'tien-nghi-homestay',
+          redirect: { name: 'admin-homestay-tien-nghi' },
+        },
+
         // Quản lý Phòng - Thông tin về các phòng trong homestay
         {
           path: 'phong',

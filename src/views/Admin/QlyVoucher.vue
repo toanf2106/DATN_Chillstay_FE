@@ -56,7 +56,6 @@
             <th>Ngày bắt đầu</th>
             <th>Ngày kết thúc</th>
             <th>Số lượng</th>
-            <th>Giá trị tối thiểu</th>
             <th>Giảm tối đa</th>
             <th>Homestay</th>
             <th>Trạng thái</th>
@@ -76,7 +75,6 @@
             <td class="text-center">{{ formatDate(voucher.ngayBatDau) }}</td>
             <td class="text-center">{{ formatDate(voucher.ngayKetThuc) }}</td>
             <td class="text-center">{{ voucher.soLuong }}</td>
-            <td class="text-center">{{ voucher.giaTriToiThieu ? `${voucher.giaTriToiThieu.toLocaleString('vi-VN')} đ` : '0 đ' }}</td>
             <td class="text-center">{{ voucher.giamToiDa ? `${voucher.giamToiDa.toLocaleString('vi-VN')} đ` : 'Không giới hạn' }}</td>
             <td class="text-center">{{ getHomeStayName(voucher.homeStayId) }}</td>
             <td class="text-center">
@@ -234,19 +232,7 @@
                   />
                 </div>
 
-                <div class="form-group">
-                  <label>Giá trị tối thiểu</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="
-                      detailVoucher?.giaTriToiThieu
-                        ? `${detailVoucher.giaTriToiThieu.toLocaleString('vi-VN')} VND`
-                        : '0 VND'
-                    "
-                    readonly
-                  />
-                </div>
+
 
                 <!-- Thêm trường giảm tối đa -->
                 <div class="form-group">

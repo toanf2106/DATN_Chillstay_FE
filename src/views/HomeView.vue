@@ -4,12 +4,10 @@
     <section class="hero-section">
       <div class="hero-content">
         <div class="hero-text">
-          <h1 class="hero-title">
-            ChillStay <span class="highlight">Mộc Châu</span>
-          </h1>
+          <h1 class="hero-title">ChillStay <span class="highlight">Mộc Châu</span></h1>
           <p class="hero-subtitle">
-            Khám phá những homestay độc đáo, retreat yên bình tại trung tâm Mộc Châu với tầm nhìn núi non hùng vĩ, trải
-            nghiệm eco-friendly và văn hóa địa phương.
+            Khám phá những homestay độc đáo, retreat yên bình tại trung tâm Mộc Châu với tầm nhìn
+            núi non hùng vĩ, trải nghiệm eco-friendly và văn hóa địa phương.
           </p>
           <div class="hero-search">
             <div class="search-box">
@@ -36,9 +34,7 @@
                   <option>Trên 1.5 triệu</option>
                 </select>
               </div>
-              <button class="search-btn" @click="handleSearch">
-                Tìm kiếm
-              </button>
+              <button class="search-btn" @click="handleSearch">Tìm kiếm</button>
             </div>
           </div>
         </div>
@@ -53,12 +49,16 @@
           <div class="feature-card">
             <i class="fas fa-mountain feature-icon"></i>
             <h3>Tầm Nhìn Núi Non Hùng Vĩ</h3>
-            <p>Thưởng thức cảnh quan thiên nhiên, phong cảnh tuyệt đẹp và khí hậu mát mẻ quanh năm.</p>
+            <p>
+              Thưởng thức cảnh quan thiên nhiên, phong cảnh tuyệt đẹp và khí hậu mát mẻ quanh năm.
+            </p>
           </div>
           <div class="feature-card">
             <i class="fas fa-home feature-icon"></i>
             <h3>Vị Trí Tập Trung</h3>
-            <p>Hơn 20 homestay, cottage, và villa trong cùng khu vực, dễ dàng di chuyển và khám phá.</p>
+            <p>
+              Hơn 20 homestay, cottage, và villa trong cùng khu vực, dễ dàng di chuyển và khám phá.
+            </p>
           </div>
           <div class="feature-card">
             <i class="fas fa-concierge-bell feature-icon"></i>
@@ -97,17 +97,22 @@
           <div class="homestay-card" v-for="home in displayedHomestays" :key="home.id">
             <div class="homestay-image">
               <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
+
               <img v-else :src="defaultImage" :alt="home.tenHomestay" />
               <div class="homestay-rating" v-if="home.danhGiaTrungBinh !== undefined">
                 <span class="stars">★</span> {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }} đánh giá)
+
               </div>
               <span class="homestay-status" v-if="home.trangThai">
                 {{ home.trangThai === true ? 'Hoạt động' : home.trangThai }}
               </span>
             </div>
             <div class="homestay-content">
+
+
               <p class="homestay-location" v-if="home.diaChi">
                 <i class="fas fa-map-marker-alt"></i> {{ home.diaChi }}
+
               </p>
               <h3>{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
@@ -123,8 +128,12 @@
                 <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
 
               <div class="homestay-price">
+
+      
+
                 <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
                 }}₫</span>
+
 
                 <span class="price-unit">/đêm</span>
               </div>
@@ -145,7 +154,8 @@
         <div class="reviews-content">
           <div class="reviews-header">
             <h2 class="section-title">Đánh giá từ những người đã trải nghiệm</h2>
-            <p class="reviews-subtitle">Khách hàng chia sẻ về những kỷ niệm tuyệt vời trên chuyến du lịch với chúng tôi.
+            <p class="reviews-subtitle">
+              Khách hàng chia sẻ về những kỷ niệm tuyệt vời trên chuyến du lịch với chúng tôi.
             </p>
           </div>
 
@@ -160,8 +170,12 @@
           </div>
 
           <div class="review-tabs">
-            <button v-for="(review, index) in reviews" :key="index"
-              :class="['tab-button', { 'active': activeReviewIndex === index }]" @click="activeReviewIndex = index">
+            <button
+              v-for="(review, index) in reviews"
+              :key="index"
+              :class="['tab-button', { active: activeReviewIndex === index }]"
+              @click="activeReviewIndex = index"
+            >
               {{ review.author }}
             </button>
           </div>
@@ -174,9 +188,13 @@
       <div class="container">
         <div class="news-header">
           <div>
-            <h2 class="section-title">Mộc Châu: Khám phá sự đặc sắc và cập nhật tin tức mới nhất</h2>
-            <p class="news-subtitle">Mộc Châu: Bí mật và cuộc sống trong lành - Khám phá và cập nhật những tin tức hấp
-              dẫn từ điểm đến tuyệt vời này.</p>
+            <h2 class="section-title">
+              Mộc Châu: Khám phá sự đặc sắc và cập nhật tin tức mới nhất
+            </h2>
+            <p class="news-subtitle">
+              Mộc Châu: Bí mật và cuộc sống trong lành - Khám phá và cập nhật những tin tức hấp dẫn
+              từ điểm đến tuyệt vời này.
+            </p>
           </div>
           <div class="news-divider"></div>
         </div>
@@ -195,11 +213,12 @@
     </section>
 
     <!-- Phần Kêu Gọi Hành Động -->
-
   </div>
 </template>
 
 <script setup>
+
+
 import { ref, computed, onMounted } from 'vue';
 import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
 import { useRouter } from 'vue-router';
@@ -211,89 +230,101 @@ const hasError = ref(false);
 const errorMessage = ref('');
 const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80';
 
+
 // Thêm các state cho form tìm kiếm
-const searchName = ref('');
-const searchLocation = ref('Tất cả địa điểm');
-const searchPrice = ref('Tất cả mức giá');
+const searchName = ref('')
+const searchLocation = ref('Tất cả địa điểm')
+const searchPrice = ref('Tất cả mức giá')
 
 // Thêm dữ liệu đánh giá mẫu
-const isLoadingReviews = ref(false);
-const activeReviewIndex = ref(0);
+const isLoadingReviews = ref(false)
+const activeReviewIndex = ref(0)
 const reviews = ref([
   {
     id: 1,
     author: 'Chị Linh - Anh Dũng',
     location: 'Hà Nội',
-    content: 'Tour du homestay 2 ngày 1 đêm rất tuyệt vời, tôi được ngắm vẻ đẹp cả vùng Mộc Châu, khám phá các làng dân tộc. Nhân viên tư vấn nhiệt tình, phục vụ chu đáo. Đồ ăn ngon, phòng ốc đẹp. Đây thực sự là trải nghiệm đáng nhớ, mình sẽ tiếp tục ủng hộ và giới thiệu cho bạn bè. Cảm ơn ChillStay!',
-    rating: 5
+    content:
+      'Tour du homestay 2 ngày 1 đêm rất tuyệt vời, tôi được ngắm vẻ đẹp cả vùng Mộc Châu, khám phá các làng dân tộc. Nhân viên tư vấn nhiệt tình, phục vụ chu đáo. Đồ ăn ngon, phòng ốc đẹp. Đây thực sự là trải nghiệm đáng nhớ, mình sẽ tiếp tục ủng hộ và giới thiệu cho bạn bè. Cảm ơn ChillStay!',
+    rating: 5,
   },
   {
     id: 2,
     author: 'Chị Thu Hà',
     location: 'TP. Hồ Chí Minh',
-    content: 'Phòng homestay rất sạch sẽ và trang trí đẹp mắt, view nhìn ra thung lũng tuyệt vời. Chủ homestay rất thân thiện và nhiệt tình giới thiệu những địa điểm đẹp ở Mộc Châu. Bữa sáng ngon miệng với nhiều món đặc sản địa phương. Chắc chắn sẽ quay lại vào dịp tiếp theo!',
-    rating: 5
+    content:
+      'Phòng homestay rất sạch sẽ và trang trí đẹp mắt, view nhìn ra thung lũng tuyệt vời. Chủ homestay rất thân thiện và nhiệt tình giới thiệu những địa điểm đẹp ở Mộc Châu. Bữa sáng ngon miệng với nhiều món đặc sản địa phương. Chắc chắn sẽ quay lại vào dịp tiếp theo!',
+    rating: 5,
   },
   {
     id: 3,
     author: 'Anh Khánh',
     location: 'Đà Nẵng',
-    content: 'Lần đầu tiên đến Mộc Châu và lựa chọn ChillStay là quyết định đúng đắn. Không gian yên tĩnh, gần gũi thiên nhiên nhưng vẫn đầy đủ tiện nghi. Đặc biệt ấn tượng với cách bài trí mang đậm văn hóa dân tộc Thái. Nhân viên chu đáo và luôn sẵn sàng hỗ trợ mọi lúc.',
-    rating: 4
+    content:
+      'Lần đầu tiên đến Mộc Châu và lựa chọn ChillStay là quyết định đúng đắn. Không gian yên tĩnh, gần gũi thiên nhiên nhưng vẫn đầy đủ tiện nghi. Đặc biệt ấn tượng với cách bài trí mang đậm văn hóa dân tộc Thái. Nhân viên chu đáo và luôn sẵn sàng hỗ trợ mọi lúc.',
+    rating: 4,
   },
   {
     id: 4,
     author: 'Bạn Minh Hoàng',
     location: 'Hải Phòng',
-    content: 'ChillStay là điểm đến hoàn hảo cho chuyến phượt Mộc Châu của nhóm mình. Phòng rộng rãi, sạch sẽ, giá cả hợp lý. Đặc biệt, được ngủ trong những căn nhà gỗ giữa khung cảnh thiên nhiên tuyệt đẹp là trải nghiệm khó quên. Chủ homestay rất nhiệt tình giới thiệu các địa điểm thú vị xung quanh.',
-    rating: 5
+    content:
+      'ChillStay là điểm đến hoàn hảo cho chuyến phượt Mộc Châu của nhóm mình. Phòng rộng rãi, sạch sẽ, giá cả hợp lý. Đặc biệt, được ngủ trong những căn nhà gỗ giữa khung cảnh thiên nhiên tuyệt đẹp là trải nghiệm khó quên. Chủ homestay rất nhiệt tình giới thiệu các địa điểm thú vị xung quanh.',
+    rating: 5,
   },
   {
     id: 5,
     author: 'Cô Thanh Hằng và bạn',
     location: 'Thái Nguyên',
-    content: 'Đã tới nhiều homestay ở Mộc Châu nhưng ChillStay là nơi để lại ấn tượng nhất. Không gian thoáng đãng, view đẹp, đồ ăn ngon và phong cách phục vụ chuyên nghiệp. Đặc biệt thích không gian cà phê nhỏ trong khu vực homestay, rất thích hợp để ngồi ngắm mây trôi và thưởng thức đồ uống.',
-    rating: 5
-  }
-]);
+    content:
+      'Đã tới nhiều homestay ở Mộc Châu nhưng ChillStay là nơi để lại ấn tượng nhất. Không gian thoáng đãng, view đẹp, đồ ăn ngon và phong cách phục vụ chuyên nghiệp. Đặc biệt thích không gian cà phê nhỏ trong khu vực homestay, rất thích hợp để ngồi ngắm mây trôi và thưởng thức đồ uống.',
+    rating: 5,
+  },
+])
 
 // Thêm dữ liệu tin tức mẫu
 const newsArticles = ref([
   {
     id: 1,
-    title: "Top 3 đồi chè đẹp nhất đáng để ghé thăm tại Mộc Châu",
-    excerpt: "Những đồi chè xanh mướt trải dài tạo nên khung cảnh tuyệt đẹp là điểm đến không thể bỏ qua khi du lịch Mộc Châu.",
-    image: "https://images.unsplash.com/photo-1598968693740-7ed0a5c0a8a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "20/05/2023"
+    title: 'Top 3 đồi chè đẹp nhất đáng để ghé thăm tại Mộc Châu',
+    excerpt:
+      'Những đồi chè xanh mướt trải dài tạo nên khung cảnh tuyệt đẹp là điểm đến không thể bỏ qua khi du lịch Mộc Châu.',
+    image:
+      'https://images.unsplash.com/photo-1598968693740-7ed0a5c0a8a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+    date: '20/05/2023',
   },
   {
     id: 2,
-    title: "Ẩm thực Mộc Châu - Món ngon đặc sản không thể bỏ lỡ",
-    excerpt: "Khám phá các món ăn đặc trưng của Mộc Châu từ thịt trâu gác bếp, cá suối nướng đến rau đặc sản vùng cao.",
-    image: "https://images.unsplash.com/photo-1569058242253-92a0c8223b47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "15/06/2023"
+    title: 'Ẩm thực Mộc Châu - Món ngon đặc sản không thể bỏ lỡ',
+    excerpt:
+      'Khám phá các món ăn đặc trưng của Mộc Châu từ thịt trâu gác bếp, cá suối nướng đến rau đặc sản vùng cao.',
+    image:
+      'https://images.unsplash.com/photo-1569058242253-92a0c8223b47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+    date: '15/06/2023',
   },
   {
     id: 3,
-    title: "Top 3 khu nghỉ dưỡng gần thác Dải Yếm dành cho gia đình",
-    excerpt: "Chỉ cần rời khỏi thành phố khoảng 1-2 giờ đồng hồ, bạn đã có thể tận hưởng không gian nghỉ dưỡng tuyệt vời.",
-    image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "10/07/2023"
-  }
-]);
+    title: 'Top 3 khu nghỉ dưỡng gần thác Dải Yếm dành cho gia đình',
+    excerpt:
+      'Chỉ cần rời khỏi thành phố khoảng 1-2 giờ đồng hồ, bạn đã có thể tận hưởng không gian nghỉ dưỡng tuyệt vời.',
+    image:
+      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+    date: '10/07/2023',
+  },
+])
 
 // Đánh giá hiện tại đang được hiển thị
 const activeReview = computed(() => {
-  return reviews.value[activeReviewIndex.value];
-});
+  return reviews.value[activeReviewIndex.value]
+})
 
 // Phương thức tìm kiếm
 const handleSearch = () => {
   console.log('Đang tìm kiếm với:', {
     tên: searchName.value,
     địaĐiểm: searchLocation.value,
-    giáCả: searchPrice.value
-  });
+    giáCả: searchPrice.value,
+  })
 
   // Chuyển đến trang kết quả tìm kiếm với các tham số tương ứng
   router.push({
@@ -301,45 +332,50 @@ const handleSearch = () => {
     query: {
       name: searchName.value,
       location: searchLocation.value !== 'Tất cả địa điểm' ? searchLocation.value : null,
-      price: searchPrice.value !== 'Tất cả mức giá' ? searchPrice.value : null
-    }
-  });
-};
+      price: searchPrice.value !== 'Tất cả mức giá' ? searchPrice.value : null,
+    },
+  })
+}
 
 // Phương thức chuyển đến trang Booking
 const navigateToBooking = (homestayId) => {
-  router.push(`/homestay/${homestayId}`);
-};
+  router.push(`/homestay/${homestayId}`)
+}
 
 // Lọc chỉ các homestay có trạng thái Hoạt động (chấp nhận cả boolean true hoặc chuỗi "Hoạt động")
 const activeHomestays = computed(() => {
-  console.log('Tổng số homestay:', homestays.value.length);
-  const result = homestays.value.filter(home => home.trangThai === true || home.trangThai === 'Hoạt động');
-  console.log('Số homestay đang hoạt động:', result.length);
-  return result;
-});
+  console.log('Tổng số homestay:', homestays.value.length)
+  const result = homestays.value.filter(
+    (home) => home.trangThai === true || home.trangThai === 'Hoạt động',
+  )
+  console.log('Số homestay đang hoạt động:', result.length)
+  return result
+})
 
 // Hiển thị 6 homestay trên trang chủ thay vì 3
 const displayedHomestays = computed(() => {
-  return activeHomestays.value.slice(0, 6);
-});
+  return activeHomestays.value.slice(0, 6)
+})
 
 // Phương thức chuyển đến trang hiển thị tất cả homestay
 const viewAllHomestays = () => {
-  console.log('Chuyển hướng đến trang tất cả homestay');
-  router.push('/all-homestays');
-};
+  console.log('Chuyển hướng đến trang tất cả homestay')
+  router.push('/all-homestays')
+}
 
 const fetchHomestayData = async () => {
   try {
-    isLoading.value = true;
-    hasError.value = false;
-    errorMessage.value = '';
+    isLoading.value = true
+    hasError.value = false
+    errorMessage.value = ''
 
     try {
+
+
       // Gọi API để lấy dữ liệu homestay
       const res = await getAllHomeStay();
       console.log('Dữ liệu homestay từ API:', res.data);
+
 
       // In ra xem có trường hotenChuHomestay không
       if (res.data && res.data.length > 0) {
@@ -352,6 +388,9 @@ const fetchHomestayData = async () => {
       }
 
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+
+
+
         homestays.value = await Promise.all(res.data.map(async (homestay) => {
           try {
             // Tìm hình ảnh cho homestay
@@ -367,40 +406,43 @@ const fetchHomestayData = async () => {
           }
           return homestay;
         }));
+
       } else {
-        hasError.value = true;
-        errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.';
-        console.warn('API trả về dữ liệu không hợp lệ:', res.data);
+        hasError.value = true
+        errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.'
+        console.warn('API trả về dữ liệu không hợp lệ:', res.data)
       }
     } catch (apiError) {
-      hasError.value = true;
+      hasError.value = true
       if (apiError.response && apiError.response.status === 401) {
-        errorMessage.value = 'API yêu cầu xác thực nhưng không có dữ liệu công khai. Vui lòng kiểm tra cấu hình backend.';
-        console.error('Lỗi 401 - API yêu cầu xác thực:', apiError.response.data);
+        errorMessage.value =
+          'API yêu cầu xác thực nhưng không có dữ liệu công khai. Vui lòng kiểm tra cấu hình backend.'
+        console.error('Lỗi 401 - API yêu cầu xác thực:', apiError.response.data)
       } else if (apiError.message.includes('Network Error')) {
-        errorMessage.value = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
+        errorMessage.value = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.'
       } else {
-        errorMessage.value = 'Lỗi khi tải dữ liệu homestay: ' + (apiError.response?.data?.message || apiError.message);
+        errorMessage.value =
+          'Lỗi khi tải dữ liệu homestay: ' + (apiError.response?.data?.message || apiError.message)
       }
       console.error('Lỗi API chi tiết:', {
         message: apiError.message,
         status: apiError.response?.status,
         data: apiError.response?.data,
         url: apiError.config?.url,
-      });
+      })
     }
   } catch (err) {
-    console.error('Lỗi không xác định:', err);
-    hasError.value = true;
-    errorMessage.value = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.';
+    console.error('Lỗi không xác định:', err)
+    hasError.value = true
+    errorMessage.value = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.'
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 onMounted(async () => {
-  await fetchHomestayData();
-});
+  await fetchHomestayData()
+})
 </script>
 
 <style scoped>
@@ -431,7 +473,8 @@ onMounted(async () => {
 
 /* Phần Hero */
 .hero-section {
-  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center/cover;
+  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
+    no-repeat center/cover;
   color: #fff;
   padding: 100px 0;
   position: relative;
@@ -591,7 +634,9 @@ onMounted(async () => {
   border-radius: 15px;
   text-align: center;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   border: 1px solid #e8e8e8;
 }
 
@@ -638,7 +683,9 @@ onMounted(async () => {
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   border: 1px solid #e8e8e8;
   position: relative;
 }
@@ -1080,7 +1127,9 @@ onMounted(async () => {
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   border: 1px solid #e8e8e8;
 }
 

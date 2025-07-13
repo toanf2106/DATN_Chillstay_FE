@@ -539,7 +539,10 @@ export default {
       openAnhModal,
       openAnhModalFromDetails,
       closeAnhModal,
+
+
       formatTinhTrang
+
     }
   },
 }

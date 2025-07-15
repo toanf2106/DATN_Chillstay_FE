@@ -467,7 +467,7 @@
 </template>
 
 <script>
-import { getAllHomeStay, getSoPhongByHomestayId } from '@/Service/HomeStayService'
+import { getAllHomeStay, getSoPhongByHomestayId2 } from '@/Service/HomeStayService'
 
 export default {
   name: 'DatHomeADM',
@@ -627,7 +627,7 @@ export default {
     // Lấy số lượng phòng cho một homestay
     async fetchRoomCount(homestayId) {
       try {
-        const response = await getSoPhongByHomestayId(homestayId)
+        const response = await getSoPhongByHomestayId2(homestayId)
         if (response && response.data !== undefined) {
           // Cập nhật số lượng phòng trong object roomCounts
           this.roomCounts = { ...this.roomCounts, [homestayId]: response.data }

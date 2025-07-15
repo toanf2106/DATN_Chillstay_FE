@@ -97,47 +97,58 @@
           <div class="homestay-card" v-for="home in displayedHomestays" :key="home.id">
             <div class="homestay-image">
               <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
-
               <img v-else :src="defaultImage" :alt="home.tenHomestay" />
               <div class="homestay-rating" v-if="home.danhGiaTrungBinh !== undefined">
-                <span class="stars">★</span> {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }} đánh giá)
-
+                <span class="stars">★</span> {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }}
+                đánh giá)
               </div>
               <span class="homestay-status" v-if="home.trangThai">
                 {{ home.trangThai === true ? 'Hoạt động' : home.trangThai }}
               </span>
             </div>
             <div class="homestay-content">
-
-
               <p class="homestay-location" v-if="home.diaChi">
                 <i class="fas fa-map-marker-alt"></i> {{ home.diaChi }}
-
               </p>
               <h3>{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
-                <span v-if="home.loaiHomeStay"><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span>
-                <span v-if="home.dienTich"><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span>
-                <span v-if="home.sucChua"><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span>
+                <span v-if="home.loaiHomeStay"
+                  ><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span
+                >
+                <span v-if="home.dienTich"
+                  ><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span
+                >
+                <span v-if="home.sucChua"
+                  ><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span
+                >
               </div>
 
               <div class="homestay-owner" v-if="home.hotenChuHomestay">
                 <i class="fas fa-user"></i> Chủ homestay: {{ home.hotenChuHomestay }}
               </div>
-              <!-- Single price display -->
-              <div class="homestay-price">
-                <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000' }}₫</span>
 
 
-                <span class="price-unit">/đêm</span>
+              <div class="homestay-price" v-if="home.giaCaHomestay">
+                <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
+
+                <!-- <div class="homestay-price">
+                  <span class="price"
+                    >{{
+                      home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
+                    }}₫</span
+                  >
+
+                  <span class="price-unit">/đêm</span>
+                </div> -->
+                <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
+
               </div>
-              <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
             </div>
           </div>
-        </div>
 
-        <div class="view-more">
-          <button class="view-more-btn" @click="viewAllHomestays">Xem Tất Cả Homestay</button>
+          <div class="view-more">
+            <button class="view-more-btn" @click="viewAllHomestays">Xem Tất Cả Homestay</button>
+          </div>
         </div>
       </div>
     </section>
@@ -211,19 +222,17 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService'
+import { useRouter } from 'vue-router'
 
-
-import { ref, computed, onMounted } from 'vue';
-import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-const homestays = ref([]);
-const isLoading = ref(true);
-const hasError = ref(false);
-const errorMessage = ref('');
-const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80';
-
+const router = useRouter()
+const homestays = ref([])
+const isLoading = ref(true)
+const hasError = ref(false)
+const errorMessage = ref('')
+const defaultImage =
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80'
 
 // Thêm các state cho form tìm kiếm
 const searchName = ref('')
@@ -364,12 +373,9 @@ const fetchHomestayData = async () => {
     errorMessage.value = ''
 
     try {
-
-
       // Gọi API để lấy dữ liệu homestay
-      const res = await getAllHomeStay();
-      console.log('Dữ liệu homestay từ API:', res.data);
-
+      const res = await getAllHomeStay()
+      console.log('Dữ liệu homestay từ API:', res.data)
 
       // In ra xem có trường hotenChuHomestay không
       if (res.data && res.data.length > 0) {
@@ -377,30 +383,28 @@ const fetchHomestayData = async () => {
           id: res.data[0].id,
           ten: res.data[0].tenHomestay,
           chu: res.data[0].hotenChuHomestay,
-          allProps: Object.keys(res.data[0])
-        });
+          allProps: Object.keys(res.data[0]),
+        })
       }
 
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-
-
-
-        homestays.value = await Promise.all(res.data.map(async (homestay) => {
-          try {
-            // Tìm hình ảnh cho homestay
-            const anhResponse = await getAnhHomeStayByHomestayId(homestay.id);
-            if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
-              const mainImage = anhResponse.data.find(img => img.trangThai !== false);
-              if (mainImage) {
-                homestay.hinhAnh = mainImage.duongDanAnh;
+        homestays.value = await Promise.all(
+          res.data.map(async (homestay) => {
+            try {
+              // Tìm hình ảnh cho homestay
+              const anhResponse = await getAnhHomeStayByHomestayId(homestay.id)
+              if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
+                const mainImage = anhResponse.data.find((img) => img.trangThai !== false)
+                if (mainImage) {
+                  homestay.hinhAnh = mainImage.duongDanAnh
+                }
               }
+            } catch (imgError) {
+              console.error(`Lỗi khi lấy ảnh cho homestay ${homestay.id}:`, imgError)
             }
-          } catch (imgError) {
-            console.error(`Lỗi khi lấy ảnh cho homestay ${homestay.id}:`, imgError);
-          }
-          return homestay;
-        }));
-
+            return homestay
+          }),
+        )
       } else {
         hasError.value = true
         errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.'

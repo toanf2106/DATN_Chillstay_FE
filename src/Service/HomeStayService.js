@@ -111,6 +111,7 @@ export function uploadAnhHomeStay(file, homestayId) {
 
 export function getSoPhongByHomestayId2(homestayId) {
   return api.get(`/api/homestay/Phong/${homestayId}`);
+}
 
 export function getSoPhongByHomestayId(homestayId) {
   return api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`);

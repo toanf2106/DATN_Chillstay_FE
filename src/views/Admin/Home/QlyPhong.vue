@@ -1,2221 +1,1148 @@
 <template>
-  <div class="qly-phong-container">
-    <!-- Header with search in the middle -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div class="d-flex align-items-center">
-      <h2 class="mb-0">Quản lý phòng</h2>
+  <div class="phong-container">
+    <h1 class="page-title">Quản Lý Phòng</h1>
 
-        <!-- Nút đồng bộ với backend (chỉ hiển thị khi cấu hình cho phép) -->
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-primary ms-1"
-          @click="syncWithBackend"
-          v-if="syncConfig.useRealApi"
-          v-tooltip="'Đồng bộ dữ liệu với backend'"
-          :disabled="loading"
-        >
-          <i class="fas fa-sync" :class="{'fa-spin': loading}"></i>
-          <span class="d-none d-md-inline ms-1">Đồng bộ</span>
-        </button>
-      </div>
-
-      <!-- Search bar (more compact) -->
-      <div class="search-container mx-2" style="width: 400px;">
-        <div class="input-group">
-          <select class="form-select flex-grow-0" style="width: auto;" v-model="searchType">
-            <option value="tenPhong">Tên phòng</option>
-            <option value="maPhong">Mã phòng</option>
-            <option value="id">ID</option>
-          </select>
-          <input
-            type="text"
-            class="form-control"
-            :placeholder="'Tìm theo ' + (searchType === 'tenPhong' ? 'tên phòng' : searchType === 'maPhong' ? 'mã phòng' : 'ID')"
-            v-model="searchKeyword"
-            @keyup.enter="searchPhongs"
-          />
-          <button class="btn btn-primary" type="button" @click="searchPhongs">
-            <i class="fas fa-search"></i>
-          </button>
+    <div class="controls-container">
+      <div class="search-box">
+        <div class="search-control-group">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              v-model="searchTerm"
+              placeholder="Tìm kiếm phòng..."
+              class="search-input"
+              @input="handleSearch"
+            />
+            <button v-if="searchTerm" @click="clearSearch" class="clear-search-btn">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
       </div>
 
-      <button class="btn btn-success" @click="showAddModal">
-        <i class="fas fa-plus"></i> Thêm phòng mới
-      </button>
+      <div class="right-controls">
+        <select
+          class="form-select status-filter"
+          v-model="selectedStatus"
+          @change="handleStatusChange(selectedStatus)"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Đã khóa</option>
+        </select>
+        <button
+          class="btn btn-info loai-phong-btn"
+          title="Quản lý loại phòng"
+          @click="goToLoaiPhong"
+        >
+          <i class="fas fa-tags"></i>
+        </button>
+        <button class="btn btn-warning vattu-phong-btn" title="Quản lý vật tư phòng">
+          <i class="fas fa-box"></i>
+        </button>
+        <button class="btn btn-primary add-button" @click="openAddModal">
+          <font-awesome-icon icon="fa-solid fa-door-open" />
+        </button>
+      </div>
     </div>
 
-    <!-- Thông tin đồng bộ hóa -->
-    <div class="mb-3 small text-muted" v-if="syncConfig.useRealApi && syncConfig.lastSyncTime">
-      <i class="fas fa-info-circle"></i>
-      Đồng bộ lần cuối: {{ formatDateWithTime(syncConfig.lastSyncTime) }}
-      <span v-if="schemaInfo.hasChanges" class="text-primary">(Phát hiện thay đổi schema)</span>
+    <!-- API Error Alert -->
+    <div v-if="apiError" class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <strong>Lưu ý:</strong> {{ apiErrorMessage }}
+      <button type="button" class="btn-close float-end" @click="apiError = false"></button>
     </div>
 
-    <!-- Giả lập thêm trường (chỉ cho demo) -->
-    <div class="mb-3" v-if="!syncConfig.useRealApi">
-      <button
-        type="button"
-        class="btn btn-sm btn-warning"
-        @click="simulateBackendFieldChange"
-        v-tooltip="'Giả lập backend thêm trường dữ liệu mới (demo)'"
-      >
-        <i class="fas fa-plus-circle"></i> Giả lập thêm trường (Demo)
-      </button>
-      <small class="text-muted ms-2">
-        Nhấn để giả lập backend thêm trường dữ liệu mới
-      </small>
+    <!-- Loading indicator -->
+    <div v-if="loading" class="loading-indicator">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
     </div>
 
-    <!-- Table for displaying rooms -->
-    <div class="table-responsive">
-      <table class="table table-striped table-hover">
-        <thead class="table-dark">
+    <!-- Phòng Table -->
+    <div class="table-responsive" v-if="!loading">
+      <table class="table table-hover table-bordered table-sm">
+        <thead>
           <tr>
-            <th v-for="(field, index) in tableFields" :key="index">{{ field.label }}</th>
-            <th>Hành động</th>
+            <th>STT</th>
+            <th>Homestay</th>
+            <th>Tên Phòng</th>
+            <th>Loại Phòng</th>
+            <th>Diện Tích</th>
+            <th>Tầng</th>
+            <th>Số Người Lớn</th>
+            <th>Số Trẻ Nhỏ</th>
+            <th>Số Người Tối Đa</th>
+            <th>Trạng thái</th>
+            <th>Ảnh Bìa</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="loading">
-            <td :colspan="tableFields.length + 1" class="text-center">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Đang tải...</span>
+          <tr
+            v-for="(phong, index) in filteredPhongs"
+            :key="phong.id"
+            @dblclick="viewPhongDetails(phong)"
+          >
+            <td class="text-center">{{ calculateIndex(index) }}</td>
+            <td class="text-center">{{ getHomestayName(phong.homeStayId) }}</td>
+            <td class="text-center">{{ phong.tenPhong }}</td>
+            <td class="text-center">{{ getLoaiPhongName(phong.loaiPhongId) }}</td>
+            <td class="text-center">{{ phong.dienTich }} m²</td>
+            <td class="text-center">{{ phong.tangSo }}</td>
+            <td class="text-center">{{ phong.soNguoiLon }}</td>
+            <td class="text-center">{{ phong.soNguoiNho }}</td>
+            <td class="text-center">{{ phong.soNguoiToiDa }}</td>
+            <td class="text-center">
+              <span :class="`badge ${phong.trangThai ? 'bg-success' : 'bg-danger'}`">
+                {{ phong.trangThai ? 'Hoạt động' : 'Khóa' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="image-wrapper">
+                <img
+                  v-if="phong.anhBia"
+                  :src="getImageUrl(phong.anhBia)"
+                  :alt="phong.tenPhong"
+                  class="phong-image"
+                />
+                <div v-else class="no-image-placeholder">
+                  <i class="fas fa-door-open"></i>
+                  <span>Không có ảnh</span>
+                </div>
               </div>
             </td>
-          </tr>
-          <tr v-else-if="phongs.length === 0">
-            <td :colspan="tableFields.length + 1" class="text-center">Không có dữ liệu phòng</td>
-          </tr>
-          <tr v-for="phong in phongs" :key="phong.id">
-            <td v-for="(field, index) in tableFields" :key="index">
-              <template v-if="field.key === 'idloaiPhong' || field.key === 'idhomeStay'">
-                {{ getNestedValue(phong, field.key + '.id') || 'N/A' }}
-              </template>
-              <template v-else-if="field.format === 'date'">
-                {{ formatDateShort(getNestedValue(phong, field.key)) }}
-              </template>
-              <template v-else-if="field.format === 'boolean'">
-                {{ getNestedValue(phong, field.key) ? '1' : '0' }}
-              </template>
-              <template v-else-if="field.key === 'dienTich'">
-                {{ getNestedValue(phong, field.key) ? `${getNestedValue(phong, field.key)} m²` : 'NULL' }}
-              </template>
-              <template v-else-if="field.key === 'anhBia'">
-                <img v-if="getNestedValue(phong, field.key)" :src="getNestedValue(phong, field.key)" class="img-thumbnail" style="max-height: 50px; max-width: 70px;" :alt="phong.tenPhong" />
-                <span v-else class="text-muted">Chưa có ảnh</span>
-              </template>
-              <template v-else>
-                {{ getNestedValue(phong, field.key) || 'NULL' }}
-              </template>
-            </td>
-            <td>
-              <div class="btn-group" role="group">
-                <button class="btn btn-sm btn-info me-1" @click="showDetailModal(phong)">
-                  <i class="fas fa-eye"></i>
+            <td class="text-center">
+              <div class="action-buttons">
+                <button
+                  class="btn btn-icon btn-info-light"
+                  title="Quản lý ảnh"
+                  @click="openAnhModal(phong)"
+                >
+                  <i class="fas fa-images"></i>
                 </button>
-                <button class="btn btn-sm btn-primary me-1" @click="showEditModal(phong)">
+                <button
+                  class="btn btn-icon btn-warning-light"
+                  title="Chỉnh sửa"
+                  @click="editPhong(phong)"
+                >
                   <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-danger" @click="confirmDelete(phong)">
+                <button
+                  class="btn btn-icon btn-danger-light"
+                  title="Xóa"
+                  @click="deletePhong(phong.id)"
+                >
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
             </td>
           </tr>
+          <!-- Empty rows to ensure space for 10 rows -->
+          <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
+            <td colspan="12">&nbsp;</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
+    <!-- Empty state -->
+    <div v-if="!loading && filteredPhongs.length === 0" class="empty-state">
+      <i class="fas fa-box-open empty-icon"></i>
+      <p v-if="searchTerm">Không tìm thấy phòng nào phù hợp với từ khóa "{{ searchTerm }}".</p>
+      <p v-else>Không tìm thấy phòng nào.</p>
+    </div>
+
     <!-- Pagination -->
-    <div class="d-flex justify-content-between align-items-center mt-3">
-      <div>Hiển thị {{ startIndex + 1 }} đến {{ endIndex }} trong số {{ totalItems }} phòng</div>
-      <nav aria-label="Page navigation" v-if="totalPages > 1">
-        <ul class="pagination pagination-sm mb-0">
-          <li class="page-item" :class="{ disabled: currentPage === 0 }">
-            <button class="page-link" @click="currentPage > 0 && changePage(currentPage - 1)" aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-        </button>
+    <div class="pagination-container" v-if="!loading && filteredPhongs.length > 0">
+      <div class="pagination-info">
+        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} phòng
+      </div>
+      <nav aria-label="Page navigation">
+        <ul class="pagination">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+              <i class="fas fa-chevron-left"></i>
+            </a>
           </li>
-
-          <template v-for="pageNum in displayedPages" :key="pageNum">
-            <li v-if="pageNum !== '...'" class="page-item" :class="{ active: pageNum === currentPage }">
-              <button class="page-link" @click="changePage(pageNum)">{{ pageNum + 1 }}</button>
-            </li>
-            <li v-else class="page-item disabled">
-              <span class="page-link">...</span>
-            </li>
-          </template>
-
-          <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
-            <button class="page-link" @click="currentPage < totalPages - 1 && changePage(currentPage + 1)" aria-label="Next">
-              <span aria-hidden="true">&raquo;</span>
-        </button>
+          <li
+            v-for="page in displayedPages"
+            :key="page"
+            class="page-item"
+            :class="{ active: page === currentPage }"
+          >
+            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+          </li>
+          <li
+            class="page-item"
+            :class="{ disabled: currentPage === totalPages || totalPages === 0 }"
+          >
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+              <i class="fas fa-chevron-right"></i>
+            </a>
           </li>
         </ul>
       </nav>
     </div>
-
-    <!-- Add/Edit Modal -->
-    <div class="modal" id="phongModal" tabindex="-1" aria-hidden="true" ref="phongModal">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ isEdit ? 'Cập nhật thông tin phòng' : 'Thêm phòng mới' }}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form @submit.prevent="submitForm()" id="phongForm">
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label class="form-label">Loại Phòng <span class="text-danger">*</span></label>
-                  <select class="form-select" v-model="formData.idloaiPhong.id" required>
-                    <option value="">-- Chọn loại phòng --</option>
-                    <option v-for="loaiPhong in loaiPhongList" :key="loaiPhong.id" :value="loaiPhong.id">
-                      {{ loaiPhong.tenLoaiPhong }}
-                    </option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Homestay <span class="text-danger">*</span></label>
-                  <select class="form-select" v-model="formData.idhomeStay.id" required>
-                    <option value="">-- Chọn homestay --</option>
-                    <option v-for="homestay in homestayList" :key="homestay.id" :value="homestay.id">
-                      {{ homestay.tenHomestay }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label class="form-label">Mã Phòng <span class="text-danger">*</span></label>
-                  <div class="input-group">
-                    <input type="text" class="form-control" v-model="formData.maPhong" maxlength="50" required />
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      @click="generateRoomCode"
-                      title="Tạo mã phòng tự động"
-                    >
-                      <i class="fas fa-sync-alt"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Tên Phòng <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" v-model="formData.tenPhong" maxlength="100" required />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <div class="col-md-4">
-                  <label class="form-label">Diện tích (m²) <span class="text-danger">*</span></label>
-                  <div class="input-group">
-                    <input type="number" step="0.01" class="form-control" v-model="formData.dienTich" required min="0" />
-                    <span class="input-group-text">m²</span>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Tầng <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" v-model="formData.tangSo" required min="0" />
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Số người tối đa <span class="text-danger">*</span></label>
-                  <input type="number" class="form-control" v-model="formData.soNguoiToiDa" required min="1" />
-                </div>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Mô tả</label>
-                <textarea class="form-control" v-model="formData.moTa" rows="3" placeholder="Nhập mô tả về phòng..."></textarea>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Ảnh bìa</label>
-                <div class="input-group">
-                  <input type="file" class="form-control" @change="handleImageUpload" accept="image/*" />
-                  <button class="btn btn-outline-secondary" type="button" @click="removeImage" title="Xóa ảnh" v-if="formData.anhBia || previewImage">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-                <div v-if="formData.anhBia || previewImage" class="mt-2">
-                  <img :src="previewImage || formData.anhBia" class="img-thumbnail" style="max-height: 150px;" />
-                </div>
-              </div>
-              <div class="mb-3">
-                <div class="d-flex align-items-center">
-                  <!-- Switch toggle style matching the screenshot -->
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="trangThai" v-model="formData.trangThai">
-                  </div>
-                  <!-- Text with icon beside the toggle -->
-                  <div class="ms-2">
-                    <span v-if="formData.trangThai" class="text-success">
-                      <i class="fas fa-check-circle"></i> Hoạt động
-                    </span>
-                    <span v-else class="text-danger">
-                      <i class="fas fa-times-circle"></i> Không hoạt động
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Hiển thị các trường dữ liệu động từ backend -->
-              <template v-for="(field, key) in dynamicFields" :key="key">
-                <div class="mb-3">
-                  <label class="form-label">{{ field.label }}</label>
-                  <input
-                    v-if="field.type === 'text'"
-                    type="text"
-                    class="form-control"
-                    v-model="formData[field.key]"
-                  />
-                  <input
-                    v-else-if="field.type === 'number'"
-                    type="number"
-                    class="form-control"
-                    v-model="formData[field.key]"
-                  />
-                  <input
-                    v-else-if="field.type === 'date'"
-                    type="date"
-                    class="form-control"
-                    v-model="formData[field.key]"
-                  />
-                  <div
-                    v-else-if="field.type === 'checkbox'"
-                    class="form-check"
-                  >
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      :id="'dynamic-' + field.key"
-                      v-model="formData[field.key]"
-                    >
-                    <label
-                      class="form-check-label"
-                      :for="'dynamic-' + field.key"
-                    >
-                      {{ formData[field.key] ? 'Có' : 'Không' }}
-                    </label>
-                  </div>
-                  <textarea
-                    v-else
-                    class="form-control"
-                    v-model="formData[field.key]"
-                    rows="3"
-                  ></textarea>
-                </div>
-              </template>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
-            <button type="submit" class="btn btn-primary" form="phongForm" id="btnSavePhong">
-              <i class="fas fa-save me-1"></i> Lưu
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Detail Modal -->
-    <div class="modal" id="detailModal" tabindex="-1" aria-hidden="true" ref="detailModal">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Thông tin chi tiết phòng</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" v-if="selectedPhong">
-            <div class="row">
-                              <div class="col-md-12">
-                  <table class="table table-bordered">
-                    <tbody>
-                    <template v-for="(field, index) in detailFields" :key="index">
-                      <tr v-if="index % 2 === 0">
-                        <th>{{ detailFields[index].label }}</th>
-                        <td>
-                          <template v-if="detailFields[index].key === 'idloaiPhong' || detailFields[index].key === 'idhomeStay'">
-                            {{ getNestedValue(selectedPhong, detailFields[index].key + '.id') }}
-                          </template>
-                          <template v-else-if="detailFields[index].format === 'date'">
-                            {{ formatDateShort(getNestedValue(selectedPhong, detailFields[index].key)) }}
-                          </template>
-                          <template v-else-if="detailFields[index].format === 'boolean'">
-                            {{ getNestedValue(selectedPhong, detailFields[index].key) ? '1' : '0' }}
-                          </template>
-                          <template v-else-if="detailFields[index].key === 'dienTich'">
-                            {{ getNestedValue(selectedPhong, detailFields[index].key) ? `${getNestedValue(selectedPhong, detailFields[index].key)} m²` : 'N/A' }}
-                          </template>
-                          <template v-else>
-                            {{ getNestedValue(selectedPhong, detailFields[index].key) || 'N/A' }}
-                          </template>
-                        </td>
-
-                        <th v-if="index + 1 < detailFields.length">{{ detailFields[index + 1].label }}</th>
-                        <td v-if="index + 1 < detailFields.length">
-                          <template v-if="detailFields[index + 1].key === 'idloaiPhong' || detailFields[index + 1].key === 'idhomeStay'">
-                            {{ getNestedValue(selectedPhong, detailFields[index + 1].key + '.id') }}
-                          </template>
-                          <template v-else-if="detailFields[index + 1].format === 'date'">
-                            {{ formatDateShort(getNestedValue(selectedPhong, detailFields[index + 1].key)) }}
-                          </template>
-                          <template v-else-if="detailFields[index + 1].format === 'boolean'">
-                            {{ getNestedValue(selectedPhong, detailFields[index + 1].key) ? '1' : '0' }}
-                          </template>
-                          <template v-else-if="detailFields[index + 1].key === 'dienTich'">
-                            {{ getNestedValue(selectedPhong, detailFields[index + 1].key) ? `${getNestedValue(selectedPhong, detailFields[index + 1].key)} m²` : 'N/A' }}
-                          </template>
-                          <template v-else>
-                            {{ getNestedValue(selectedPhong, detailFields[index + 1].key) || 'N/A' }}
-                          </template>
-                        </td>
-                      </tr>
-                    </template>
-                    <!-- Special handling for ảnh bìa -->
-                    <tr v-if="selectedPhong.anhBia">
-                      <th>Ảnh Bìa</th>
-                        <td colspan="3">
-                          <img v-if="selectedPhong.anhBia" :src="selectedPhong.anhBia" class="img-thumbnail" style="max-height: 150px;">
-                          <span v-else>NULL</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal" id="deleteModal" tabindex="-1" aria-hidden="true" ref="deleteModal">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Xác nhận xóa</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" v-if="selectedPhong">
-            <p>Bạn có chắc chắn muốn xóa phòng <strong>{{ selectedPhong.tenPhong }}</strong> (Mã: {{ selectedPhong.maPhong }})?</p>
-            <p><strong>ID phòng:</strong> {{ selectedPhong.id }}</p>
-            <p class="text-danger">Hành động này không thể hoàn tác!</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-            <button type="button" class="btn btn-danger" @click="deletePhongConfirm" id="btnXacNhanXoa">Xóa</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
+
+  <!-- Modal component cho thêm/sửa/xem chi tiết -->
+  <PhongModal
+    v-if="showModal"
+    :phong="selectedPhong"
+    :loaiPhongList="loaiPhongList"
+    :homestayList="homestayList"
+    :isEdit="isEdit"
+    :isViewMode="isViewMode"
+    @close="closeModal"
+    @save="savePhong"
+    @edit="editFromViewMode"
+    @view-images="openAnhModalFromDetails"
+  />
+
+  <!-- Modal component cho quản lý ảnh phòng -->
+  <AnhPhongModal
+    v-if="showAnhModal"
+    :phong="selectedPhongForAnh"
+    :viewOnly="viewOnlyAnh"
+    @close="closeAnhModal"
+  />
 </template>
 
 <script>
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   getAllPhong,
-  getPhongById,
-  getPhongPaginated,
-  searchPhong,
-  addPhong,
-  updatePhong,
-  deletePhong,
   getLoaiPhongList,
-  getHomestayList
+  getHomestayList,
+  createPhong,
+  updatePhong,
+  deletePhong as deletePhongAPI,
+  searchPhongByKeyword
 } from '@/Service/phongService'
+import PhongModal from '../components/PhongModal.vue'
+import { useToast } from '@/stores/notificationStore'
+import AnhPhongModal from '../components/AnhPhongModal.vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'QlyPhong',
-  data() {
-    return {
-      phongs: [],
-      searchKeyword: '',
-      searchType: 'tenPhong', // Mặc định tìm theo tên phòng
-      loading: false,
-      totalItems: 0,
-      totalPages: 0,
-      currentPage: 0,
-      pageSize: 10, // Phân trang mỗi trang 10 phần tử theo yêu cầu
-      startIndex: 0,
-      endIndex: 0,
-      isEdit: false,
-      selectedPhong: null,
-      previewImage: null,
-      dynamicFields: {},
-      // Cấu hình đồng bộ với backend
-      syncConfig: {
-        useRealApi: true,  // Sử dụng API thật để thêm/sửa/xóa dữ liệu
-        autoSync: true,     // Tự động đồng bộ dữ liệu từ backend
-        syncInterval: 60000, // Cập nhật mỗi 60 giây
-        lastSyncTime: null   // Thời gian đồng bộ lần cuối
-      },
-
-      // Thông tin lưu trữ schema
-      schemaInfo: {
-        fieldCount: 0,       // Số lượng trường hiện tại
-        fields: {},          // Thông tin về các trường
-        hasChanges: false    // Đánh dấu có thay đổi
-      },
-      // Dữ liệu mẫu để demo
-      sampleData: [
-        {
-          id: 1,
-          idloaiPhong: { id: 1 },
-          idhomeStay: { id: 1 },
-          maPhong: 'P000001',
-          tenPhong: 'Phòng Tiêu Chuẩn 1',
-          dienTich: 25.50,
-          moTa: 'View đồi chè',
-          tangSo: 1,
-          soNguoiToiDa: 2,
-          ngayTao: '2025-06-24',
-          ngayUpdate: null,
-          anhBia: null,
-          trangThai: true
-        },
-        {
-          id: 2,
-          idloaiPhong: { id: 1 },
-          idhomeStay: { id: 1 },
-          maPhong: 'P000002',
-          tenPhong: 'Phòng Tiêu Chuẩn 2',
-          dienTich: 25.50,
-          moTa: 'Gần lối đi',
-          tangSo: 1,
-          soNguoiToiDa: 2,
-          ngayTao: '2025-06-24',
-          ngayUpdate: null,
-          anhBia: null,
-          trangThai: true
-        },
-        {
-          id: 3,
-          idloaiPhong: { id: 2 },
-          idhomeStay: { id: 2 },
-          maPhong: 'P000003',
-          tenPhong: 'Phòng VIP Bungalow',
-          dienTich: 35.00,
-          moTa: 'Ban công thoáng',
-          tangSo: 1,
-          soNguoiToiDa: 3,
-          ngayTao: '2025-06-24',
-          ngayUpdate: null,
-          anhBia: null,
-          trangThai: true
-        },
-        {
-          id: 4,
-          idloaiPhong: { id: 3 },
-          idhomeStay: { id: 3 },
-          maPhong: 'P000004',
-          tenPhong: 'Phòng Gia Đình Villa',
-          dienTich: 50.25,
-          moTa: 'View trung tâm',
-          tangSo: 2,
-          soNguoiToiDa: 6,
-          ngayTao: '2025-06-24',
-          ngayUpdate: null,
-          anhBia: null,
-          trangThai: true
-        },
-        {
-          id: 5,
-          idloaiPhong: { id: 1 },
-          idhomeStay: { id: 1 },
-          maPhong: 'PK000001',
-          tenPhong: 'Phòng Tiêu Chuẩn 1',
-          dienTich: 25.50,
-          moTa: 'View đồi chè',
-          tangSo: 1,
-          soNguoiToiDa: 2,
-          ngayTao: '2025-06-24',
-          ngayUpdate: null,
-          anhBia: null,
-          trangThai: true
-        },
-        {
-          id: 6,
-          idloaiPhong: { id: 1 },
-          idhomeStay: { id: 2 },
-          maPhong: 'PP000002',
-          tenPhong: 'Phòng Tiêu Chuẩn 1',
-          dienTich: 25.50,
-          moTa: 'View đồi chè',
-          tangSo: 1,
-          soNguoiToiDa: 2,
-          ngayTao: '2025-06-24',
-          ngayUpdate: null,
-          anhBia: null,
-          trangThai: true
-        }
-      ],
-      formData: {
-        maPhong: '',
-        tenPhong: '',
-        idloaiPhong: {
-          id: ''
-        },
-        idhomeStay: {
-          id: ''
-        },
-        dienTich: 0.00,
-        moTa: '',
-        tangSo: 1,
-        soNguoiToiDa: 2,
-        anhBia: '',
-        trangThai: true
-      },
-      // Danh sách loại phòng mẫu
-      loaiPhongList: [
-        { id: 1, tenLoaiPhong: 'Phòng Tiêu Chuẩn' },
-        { id: 2, tenLoaiPhong: 'Phòng VIP Bungalow' },
-        { id: 3, tenLoaiPhong: 'Phòng Gia Đình Villa' }
-      ],
-      // Danh sách homestay mẫu
-      homestayList: [
-        { id: 1, tenHomestay: 'Homestay 1' },
-        { id: 2, tenHomestay: 'Homestay 2' },
-        { id: 3, tenHomestay: 'Homestay 3' }
-      ],
-      // Định nghĩa các trường hiển thị trên bảng
-      tableFields: [
-        { key: 'id', label: 'ID' },
-        { key: 'idloaiPhong', label: 'Loại Phòng' },
-        { key: 'idhomeStay', label: 'Homestay' },
-        { key: 'maPhong', label: 'Mã Phòng' },
-        { key: 'tenPhong', label: 'Tên Phòng' },
-        { key: 'dienTich', label: 'Diện Tích (m²)' },
-        { key: 'moTa', label: 'Mô Tả' },
-        { key: 'tangSo', label: 'Tầng' },
-        { key: 'soNguoiToiDa', label: 'Số Người Tối Đa' },
-        { key: 'ngayTao', label: 'Ngày Tạo', format: 'date' },
-        { key: 'ngayUpdate', label: 'Ngày Cập Nhật', format: 'date' },
-        { key: 'anhBia', label: 'Ảnh Bìa' },
-        { key: 'trangThai', label: 'Trạng Thái', format: 'boolean' }
-      ],
-
-      // Các trường hiển thị chi tiết
-      detailFields: [
-        { key: 'id', label: 'ID' },
-        { key: 'idloaiPhong', label: 'Loại Phòng' },
-        { key: 'idhomeStay', label: 'Homestay' },
-        { key: 'maPhong', label: 'Mã Phòng' },
-        { key: 'tenPhong', label: 'Tên Phòng' },
-        { key: 'dienTich', label: 'Diện Tích (m²)' },
-        { key: 'tangSo', label: 'Tầng' },
-        { key: 'soNguoiToiDa', label: 'Số Người Tối Đa' },
-        { key: 'ngayTao', label: 'Ngày Tạo', format: 'date' },
-        { key: 'ngayUpdate', label: 'Ngày Cập Nhật', format: 'date' },
-        { key: 'trangThai', label: 'Trạng Thái', format: 'boolean' },
-        { key: 'moTa', label: 'Mô Tả' }
-      ],
-    }
+  components: {
+    PhongModal,
+    AnhPhongModal,
   },
-  mounted() {
-    // Tự định nghĩa các hàm show và hide cho modal thay vì dùng Bootstrap modal
-    this.initializeModals();
+  setup() {
+    const router = useRouter()
+    const toast = useToast()
+    const phongs = ref([])
+    const loaiPhongList = ref([])
+    const homestayList = ref([])
+    const searchTerm = ref('')
+    const apiError = ref(false)
+    const apiErrorMessage = ref('')
+    const selectedStatus = ref('all')
+    const loading = ref(false)
+    const searchTimeout = ref(null)
 
-    // Khởi tạo schema từ các trường mặc định
-    this.initializeSchema();
+    // Pagination
+    const currentPage = ref(1)
+    const pageSize = ref(10)
 
-    // Khởi tạo giá trị phân trang
-    this.currentPage = 0;
-    this.pageSize = 5;
+    // State for modal
+    const showModal = ref(false)
+    const selectedPhong = ref(null)
+    const isEdit = ref(false)
+    const isViewMode = ref(false)
 
-    // Tải dữ liệu ban đầu
-    if (this.syncConfig.useRealApi) {
-      console.log('Bắt đầu tải dữ liệu từ API...');
-      // Khởi tạo đồng bộ với backend
-      this.syncWithBackend();
-    } else {
-      console.log('Bắt đầu tải dữ liệu mẫu...');
-      // Sử dụng dữ liệu mẫu cho demo
-      this.loadSampleData();
+    // State for AnhPhongModal
+    const showAnhModal = ref(false)
+    const selectedPhongForAnh = ref(null)
+    const viewOnlyAnh = ref(false)
+
+    const goToLoaiPhong = () => {
+      router.push({ name: 'admin-qly-loai-phong' })
     }
 
-    // Hiển thị thông báo để người dùng biết dữ liệu đã được tải
-    setTimeout(() => {
-      this.$notify({
-        type: 'success',
-        title: 'Dữ liệu đã sẵn sàng',
-        text: 'Đã tải ' + this.phongs.length + ' bản ghi và ' + this.tableFields.length + ' trường dữ liệu'
-      });
-    }, 500);
+    // API calls
+    const fetchData = async () => {
+      try {
+        loading.value = true
+        const [phongRes, loaiRes, homestayRes] = await Promise.all([
+          getAllPhong(),
+          getLoaiPhongList(),
+          getHomestayList(),
+        ])
+        // Đảm bảo phongs luôn là một mảng và chuyển đổi tên trường nếu cần
+        phongs.value = Array.isArray(phongRes.data)
+          ? phongRes.data.map(normalizePhongData)
+          : []
+        loaiPhongList.value = Array.isArray(loaiRes.data) ? loaiRes.data : []
+        homestayList.value = Array.isArray(homestayRes.data) ? homestayRes.data : []
+        apiError.value = false
+      } catch (e) {
+        apiError.value = true
+        // Chỉ log lỗi quan trọng
+        if (e.response && e.response.status) {
+          console.error(`Lỗi API: ${e.response.status} - ${e.response.statusText || ''}`)
+        }
 
-    // Tải danh sách loại phòng và homestay
-    this.fetchLoaiPhongList();
-    this.fetchHomestayList();
+        // Đảm bảo phongs vẫn là mảng ngay cả khi có lỗi
+        phongs.value = []
 
-    // Bắt đầu tự động đồng bộ nếu cấu hình cho phép
-    if (this.syncConfig.useRealApi && this.syncConfig.autoSync) {
-      this.startAutoSync();
+        // Kiểm tra lỗi cụ thể để hiển thị thông báo phù hợp
+        if (e.response && e.response.status === 404) {
+          apiErrorMessage.value =
+            'Không thể kết nối đến API phòng. Vui lòng kiểm tra đường dẫn API hoặc khởi động lại server.'
+        } else {
+          apiErrorMessage.value = 'Không thể tải dữ liệu. Vui lòng thử lại sau.'
+        }
+      } finally {
+        loading.value = false
+      }
     }
-  },
-  methods: {
-        // Khởi tạo xử lý modal tuỳ chỉnh
-    initializeModals() {
-      // Lưu các tham chiếu modal
-      this.$modalElements = {
-        phongModal: this.$refs.phongModal,
-        detailModal: this.$refs.detailModal,
-        deleteModal: this.$refs.deleteModal
-      };
 
-      // Đặt các sự kiện đóng modal cho các nút đóng
-      const closeButtons = document.querySelectorAll('[data-bs-dismiss="modal"]');
-      closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-          const modalEl = button.closest('.modal');
-          this.hideModal(modalEl.id);
-        });
-      });
+    // Hàm chuẩn hóa dữ liệu phòng để đảm bảo tên trường chính xác
+    const normalizePhongData = (phong) => {
+      const result = { ...phong }
 
-      // Thêm sự kiện bàn phím để đóng modal khi nhấn ESC
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-          // Tìm modal đang hiển thị
-          const visibleModal = document.querySelector('.modal.show');
-          if (visibleModal) {
-            this.hideModal(visibleModal.id);
-          }
-        }
-      });
-
-      // Log để debug
-      console.log('initializeModals đã chạy, tham chiếu modal:', this.$modalElements);
-
-      // Đảm bảo hàm được gọi lại khi DOM đã cập nhật
-      this.$nextTick(() => {
-        if (this.$refs.deleteModal) {
-          console.log('deleteModal ref được tìm thấy sau nextTick');
-          this.$modalElements.deleteModal = this.$refs.deleteModal;
-        }
-
-        if (this.$refs.phongModal) {
-          console.log('phongModal ref được tìm thấy sau nextTick');
-          this.$modalElements.phongModal = this.$refs.phongModal;
-        }
-      });
-    },
-
-    // Hiển thị modal theo ID
-    showModal(modalId) {
-      console.log('Mở modal:', modalId);
-      const modalEl = this.$modalElements[modalId];
-      if (!modalEl) {
-        console.error('Không tìm thấy modal element:', modalId);
-        return;
+      // Chuyển đổi các trường từ backend nếu cần
+      if (phong.idHomeStay !== undefined && phong.homeStayId === undefined) {
+        result.homeStayId = phong.idHomeStay
       }
 
-      // Xóa tất cả backdrop và reset trước khi mở
-      this.cleanupModals();
-
-      // Hiển thị modal
-      modalEl.classList.add('show');
-      modalEl.style.display = 'block';
-
-      // Thêm backdrop
-      const backdrop = document.createElement('div');
-      backdrop.className = 'modal-backdrop show custom-backdrop';
-      backdrop.id = 'modal-backdrop-' + modalId;
-      document.body.appendChild(backdrop);
-
-      // Cho phép đóng modal khi click vào backdrop
-      backdrop.addEventListener('click', () => {
-        this.hideModal(modalId);
-      });
-
-      // Thêm class cho body
-      document.body.classList.add('modal-open');
-
-      // Log xác nhận
-      console.log('Modal đã được hiển thị:', modalId);
-    },
-
-    // Đóng modal theo ID
-    hideModal(modalId) {
-      console.log('Đang đóng modal:', modalId);
-      const modalEl = document.getElementById(modalId) || this.$modalElements[modalId];
-      if (!modalEl) {
-        console.error('Không tìm thấy modal:', modalId);
-        return;
+      if (phong.idLoaiPhong !== undefined && phong.loaiPhongId === undefined) {
+        result.loaiPhongId = phong.idLoaiPhong
       }
 
-      // Ẩn modal
-      modalEl.classList.remove('show');
-      modalEl.style.display = 'none';
-
-      // Nếu đang đóng modal phòng, reset form
-      if (modalId === 'phongModal' || modalId === 'phongModal') {
-        setTimeout(() => {
-          this.resetForm();
-        }, 300);
+      if (phong.tang !== undefined && phong.tangSo === undefined) {
+        result.tangSo = phong.tang
       }
 
-      // Dọn dẹp
-      this.cleanupModals();
-      console.log('Đã đóng modal:', modalId);
-    },
-
-    // Dọn dẹp tất cả backdrop và reset body
-    cleanupModals() {
-      // Xóa tất cả backdrop
-      document.querySelectorAll('.modal-backdrop, .custom-backdrop').forEach(el => el.remove());
-
-      // Reset body
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
-    },
-
-    // Load dữ liệu mẫu
-    loadSampleData() {
-      try {
-        this.loading = true;
-
-        // Gán dữ liệu mẫu vào danh sách phòng đầy đủ
-        const fullData = JSON.parse(JSON.stringify(this.sampleData));
-
-        // Log để debug
-        console.log('Đã tải ' + fullData.length + ' bản ghi dữ liệu mẫu.');
-
-        // Cập nhật thông tin phân trang
-        this.totalItems = fullData.length;
-        this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-
-        // Đảm bảo pageSize cố định ở mức 10 phần tử
-        this.pageSize = 10;
-
-        // Đảm bảo currentPage hợp lệ
-        if (this.currentPage >= this.totalPages) {
-          this.currentPage = Math.max(0, this.totalPages - 1);
-        }
-
-        // Tính toán chỉ số bắt đầu và kết thúc cho trang hiện tại
-        this.startIndex = this.currentPage * this.pageSize;
-        this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-
-        // Lấy chính xác 10 phần tử (hoặc ít hơn nếu là trang cuối) cho trang hiện tại
-        this.phongs = fullData.slice(this.startIndex, this.startIndex + this.pageSize);
-
-        console.log(`Hiển thị trang ${this.currentPage + 1}/${this.totalPages} (${this.phongs.length} phần tử)`);
-        console.log(`Chỉ số bắt đầu: ${this.startIndex}, chỉ số kết thúc: ${this.endIndex}`);
-
-        // Nếu có dữ liệu, cập nhật các trường hiển thị và schema
-        if (fullData && fullData.length > 0) {
-          // Cập nhật schema từ dữ liệu mẫu
-          this.checkAndUpdateSchema(fullData[0]);
-        } else {
-          console.error('Không có dữ liệu mẫu hoặc dữ liệu mẫu rỗng.');
-        }
-      } catch (error) {
-        console.error('Lỗi khi tải dữ liệu mẫu:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // Format date trong định dạng ngắn: yyyy-MM-dd
-    formatDateShort(dateString) {
-      if (!dateString) return 'NULL'
-
-      // Xử lý nếu đã là string định dạng yyyy-MM-dd
-      if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        return dateString
+      if (phong.soTreNho !== undefined && phong.soNguoiNho === undefined) {
+        result.soNguoiNho = phong.soTreNho
       }
 
-      const date = new Date(dateString)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
+      return result
+    }
 
-      return `${year}-${month}-${day}`
-    },
+    // Helpers
+    const getLoaiPhongName = (id) => {
+      const loai = loaiPhongList.value.find((l) => l.id === id)
+      return loai?.tenLoaiPhong || 'Không xác định'
+    }
 
-    // Format date đầy đủ với ngày giờ - không kèm giờ
-    formatDate(dateString) {
-      if (!dateString) return 'NULL';
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).format(date);
-    },
+    const getHomestayName = (id) => {
+      const homestay = homestayList.value.find((h) => h.id === id)
+      if (!homestay) return 'Không xác định'
+      return homestay.tenHomestay || 'Không xác định'
+    }
 
-    // Format date đầy đủ với ngày giờ
-    formatDateWithTime(dateString) {
-      if (!dateString) return 'Chưa đồng bộ';
-      const date = new Date(dateString);
+    const getImageUrl = (img) => {
+      // Nếu không có ảnh
+      if (!img) return '/images/placeholder-room.jpg'
 
-      // Format ngày: DD/MM/YYYY
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
+      // Nếu là URL GCS hoặc URL đầy đủ
+      if (img.startsWith('http')) return img
 
-      // Format giờ: HH:MM:SS
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      const seconds = date.getSeconds().toString().padStart(2, '0');
+      return img
+    }
 
-      return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-    },
-
-    // Lấy danh sách loại phòng (API thực tế)
-    async fetchLoaiPhongList() {
-      try {
-        if (this.syncConfig.useRealApi) {
-          // Sử dụng API thực tế
-          const response = await getLoaiPhongList();
-          this.loaiPhongList = response.data;
-        }
-        // Nếu không sử dụng API thực tế, giữ nguyên dữ liệu mẫu
-      } catch (error) {
-        console.error('Error fetching room types:', error);
-      }
-    },
-
-    // Lấy danh sách homestay (API thực tế)
-    async fetchHomestayList() {
-      try {
-        if (this.syncConfig.useRealApi) {
-          // Sử dụng API thực tế
-          const response = await getHomestayList();
-          this.homestayList = response.data;
-        }
-        // Nếu không sử dụng API thực tế, giữ nguyên dữ liệu mẫu
-      } catch (error) {
-        console.error('Error fetching homestays:', error);
-      }
-    },
-
-    // Xử lý tải ảnh lên
-    handleImageUpload(event) {
-      const file = event.target.files[0]
-      if (!file) return
-
-      // Kiểm tra kích thước file (giới hạn 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Kích thước ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn 5MB.'
-        });
-        event.target.value = null;
-        return;
+    // Computed property for filtered phongs
+    const filteredPhongs = computed(() => {
+      // Đảm bảo phongs.value luôn là một mảng
+      if (!Array.isArray(phongs.value)) {
+        return []
       }
 
-      // Kiểm tra định dạng file (chỉ cho phép ảnh)
-      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!validImageTypes.includes(file.type)) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Định dạng ảnh không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF và WEBP.'
-        });
-        event.target.value = null;
-        return;
+      let filtered = [...phongs.value];
+
+      // Chỉ lọc theo trạng thái active/inactive ở phía client
+      if (selectedStatus.value !== 'all') {
+        const isActive = selectedStatus.value === 'active';
+        filtered = filtered.filter((p) => p.trangThai === isActive);
       }
 
-      // Tạo URL để preview ảnh
-      this.previewImage = URL.createObjectURL(file)
-
-      // Đọc file dưới dạng Base64 để gửi lên server
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        // Lưu ảnh dưới dạng Base64
-        this.formData.anhBia = e.target.result
-      }
-      reader.readAsDataURL(file)
-    },
-
-    // Xóa ảnh
-    removeImage() {
-      this.previewImage = null;
-      this.formData.anhBia = '';
-      // Reset input file
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) {
-        fileInput.value = '';
-      }
-    },
-
-    // Tạo mã phòng tự động
-    generateRoomCode() {
-      const currentIdMax = Math.max(...this.sampleData.map(p => {
-        const match = p.maPhong?.match(/^P(\d+)$/);
-        return match ? parseInt(match[1]) : 0;
-      }), 0);
-
-      const newPhongNumber = (currentIdMax + 1).toString().padStart(6, '0');
-      this.formData.maPhong = 'P' + newPhongNumber;
-
-      this.$notify({
-        type: 'info',
-        title: 'Thông báo',
-        text: `Đã tạo mã phòng mới: ${this.formData.maPhong}`,
-        duration: 2000
-      });
-    },
-
-    // Fetch all rooms with pagination
-    async fetchPhongs() {
-      this.loading = true;
-      try {
-        // Gọi API để lấy dữ liệu mới nhất
-        const response = await getAllPhong();
-
-        // Xử lý response
-        if (Array.isArray(response.data)) {
-          this.phongs = response.data;
-
-          // Cập nhật schema nếu có trường mới
-          if (this.phongs.length > 0) {
-            this.checkAndUpdateSchema(this.phongs[0]);
-          }
-
-          // Cập nhật thông tin phân trang
-          this.totalItems = response.data.length;
-          this.totalPages = response.data.totalPages;
-          this.currentPage = response.data.number;
-          this.startIndex = this.currentPage * this.pageSize;
-          this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-        } else if (response.data && response.data.content) {
-          this.phongs = response.data.content;
-
-          // Cập nhật schema nếu có trường mới
-          if (this.phongs.length > 0) {
-            this.checkAndUpdateSchema(this.phongs[0]);
-          }
-
-          // Cập nhật thông tin phân trang
-          this.totalItems = response.data.totalElements;
-          this.totalPages = response.data.totalPages;
-          this.currentPage = response.data.number;
-          this.startIndex = this.currentPage * this.pageSize;
-          this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-        } else {
-          console.error('Unexpected response format', response);
-          this.phongs = [];
-          this.totalItems = 0;
-          this.totalPages = 0;
-        }
-
-        // Cập nhật thời gian đồng bộ
-        this.syncConfig.lastSyncTime = new Date();
-      } catch (error) {
-        console.error('Error fetching rooms:', error);
-        this.phongs = [];
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // Get a room by ID
-    async fetchPhongDetail(id) {
-      try {
-        const response = await getPhongById(id)
-        return response.data
-      } catch (error) {
-        console.error(`Error fetching room with ID ${id}:`, error)
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Không thể tải thông tin chi tiết phòng'
-        })
-        return null
-      }
-    },
-
-    // Search for rooms
-    async searchPhongs() {
-      this.loading = true;
-      try {
-        let response;
-
-        if (!this.searchKeyword.trim()) {
-          // Nếu không có từ khóa, tải tất cả phòng theo trang
-          response = await getPhongPaginated(this.currentPage);
-        } else {
-          // Xây dựng tham số tìm kiếm dựa trên loại tìm kiếm
-          const searchParams = {};
-
-          if (this.searchType === 'id') {
-            // Kiểm tra nếu searchKeyword là số
-            if (!isNaN(this.searchKeyword)) {
-              searchParams.id = parseInt(this.searchKeyword);
-            } else {
-              this.$notify({
-                type: 'error',
-                title: 'Lỗi',
-                text: 'ID phải là số!'
-              });
-              this.loading = false;
-              return;
-            }
-          } else if (this.searchType === 'maPhong') {
-            searchParams.maPhong = this.searchKeyword;
-          } else { // tenPhong
-            searchParams.tenPhong = this.searchKeyword;
-          }
-
-          // Gọi API tìm kiếm
-          response = await searchPhong(searchParams);
-        }
-
-        // Xử lý kết quả
-        const data = response.data;
-        if (Array.isArray(data)) {
-          this.phongs = data;
-          this.totalItems = data.length;
-          this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-        }
-
-        // Cập nhật thông tin phân trang
-        this.startIndex = this.currentPage * this.pageSize;
-        this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-
-      } catch (error) {
-        console.error('Lỗi khi tìm kiếm phòng:', error);
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Không thể tìm kiếm phòng'
-        });
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // Change page
-    changePage(page) {
-      console.log(`Chuyển đến trang ${page + 1} (trang hiện tại: ${this.currentPage + 1})`);
-      if (page >= 0 && page < this.totalPages && page !== this.currentPage) {
-        this.currentPage = page;
-        this.loadSampleData();
-      }
-    },
-
-    // Phương thức mới để lấy dữ liệu theo trang
-    async fetchPhongsPaginated() {
-      this.loading = true;
-      try {
-        // Đảm bảo pageSize cố định ở mức 10 phần tử
-        this.pageSize = 10;
-
-        const response = await getPhongPaginated(this.currentPage);
-
-        // Xử lý response từ API phân trang
-        if (response && response.data) {
-          if (Array.isArray(response.data)) {
-            // Nếu API trả về mảng đầy đủ, chúng ta cần tự phân trang
-            const allData = response.data;
-            this.totalItems = allData.length;
-            this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-
-            // Đảm bảo currentPage hợp lệ
-            if (this.currentPage >= this.totalPages) {
-              this.currentPage = Math.max(0, this.totalPages - 1);
-            }
-
-            // Tính toán các chỉ số phân trang
-            this.startIndex = this.currentPage * this.pageSize;
-            this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-
-            // Lấy chỉ đúng số lượng phần tử cho trang hiện tại
-            this.phongs = allData.slice(this.startIndex, this.startIndex + this.pageSize);
-        } else {
-            // API trả về dữ liệu đã phân trang
-            this.phongs = Array.isArray(response.data.content) ? response.data.content : [];
-
-            // Đảm bảo chỉ hiển thị tối đa 10 phần tử nếu API trả về nhiều hơn
-            if (this.phongs.length > 10) {
-              this.phongs = this.phongs.slice(0, 10);
-            }
-
-            this.totalItems = response.data.totalElements || 0;
-            this.totalPages = response.data.totalPages || Math.ceil(this.totalItems / this.pageSize);
-            this.pageSize = 10; // Đảm bảo pageSize luôn là 10
-          }
-
-          // Cập nhật thông tin phân trang
-          this.startIndex = this.currentPage * this.pageSize;
-          this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-
-          // Cập nhật schema nếu có dữ liệu mới
-          if (this.phongs.length > 0) {
-            this.updateFieldsFromData(this.phongs[0]);
-          }
-
-          console.log(`Đã tải ${this.phongs.length} phòng cho trang ${this.currentPage + 1}/${this.totalPages}`);
-        }
-      } catch (error) {
-        console.error('Lỗi khi tải dữ liệu phân trang:', error);
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // Reset form data
-    resetForm() {
-      console.log('Reset form data');
-      this.formData = {
-        maPhong: '',
-        tenPhong: '',
-        idloaiPhong: {
-          id: ''
-        },
-        idhomeStay: {
-          id: ''
-        },
-        dienTich: 0,
-        moTa: '',
-        tangSo: 1,
-        soNguoiToiDa: 2,
-        anhBia: '',
-        trangThai: true
-      };
-      this.previewImage = null;
-      this.isEdit = false;
-      this.selectedPhong = null;
-      this.dynamicFields = {};
-    },
-
-    // Validate form trước khi submit
-    validateForm() {
-      // Kiểm tra loại phòng
-      if (!this.formData.idloaiPhong.id) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Vui lòng chọn loại phòng'
-        });
-        return false;
+      // Đảm bảo filtered là một mảng trước khi dùng slice
+      if (!Array.isArray(filtered)) {
+        return []
       }
 
-      // Kiểm tra homestay
-      if (!this.formData.idhomeStay.id) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Vui lòng chọn homestay'
-        });
-        return false;
+      // Phân trang
+      const start = (currentPage.value - 1) * pageSize.value;
+      const end = start + pageSize.value;
+
+      return filtered.slice(start, end);
+    });
+
+    // Tính toán số trang và các thông tin phân trang
+    const totalItems = computed(() => {
+      // Đảm bảo phongs.value luôn là một mảng
+      if (!Array.isArray(phongs.value)) {
+        return 0;
       }
 
-      // Kiểm tra mã phòng
-      if (!this.formData.maPhong || this.formData.maPhong.trim() === '') {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Vui lòng nhập mã phòng'
-        });
-        return false;
+      let filtered = [...phongs.value];
+      if (selectedStatus.value !== 'all') {
+        const isActive = selectedStatus.value === 'active';
+        filtered = filtered.filter((p) => p.trangThai === isActive);
       }
+      return filtered.length;
+    });
 
-      // Kiểm tra trùng mã phòng (chỉ khi thêm mới)
-      if (!this.isEdit) {
-        const existingPhong = this.sampleData.find(p => p.maPhong === this.formData.maPhong);
-        if (existingPhong) {
-          this.$notify({
-            type: 'error',
-            title: 'Lỗi',
-            text: `Mã phòng "${this.formData.maPhong}" đã tồn tại`
-          });
-          return false;
-        }
+    const totalPages = computed(() => {
+      if (totalItems.value === 0) {
+        return 1;
       }
+      return Math.ceil(totalItems.value / pageSize.value) || 1;
+    });
 
-      // Kiểm tra tên phòng
-      if (!this.formData.tenPhong || this.formData.tenPhong.trim() === '') {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Vui lòng nhập tên phòng'
-        });
-        return false;
+    const startItem = computed(() => {
+      if (totalItems.value === 0) {
+        return 0;
       }
+      return (currentPage.value - 1) * pageSize.value + 1;
+    });
 
-      // Kiểm tra diện tích
-      if (!this.formData.dienTich || isNaN(this.formData.dienTich) || parseFloat(this.formData.dienTich) <= 0) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Diện tích phải lớn hơn 0'
-        });
-        return false;
+    const endItem = computed(() => {
+      if (totalItems.value === 0) {
+        return 0;
       }
-
-      // Kiểm tra tầng
-      if (this.formData.tangSo === null || isNaN(this.formData.tangSo) || parseInt(this.formData.tangSo) < 0) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Tầng phải là số không âm'
-        });
-        return false;
-      }
-
-      // Kiểm tra số người tối đa
-      if (!this.formData.soNguoiToiDa || isNaN(this.formData.soNguoiToiDa) || parseInt(this.formData.soNguoiToiDa) <= 0) {
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Số người tối đa phải lớn hơn 0'
-        });
-        return false;
-      }
-
-      return true;
-    },
-
-    // Show add modal
-    showAddModal() {
-      this.isEdit = false;
-      this.resetForm();
-
-      // Reset submit button state before showing add modal
-      this.$nextTick(() => {
-        const saveButton = document.getElementById('btnSavePhong');
-        if (saveButton) {
-          saveButton.disabled = false;
-          saveButton.innerHTML = '<i class="fas fa-save me-1"></i> Lưu';
-        }
-
-        // Tự động tạo mã phòng mới có dạng Pxxxxxx
-        const currentIdMax = Math.max(...this.sampleData.map(p => {
-          const match = p.maPhong?.match(/^P(\d+)$/);
-          return match ? parseInt(match[1]) : 0;
-        }), 0);
-
-        const newPhongNumber = (currentIdMax + 1).toString().padStart(6, '0');
-        this.formData.maPhong = 'P' + newPhongNumber;
-
-        console.log('Tạo mã phòng mới:', this.formData.maPhong);
-      });
-
-      this.showModal('phongModal');
-    },
-
-    // Show edit modal
-    async showEditModal(phong) {
-      this.isEdit = true;
-      this.selectedPhong = JSON.parse(JSON.stringify(phong)); // Clone để tránh tham chiếu thay đổi
-
-      try {
-        console.log('Mở modal chỉnh sửa cho phòng ID:', phong.id);
-
-        // Khởi tạo form data dựa trên API hoặc dữ liệu mẫu
-        let phongData;
-
-        if (this.syncConfig.useRealApi) {
-          try {
-            // Lấy chi tiết phòng từ API
-            const phongDetail = await this.fetchPhongDetail(phong.id);
-            console.log('Đã nhận dữ liệu chi tiết từ API:', phongDetail);
-            phongData = phongDetail || phong;
-          } catch (apiError) {
-            console.error('Không thể lấy dữ liệu chi tiết từ API:', apiError);
-            // Sử dụng dữ liệu đã có nếu API lỗi
-            phongData = phong;
-          }
-        } else {
-          // Sử dụng dữ liệu đã có cho môi trường phát triển
-          phongData = phong;
-        }
-
-        // Trích xuất tất cả các trường từ đối tượng phòng
-        this.formData = this.extractFields(phongData);
-        console.log('Form data đã được tạo:', this.formData);
-
-        // Tạo các trường động cho form
-        this.buildDynamicFields(phongData);
-
-        // Tạo preview ảnh nếu có
-        if (phongData.anhBia) {
-          this.previewImage = phongData.anhBia;
-        }
-
-        // Reset submit button state before showing modal
-        this.$nextTick(() => {
-          const saveButton = document.getElementById('btnSavePhong');
-          if (saveButton) {
-            saveButton.disabled = false;
-            saveButton.innerHTML = '<i class="fas fa-save me-1"></i> Lưu';
-          }
-        });
-
-        // Hiển thị modal
-        this.showModal('phongModal');
-      } catch (error) {
-        console.error('Error showing edit modal:', error);
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Không thể mở form chỉnh sửa phòng!'
-        });
-      }
-    },
-
-    // Show detail modal
-    async showDetailModal(phong) {
-      try {
-        // Sử dụng dữ liệu đã có
-        this.selectedPhong = phong;
-        this.showModal('detailModal');
-      } catch (error) {
-        console.error('Error showing detail modal:', error);
-      }
-    },
-
-    // Confirm delete
-    confirmDelete(phong) {
-      console.log('Xác nhận xóa phòng:', phong);
-      // Clone đối tượng phòng để tránh tham chiếu thay đổi
-      this.selectedPhong = JSON.parse(JSON.stringify(phong));
-      this.showModal('deleteModal');
-    },
-
-        // Submit form (add or edit)
-    async     submitForm() {
-      try {
-        console.log('Đang xử lý form submitting, isEdit =', this.isEdit);
-
-        // Xác thực form trước khi submit
-        if (!this.validateForm()) {
-          return;
-        }
-
-        // Disable nút lưu để tránh submit nhiều lần
-        const saveButton = document.getElementById('btnSavePhong');
-        if (saveButton) {
-          saveButton.disabled = true;
-          saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...';
-        }
-
-        const formData = this.prepareFormData();
-
-        if (this.syncConfig.useRealApi) {
-          // Sử dụng API thực tế
-                              if (this.isEdit && this.selectedPhong) {
-                        // Cập nhật phòng hiện có
-            console.log('Cập nhật phòng với ID:', this.selectedPhong.id);
-            const response = await updatePhong(this.selectedPhong.id, formData);
-            console.log('Kết quả cập nhật từ API:', response);
-
-            // Cập nhật dữ liệu trong sampleData để hiển thị ngay lập tức
-            const index = this.sampleData.findIndex(p => p.id === this.selectedPhong.id);
-            if (index !== -1) {
-              console.log('Cập nhật dữ liệu mẫu tại vị trí:', index);
-
-              // Tạo phòng đã cập nhật với ngày cập nhật mới
-              const updatedPhong = {
-                ...this.sampleData[index],
-                ...formData,
-                ngayUpdate: new Date().toISOString().split('T')[0]
-              };
-
-              // Cập nhật trong sampleData
-              this.sampleData[index] = updatedPhong;
-
-              // Cập nhật trong phongs hiển thị nếu đang ở trang hiện tại
-              const displayIndex = this.phongs.findIndex(p => p.id === this.selectedPhong.id);
-              if (displayIndex !== -1) {
-                console.log('Cập nhật dữ liệu hiển thị tại vị trí:', displayIndex);
-                // Thay thế $set bằng cách cập nhật trực tiếp trong mảng
-                this.phongs[displayIndex] = updatedPhong;
-              }
-            }
-
-            this.$notify({
-              type: 'success',
-              title: 'Cập nhật thành công!',
-              text: `Đã cập nhật thông tin phòng "${formData.tenPhong}" (Mã: ${formData.maPhong})`,
-              duration: 7000,
-              position: 'top-center'
-            });
-
-            // Đồng bộ trực tiếp phongs và sampleData để đảm bảo UI cập nhật tức thì
-            const currentPageDisplayed = this.phongs.map(p => p.id);
-            console.log('ID các phòng đang hiển thị:', currentPageDisplayed);
-
-            // Kiểm tra xem phòng được cập nhật có đang hiển thị không
-            if (currentPageDisplayed.includes(this.selectedPhong.id)) {
-              console.log('Phòng được cập nhật đang hiển thị trên trang hiện tại');
-            } else {
-              console.log('Phòng được cập nhật không nằm trong trang hiện tại');
-            }
-
-            // Tự động đóng form sau khi cập nhật thành công
-            console.log('Tự động đóng form sau khi cập nhật thành công');
-            this.hideModal('phongModal');
-          } else {
-            // Thêm phòng mới
-            const response = await addPhong(formData);
-            console.log('Kết quả thêm mới từ API:', response);
-
-            let newPhong;
-            // Thêm dữ liệu mới vào danh sách để hiển thị ngay lập tức
-            if (response && response.data) {
-              // Nếu có response.data, thêm vào danh sách
-              newPhong = response.data;
-              this.sampleData.push(newPhong);
-            } else {
-              // Nếu không có response.data, thêm formData với ID giả
-              const newId = Math.max(...this.sampleData.map(p => p.id), 0) + 1;
-              newPhong = {
-                ...formData,
-                id: newId
-              };
-              this.sampleData.push(newPhong);
-            }
-
-            // Hiển thị thông báo thêm thành công với chi tiết
-            this.$notify({
-              type: 'success',
-              title: 'Thêm mới thành công!',
-              text: `Đã thêm phòng "${formData.tenPhong}" (Mã: ${formData.maPhong})`,
-              duration: 7000,
-              position: 'top-center'
-            });
-          }
-
-          // Đồng bộ lại dữ liệu từ server và chuyển về trang cuối để xem bản ghi mới
-          await this.syncWithBackend();
-
-          // Đảm bảo hiển thị trang cuối sau khi thêm mới
-          if (!this.isEdit) {
-            this.currentPage = this.totalPages - 1;
-            await this.fetchPhongsPaginated();
-          }
-
-        } else {
-                    // Demo: Thêm/cập nhật vào dữ liệu mẫu
-                              if (this.isEdit && this.selectedPhong) {
-            const index = this.sampleData.findIndex(p => p.id === this.selectedPhong.id);
-            if (index !== -1) {
-              // Tạo phòng đã cập nhật với ngày cập nhật mới
-              const updatedPhong = {
-                ...this.sampleData[index],
-                ...formData,
-                ngayUpdate: new Date().toISOString().split('T')[0]
-              };
-
-              // Cập nhật trong sampleData
-              this.sampleData[index] = updatedPhong;
-
-              // Cập nhật trong phongs hiển thị để thay đổi ngay lập tức
-              const displayIndex = this.phongs.findIndex(p => p.id === this.selectedPhong.id);
-              if (displayIndex !== -1) {
-                console.log('Demo: Cập nhật dữ liệu hiển thị tại vị trí:', displayIndex);
-                this.phongs[displayIndex] = updatedPhong;
-              }
-
-              console.log('Demo: Đã cập nhật phòng tại vị trí:', index);
-            }
-
-            // Hiển thị thông báo cập nhật thành công với chi tiết (chế độ demo)
-            this.$notify({
-              type: 'success',
-              title: 'Cập nhật thành công!',
-              text: `Đã cập nhật thông tin phòng "${formData.tenPhong}" (Mã: ${formData.maPhong}) (Chế độ demo)`,
-              duration: 7000,
-              position: 'top-center'
-            });
-
-            // Tự động đóng form sau khi cập nhật thành công (chế độ demo)
-            console.log('Demo: Tự động đóng form sau khi cập nhật thành công');
-            this.hideModal('phongModal');
-          } else {
-            // Thêm phòng mới vào dữ liệu mẫu
-            const newId = Math.max(...this.sampleData.map(p => p.id)) + 1;
-            const newPhong = {
-              ...formData,
-              id: newId
-            };
-            this.sampleData.push(newPhong);
-            console.log('Demo: Đã thêm phòng mới với ID:', newId);
-
-            // Hiển thị thông báo thêm thành công với chi tiết (chế độ demo)
-            this.$notify({
-              type: 'success',
-              title: 'Thêm mới thành công!',
-              text: `Đã thêm phòng "${formData.tenPhong}" (Mã: ${formData.maPhong}) (Chế độ demo)`,
-              duration: 7000,
-              position: 'top-center'
-            });
-
-            // Chuyển đến trang cuối sau khi thêm mới
-            this.currentPage = Math.ceil(this.sampleData.length / this.pageSize) - 1;
-          }
-
-          // Tải lại dữ liệu mẫu
-          this.loadSampleData();
-        }
-
-        // Close modal and refresh data
-        this.hideModal('phongModal');
-
-        // Reset form data after successful submission
-        this.resetForm();
-      } catch (error) {
-        console.error('Error submitting form:', error);
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Đã xảy ra lỗi khi lưu thông tin phòng!'
-        });
-
-        // Re-enable nút lưu nếu có lỗi
-        const saveButton = document.getElementById('btnSavePhong');
-        if (saveButton) {
-          saveButton.disabled = false;
-          saveButton.innerHTML = '<i class="fas fa-save me-1"></i> Lưu';
-        }
-      } finally {
-        // Đảm bảo form đóng dù thành công hay thất bại
-        this.hideModal('phongModal');
-      }
-    },
-
-        // Delete room confirmation
-    async deletePhongConfirm() {
-      if (!this.selectedPhong) return;
-
-      try {
-        console.log('Bắt đầu xóa phòng ID:', this.selectedPhong.id);
-
-                  if (this.syncConfig.useRealApi) {
-          try {
-            // Sử dụng API thực tế để xóa phòng
-            const response = await deletePhong(this.selectedPhong.id);
-            console.log('Kết quả xóa từ API:', response);
-
-            // Xóa khỏi dữ liệu mẫu để cập nhật ngay lập tức
-            const index = this.sampleData.findIndex(p => p.id === this.selectedPhong.id);
-            if (index !== -1) {
-              console.log('Đã tìm thấy phòng trong dữ liệu mẫu, vị trí:', index);
-              this.sampleData.splice(index, 1);
-            }
-
-            // Đồng bộ lại dữ liệu từ server
-            await this.syncWithBackend();
-
-            // Hiển thị thông báo thành công với thông tin chi tiết
-            this.$notify({
-              type: 'success',
-              title: 'Xóa thành công!',
-              text: `Đã xóa phòng "${this.selectedPhong.tenPhong}" (Mã: ${this.selectedPhong.maPhong})`,
-              duration: 7000,
-              position: 'top-center'
-            });
-          } catch (apiError) {
-            console.error('Lỗi API khi xóa phòng:', apiError);
-
-            // Xử lý trường hợp API lỗi nhưng vẫn muốn xóa khỏi dữ liệu mẫu
-            const index = this.sampleData.findIndex(p => p.id === this.selectedPhong.id);
-            if (index !== -1) {
-              console.log('API lỗi nhưng vẫn xóa khỏi dữ liệu mẫu tại vị trí:', index);
-              this.sampleData.splice(index, 1);
-
-              // Thông báo xóa thành công trong chế độ offline
-              this.$notify({
-                type: 'warning',
-                title: 'Xóa thành công (Chế độ offline)',
-                text: `Đã xóa phòng "${this.selectedPhong.tenPhong}" khỏi dữ liệu hiển thị. Dữ liệu thực tế có thể chưa được cập nhật.`,
-                duration: 7000
-              });
-            }
-
-            // Tải lại dữ liệu mẫu
-            this.loadSampleData();
-          }
-                } else {
-          // Demo: Xóa khỏi dữ liệu mẫu
-          const index = this.sampleData.findIndex(p => p.id === this.selectedPhong.id);
-          if (index !== -1) {
-            console.log('Demo: Xóa phòng tại vị trí:', index);
-            this.sampleData.splice(index, 1);
-
-            // Hiển thị thông báo xóa thành công trong chế độ demo
-            this.$notify({
-              type: 'success',
-              title: 'Xóa thành công!',
-              text: `Đã xóa phòng "${this.selectedPhong.tenPhong}" (Mã: ${this.selectedPhong.maPhong})`,
-              duration: 7000,
-              position: 'top-center'
-            });
-          } else {
-            console.warn('Không tìm thấy phòng cần xóa trong dữ liệu mẫu, ID:', this.selectedPhong.id);
-
-            // Thông báo lỗi khi không tìm thấy phòng
-            this.$notify({
-              type: 'error',
-              title: 'Lỗi',
-              text: 'Không tìm thấy phòng cần xóa!',
-              duration: 5000
-            });
-          }
-
-          // Tải lại dữ liệu mẫu
-          this.loadSampleData();
-        }
-
-        // Đảm bảo rằng trang hiện tại vẫn hợp lệ sau khi xóa
-        if (this.currentPage >= this.totalPages && this.currentPage > 0) {
-          this.currentPage = this.totalPages - 1;
-        }
-
-        // Close modal and refresh data
-        this.hideModal('deleteModal');
-      } catch (error) {
-        console.error('Lỗi chung khi xóa phòng:', error);
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi',
-          text: 'Đã xảy ra lỗi khi xóa phòng!'
-        });
-      }
-    },
-
-    // Prepare data for API
-    prepareFormData() {
-      // Tạo bản sao để không làm thay đổi dữ liệu form
-      const formData = { ...this.formData }
-
-      // Thêm ngày tạo nếu là bản ghi mới
-      if (!this.isEdit) {
-        formData.ngayTao = new Date().toISOString().split('T')[0]
-      }
-
-      // Thêm ngày cập nhật
-      formData.ngayUpdate = new Date().toISOString().split('T')[0]
-
-      return formData
-    },
-
-    // Phương thức lấy giá trị lồng nhau từ đối tượng
-    getNestedValue(obj, path) {
-      return path.split('.').reduce((prev, curr) => {
-        return prev ? prev[curr] : null
-      }, obj);
-    },
-
-    // Phương thức lấy tất cả các trường từ đối tượng phòng
-    extractFields(phongObj) {
-      // Tạo đối tượng chứa các trường mặc định
-      const formData = {
-        maPhong: '',
-        tenPhong: '',
-        idloaiPhong: { id: '' },
-        idhomeStay: { id: '' },
-        dienTich: 0.00,
-        moTa: '',
-        tangSo: 1,
-        soNguoiToiDa: 2,
-        anhBia: '',
-        trangThai: true
-      };
-
-      // Cập nhật với dữ liệu từ phongObj
-      if (!phongObj) return formData;
-
-      // Lặp qua tất cả các thuộc tính và cập nhật
-      for (const key in phongObj) {
-        if (key === 'idloaiPhong' || key === 'idhomeStay') {
-          formData[key] = { id: phongObj[key]?.id || '' };
-        } else if (key in formData) { // Chỉ cập nhật các trường mặc định
-          formData[key] = phongObj[key];
-        }
-      }
-
-      return formData;
-    },
-
-    // Tạo các trường dữ liệu động dựa trên dữ liệu từ backend
-    buildDynamicFields(data) {
-      // Khởi tạo đối tượng chứa các trường động
-      this.dynamicFields = {};
-
-      if (!data) return;
-
-      console.log('Tạo trường động từ dữ liệu:', data);
-
-      // Danh sách các trường mặc định, không cần thêm vào dynamicFields
-      const defaultFields = [
-        'id', 'idloaiPhong', 'idhomeStay', 'maPhong', 'tenPhong', 'dienTich',
-        'moTa', 'tangSo', 'soNguoiToiDa', 'ngayTao', 'ngayUpdate', 'anhBia', 'trangThai'
-      ];
-
-      // Duyệt qua tất cả các thuộc tính trong dữ liệu
-      for (const key in data) {
-        // Bỏ qua các trường mặc định
-        if (defaultFields.includes(key)) continue;
-
-        // Lấy giá trị của thuộc tính
-        const value = data[key];
-
-        // Xác định kiểu dữ liệu cho trường mới
-        let fieldType = 'text'; // Mặc định là text
-
-        if (typeof value === 'number') {
-          fieldType = 'number';
-        } else if (typeof value === 'boolean') {
-          fieldType = 'checkbox';
-        } else if (value instanceof Date ||
-                  (typeof value === 'string' &&
-                   (key.toLowerCase().includes('ngay') || key.toLowerCase().includes('date')))) {
-          fieldType = 'date';
-        }
-
-        // Tạo label từ key với định dạng đẹp hơn
-        const label = key.charAt(0).toUpperCase() +
-                     key.slice(1).replace(/([A-Z])/g, ' $1').trim();
-
-        console.log('Thêm trường động vào form:', key, label, fieldType);
-
-        // Thêm trường vào danh sách dynamicFields
-        this.dynamicFields[key] = {
-          key: key,
-          label: label,
-          type: fieldType,
-          value: value
-        };
-      }
-
-      console.log('Các trường động đã tạo:', this.dynamicFields);
-    },
-
-    // Cập nhật các trường hiển thị dựa trên dữ liệu
-    updateFieldsFromData(data) {
-      if (!data) return;
-
-      console.log('Cập nhật trường từ dữ liệu:', data);
-
-      // Lấy tất cả các keys từ dữ liệu
-      const dataKeys = Object.keys(data);
-
-      // Cập nhật tableFields
-      const existingKeys = this.tableFields.map(field => field.key);
-
-      // Mảng lưu trữ các trường mới được thêm vào
-      const addedFields = [];
-
-      for (const key of dataKeys) {
-        // Chỉ thêm các trường mới chưa có trong danh sách
-        if (!existingKeys.includes(key)) {
-          let format = null;
-
-          // Xác định kiểu dữ liệu
-          if (typeof key === 'string' && (key.toLowerCase().includes('ngay') || key.toLowerCase().includes('date'))) {
-            format = 'date';
-          } else if (typeof data[key] === 'boolean') {
-            format = 'boolean';
-          }
-
-          // Biến đổi key thành label
-          const label = key.charAt(0).toUpperCase() +
-                       key.slice(1).replace(/([A-Z])/g, ' $1').trim();
-
-          console.log('Thêm trường mới vào bảng:', key, label, format);
-          addedFields.push(key);
-
-          // Thêm trường mới vào tableFields
-          this.tableFields.push({
-            key: key,
-            label: label,
-            format: format
-          });
-
-          // Đồng thời thêm vào detailFields
-          this.detailFields.push({
-            key: key,
-            label: label,
-            format: format
-          });
-        }
-      }
-
-      // Xây dựng các trường động cho form
-      this.buildDynamicFields(data);
-
-      // Hiển thị thông báo nếu có trường mới
-      if (addedFields.length > 0) {
-        this.$notify({
-          type: 'info',
-          title: 'Phát hiện trường dữ liệu mới',
-          text: `Đã thêm ${addedFields.length} trường mới từ backend: ${addedFields.join(', ')}`
-        });
-
-        // Cập nhật tình trạng thay đổi schema
-        this.schemaInfo.hasChanges = false;
-      }
-    },
-
-    // Khởi tạo schema từ các trường mặc định
-    initializeSchema() {
-      // Danh sách các trường mặc định
-      const defaultFields = [
-        'id', 'idloaiPhong', 'idhomeStay', 'maPhong', 'tenPhong', 'dienTich',
-        'moTa', 'tangSo', 'soNguoiToiDa', 'ngayTao', 'ngayUpdate', 'anhBia', 'trangThai'
-      ];
-
-      // Lưu thông tin các trường
-      this.schemaInfo.fieldCount = defaultFields.length;
-      defaultFields.forEach(field => {
-        this.schemaInfo.fields[field] = {
-          isDefault: true,
-          addedAt: new Date(),
-          type: this.determineFieldType(field, null)
-        };
-      });
-
-      console.log('Schema ban đầu:', this.schemaInfo);
-    },
-
-    // Bắt đầu tự động đồng bộ với backend
-    startAutoSync() {
-      console.log('Bắt đầu tự động đồng bộ với backend');
-
-      // Đặt interval để đồng bộ định kỳ
-      this.syncIntervalId = setInterval(() => {
-        this.syncWithBackend();
-      }, this.syncConfig.syncInterval);
-
-      // Đồng bộ ngay lần đầu
-      this.syncWithBackend();
-    },
-
-    // Ngừng tự động đồng bộ
-    stopAutoSync() {
-      if (this.syncIntervalId) {
-        clearInterval(this.syncIntervalId);
-        this.syncIntervalId = null;
-        console.log('Đã dừng đồng bộ tự động');
-      }
-    },
-
-        // Đồng bộ với backend
-    async syncWithBackend() {
-      try {
-        console.log('Đang đồng bộ với backend...');
-        this.loading = true;
-
-        // Đảm bảo pageSize cố định ở mức 10 phần tử
-        this.pageSize = 10;
-
-        let allData = [];
-        try {
-          // Lấy dữ liệu mới nhất
-          const response = await getAllPhong();
-
-          // Xử lý phản hồi tùy thuộc vào định dạng
-          if (response && response.data) {
-            allData = Array.isArray(response.data) ? response.data :
-                    (response.data.content ? response.data.content : []);
-            console.log('Đã nhận dữ liệu từ API:', allData.length, 'bản ghi');
-          }
-        } catch (apiError) {
-          console.error('Lỗi khi gọi API getAllPhong:', apiError);
-          // Sử dụng dữ liệu mẫu nếu API lỗi
-          allData = [...this.sampleData];
-          console.log('Sử dụng dữ liệu mẫu:', allData.length, 'bản ghi');
-        }
-
-        // Nếu không nhận được dữ liệu từ API và không có dữ liệu mẫu, hiển thị dữ liệu trống
-        if (allData.length === 0 && this.sampleData.length === 0) {
-          console.log('Không có dữ liệu từ API và dữ liệu mẫu cũng trống');
-          this.phongs = [];
-          this.totalItems = 0;
-          this.totalPages = 0;
-          this.currentPage = 0;
-
-          // Cập nhật thời gian đồng bộ
-          this.syncConfig.lastSyncTime = new Date();
-          return;
-        }
-
-        // Lưu lại toàn bộ dữ liệu để sử dụng trong các thao tác khác
-        this.sampleData = [...allData];
-        console.log('Đã cập nhật sampleData với', this.sampleData.length, 'bản ghi');
-
-        if (allData.length > 0) {
-          // Kiểm tra schema và cập nhật nếu có thay đổi
-          this.checkAndUpdateSchema(allData[0]);
-
-          // Cập nhật thông tin phân trang
-          this.totalItems = allData.length;
-          this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-
-          // Đảm bảo trang hiện tại hợp lệ
-          if (this.currentPage >= this.totalPages) {
-            this.currentPage = Math.max(0, this.totalPages - 1);
-          }
-
-          // Lưu thông tin phòng hiện tại để log
-          console.log('Trạng thái phòng trước khi đồng bộ:',
-                     this.phongs.map(p => ({ id: p.id, ten: p.tenPhong })));
-
-          // Tính toán chỉ số bắt đầu và kết thúc cho trang hiện tại
-          this.startIndex = this.currentPage * this.pageSize;
-          this.endIndex = Math.min(this.startIndex + this.pageSize, this.totalItems);
-
-          // Lấy dữ liệu cho trang hiện tại
-          const newPhongPage = allData.slice(this.startIndex, this.startIndex + this.pageSize);
-
-          // Cập nhật thông minh - chỉ cập nhật các phòng đã thay đổi để tránh làm mới UI không cần thiết
-          if (this.phongs.length > 0) {
-            // Có dữ liệu hiển thị, cập nhật thông minh
-            this.phongs = newPhongPage;
-            console.log('Dữ liệu hiển thị đã được cập nhật thông minh');
-          } else {
-            // Chưa có dữ liệu, gán trực tiếp
-            this.phongs = newPhongPage;
-          }
-
-          console.log(`Đã đồng bộ ${allData.length} bản ghi, hiển thị ${this.phongs.length} phòng trên trang ${this.currentPage + 1}/${this.totalPages}`);
-        } else {
-          // Nếu không có dữ liệu, hiển thị trống
-          this.phongs = [];
-          this.totalItems = 0;
-          this.totalPages = 0;
-          this.currentPage = 0;
-          console.log('Không có dữ liệu để hiển thị');
-        }
-
-        // Cập nhật thời gian đồng bộ
-        this.syncConfig.lastSyncTime = new Date();
-        console.log('Đồng bộ hoàn tất vào lúc:', this.syncConfig.lastSyncTime);
-      } catch (error) {
-        console.error('Lỗi đồng bộ với backend:', error);
-        this.$notify({
-          type: 'error',
-          title: 'Lỗi đồng bộ',
-          text: 'Không thể đồng bộ dữ liệu với máy chủ'
-        });
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    // Kiểm tra và cập nhật schema nếu có thay đổi
-    checkAndUpdateSchema(data) {
-      if (!data) return;
-
-      let hasChanges = false;
-      let newFieldCount = 0;
-
-      // Kiểm tra từng trường trong dữ liệu
-      for (const key in data) {
-        // Nếu trường chưa có trong schema
-        if (!this.schemaInfo.fields[key]) {
-          hasChanges = true;
-          newFieldCount++;
-
-          // Thêm trường mới vào schema
-          this.schemaInfo.fields[key] = {
-            isDefault: false,
-            addedAt: new Date(),
-            type: this.determineFieldType(key, data[key])
-          };
-
-          console.log(`Phát hiện trường mới từ backend: ${key} (${this.schemaInfo.fields[key].type})`);
-        }
-      }
-
-      // Cập nhật số lượng trường
-      if (hasChanges) {
-        const oldFieldCount = this.schemaInfo.fieldCount;
-        this.schemaInfo.fieldCount = Object.keys(this.schemaInfo.fields).length;
-        this.schemaInfo.hasChanges = true;
-
-        console.log(`Đã cập nhật schema: ${oldFieldCount} -> ${this.schemaInfo.fieldCount} trường (+${newFieldCount})`);
-
-        // Cập nhật giao diện nếu có thay đổi
-        this.updateFieldsFromData(data);
-      }
-    },
-
-    // Xác định kiểu dữ liệu của trường
-    determineFieldType(key, value) {
-      if (typeof key === 'string' && (key.toLowerCase().includes('ngay') || key.toLowerCase().includes('date'))) {
-        return 'date';
-      } else if (value !== null && value !== undefined) {
-        if (typeof value === 'boolean') return 'boolean';
-        if (typeof value === 'number') return 'number';
-        if (typeof value === 'object') return 'object';
-      }
-      return 'text'; // Mặc định là text
-    },
-
-    // Thêm phương thức để thông báo về số trường dữ liệu
-    showSchemaInfo() {
-      // Lấy tổng số trường
-      const totalFields = Object.keys(this.schemaInfo.fields).length;
-
-      // Đếm số trường không phải mặc định
-      const customFields = Object.values(this.schemaInfo.fields).filter(f => !f.isDefault).length;
-
-      this.$notify({
-        type: 'info',
-        title: 'Thông tin schema',
-        text: `Tổng số trường: ${totalFields} (${customFields} trường tùy chỉnh)`
-      });
-
-      console.log('Thông tin chi tiết schema:', this.schemaInfo);
-    },
-
-    // Giả lập backend thêm trường mới - Chỉ với mục đích demo
-    simulateBackendFieldChange() {
-      console.log('Giả lập backend thêm trường mới...');
-
-      // Tạo trường mới
-      const newFields = {
-        giaThueTheoNgay: 1200000,
-        coMayLanh: true,
-        dichVuDacBiet: 'Đưa đón sân bay'
-      };
-
-      // Thêm trường mới vào dữ liệu
-      this.sampleData.forEach(phong => {
-        Object.assign(phong, newFields);
-      });
-
-      // Cập nhật dữ liệu
-      this.phongs = [...this.sampleData];
-
-      // Kiểm tra và cập nhật schema
-      this.checkAndUpdateSchema(this.sampleData[0]);
-
-      console.log('Đã giả lập backend thêm trường mới:', newFields);
-    },
-
-    // Hủy interval khi component bị hủy
-    beforeDestroy() {
-      // Ngừng auto sync trước khi component bị hủy
-      this.stopAutoSync();
-    },
-  },
-  computed: {
-    // Các trang hiển thị trong phân trang
-    displayedPages() {
+      const end = currentPage.value * pageSize.value;
+      return end > totalItems.value ? totalItems.value : end;
+    });
+
+    // Display a reasonable number of page buttons
+    const displayedPages = computed(() => {
+      const maxDisplayed = 5;
       const pages = [];
-      const totalPages = this.totalPages;
 
-      if (totalPages <= 5) {
-        // Nếu ít hơn hoặc bằng 5 trang, hiển thị tất cả
-        for (let i = 0; i < totalPages; i++) {
+      if (totalPages.value <= maxDisplayed) {
+        // If we have 5 or fewer pages, show all
+        for (let i = 1; i <= totalPages.value; i++) {
           pages.push(i);
         }
       } else {
-        // Nếu có nhiều hơn 5 trang, hiển thị dạng rút gọn
-        if (this.currentPage <= 2) {
-          // Đầu: hiển thị 3 trang đầu, dấu ..., và trang cuối
-          pages.push(0, 1, 2, '...', totalPages - 1);
-        } else if (this.currentPage >= totalPages - 3) {
-          // Cuối: hiển thị trang đầu, dấu ..., và 3 trang cuối
-          pages.push(0, '...', totalPages - 3, totalPages - 2, totalPages - 1);
+        // We have more than maxDisplayed pages, need to decide which to show
+        if (currentPage.value <= 3) {
+          // Near the start
+          for (let i = 1; i <= 5; i++) {
+            pages.push(i);
+          }
+        } else if (currentPage.value >= totalPages.value - 2) {
+          // Near the end
+          for (let i = totalPages.value - 4; i <= totalPages.value; i++) {
+            pages.push(i);
+          }
         } else {
-          // Giữa: hiển thị trang đầu, dấu ..., trang hiện tại và 2 trang liền kề, dấu ..., và trang cuối
-          pages.push(0, '...', this.currentPage - 1, this.currentPage, this.currentPage + 1, '...', totalPages - 1);
+          // Somewhere in the middle
+          for (let i = currentPage.value - 2; i <= currentPage.value + 2; i++) {
+            pages.push(i);
+          }
         }
       }
 
       return pages;
+    });
+
+    const emptyRows = computed(() => {
+      const rowsCount = filteredPhongs.value.length;
+      return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0;
+    });
+
+    // Tính số thứ tự cho hàng
+    const calculateIndex = (index) => {
+      return (currentPage.value - 1) * pageSize.value + index + 1;
+    };
+
+    // Update page when data changes
+    watch([phongs, selectedStatus], () => {
+      // Reset to page 1 when filters change
+      if (currentPage.value > totalPages.value && totalPages.value > 0) {
+        currentPage.value = 1;
+      }
+    });
+
+    // Xử lý tìm kiếm từ khóa tổng hợp với debounce
+    const handleSearch = () => {
+      // Xóa timeout cũ nếu có
+      if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+      }
+
+      // Thiết lập timeout mới (500ms)
+      searchTimeout.value = setTimeout(async () => {
+        try {
+          loading.value = true;
+          currentPage.value = 1;
+
+          if (!searchTerm.value || searchTerm.value.trim() === '') {
+            await fetchData(); // Nếu không có từ khóa, tải lại toàn bộ dữ liệu
+            return;
+          }
+
+          // Gọi API tìm kiếm theo từ khóa
+          const response = await searchPhongByKeyword(searchTerm.value);
+
+          if (response && response.data) {
+            // Kiểm tra dữ liệu trả về từ API
+            if (response.data.data && Array.isArray(response.data.data)) {
+              // Nếu API trả về cấu trúc { data: [...] }
+              phongs.value = response.data.data.map(normalizePhongData);
+            } else if (Array.isArray(response.data)) {
+              // Nếu API trả về mảng trực tiếp
+              phongs.value = response.data.map(normalizePhongData);
+            } else {
+              // Nếu không đúng định dạng mong đợi
+              phongs.value = [];
+              apiError.value = true;
+              apiErrorMessage.value = 'Định dạng dữ liệu trả về không hợp lệ';
+            }
+          } else {
+            phongs.value = [];
+          }
+        } catch (err) {
+          apiError.value = true;
+          apiErrorMessage.value = 'Lỗi khi gọi API tìm kiếm.';
+          phongs.value = []; // Đảm bảo là mảng khi có lỗi
+
+          // Chỉ log lỗi kết nối API quan trọng
+          if (err.response && err.response.status) {
+            console.error(`Lỗi API tìm kiếm: ${err.response.status} - ${err.response.statusText || ''}`)
+          }
+        } finally {
+          loading.value = false;
+        }
+      }, 500); // Trì hoãn 500ms
+    };
+
+    const clearSearch = () => {
+      searchTerm.value = '';
+      fetchData(); // Tải lại toàn bộ dữ liệu
     }
-  }
+
+    const handleStatusChange = (status) => {
+      selectedStatus.value = status;
+      currentPage.value = 1;
+    }
+
+    const changePage = (page) => {
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+      }
+    }
+
+    // Modal functions
+    const openAddModal = () => {
+      isEdit.value = false
+      isViewMode.value = false
+      selectedPhong.value = null
+      showModal.value = true
+    }
+
+    const editPhong = (phong) => {
+      isEdit.value = true
+      isViewMode.value = false
+      selectedPhong.value = { ...phong }
+      showModal.value = true
+    }
+
+    // View phong details
+    const viewPhongDetails = (phong) => {
+      isEdit.value = false
+      isViewMode.value = true
+      selectedPhong.value = { ...phong }
+      showModal.value = true
+    }
+
+    // Handle edit from view mode
+    const editFromViewMode = () => {
+      isViewMode.value = false
+      isEdit.value = true
+    }
+
+    const closeModal = () => {
+      showModal.value = false
+      setTimeout(() => {
+        selectedPhong.value = null
+        isEdit.value = false
+        isViewMode.value = false
+      }, 300) // Delay để hoàn tất animation
+    }
+
+    const savePhong = async (formData) => {
+      try {
+        // Kiểm tra xem formData có phải là FormData object không
+        if (formData instanceof FormData) {
+          // Lấy phong JSON từ FormData
+          const phongJsonStr = formData.get('phong')
+          if (phongJsonStr) {
+            // Không cần sử dụng biến phongData ở đây
+            if (isEdit.value && selectedPhong.value && selectedPhong.value.id) {
+              const phongId = parseInt(selectedPhong.value.id, 10)
+              await updatePhong(phongId, formData)
+            } else {
+              await createPhong(formData)
+            }
+          } else {
+            throw new Error('Dữ liệu phòng không hợp lệ')
+          }
+        } else {
+          // Xử lý trường hợp dữ liệu không phải FormData (trường hợp cũ)
+          if (isEdit.value && formData.id) {
+            const phongId = parseInt(formData.id, 10)
+            await updatePhong(phongId, formData)
+          } else {
+            await createPhong(formData)
+          }
+        }
+
+        closeModal()
+        fetchData() // Tải lại danh sách sau khi lưu
+      } catch (err) {
+        const errorMessage =
+          err.response?.data?.message || err.message || 'Có lỗi xảy ra khi lưu phòng'
+        toast.error(errorMessage)
+      }
+    }
+
+    const deletePhong = async (id) => {
+      if (confirm('Bạn có chắc chắn muốn xóa phòng này?')) {
+        try {
+          await deletePhongAPI(id)
+          fetchData()
+        // eslint-disable-next-line no-unused-vars
+        } catch (err) {
+          toast.error('Lỗi khi xóa phòng')
+        }
+      }
+    }
+
+    // Quản lý modal ảnh chi tiết
+    const openAnhModal = (phong) => {
+      console.log('Mở modal ảnh cho phòng:', phong)
+      selectedPhongForAnh.value = phong
+      viewOnlyAnh.value = false // Khi quản lý là có thể chỉnh sửa
+      showAnhModal.value = true
+    }
+
+    const openAnhModalFromDetails = (phongId) => {
+      console.log('openAnhModalFromDetails được gọi với ID phòng:', phongId)
+      const phongData = phongs.value.find((p) => p.id === phongId)
+      if (phongData) {
+        selectedPhongForAnh.value = phongData
+        viewOnlyAnh.value = true // Khi xem từ chi tiết là chỉ xem
+        showAnhModal.value = true
+      } else {
+        console.error('Lỗi: Không tìm thấy dữ liệu phòng với ID:', phongId)
+        toast.error('Không thể mở ảnh: Dữ liệu phòng không tìm thấy.')
+      }
+    }
+
+    const closeAnhModal = () => {
+      showAnhModal.value = false
+      setTimeout(() => {
+        selectedPhongForAnh.value = null
+        viewOnlyAnh.value = false
+      }, 300)
+    }
+
+    onMounted(() => {
+      fetchData();
+    });
+
+    return {
+      searchTerm,
+      filteredPhongs,
+      getLoaiPhongName,
+      getHomestayName,
+      getImageUrl,
+      handleSearch,
+      clearSearch,
+      apiError,
+      apiErrorMessage,
+      selectedStatus,
+      handleStatusChange,
+      loading,
+      // Pagination
+      currentPage,
+      pageSize,
+      totalPages,
+      totalItems,
+      startItem,
+      endItem,
+      emptyRows,
+      changePage,
+      displayedPages,
+      // Modal state và functions
+      showModal,
+      selectedPhong,
+      isEdit,
+      isViewMode,
+      openAddModal,
+      editPhong,
+      viewPhongDetails,
+      editFromViewMode,
+      closeModal,
+      savePhong,
+      deletePhong,
+      // Các danh sách để truyền xuống modal
+      loaiPhongList,
+      homestayList,
+      openAnhModal,
+      openAnhModalFromDetails,
+      calculateIndex,
+      // State và functions cho AnhPhongModal
+      showAnhModal,
+      selectedPhongForAnh,
+      viewOnlyAnh,
+      closeAnhModal,
+      goToLoaiPhong
+    }
+  },
 }
 </script>
 
-    <style scoped>
-.qly-phong-container {
-  padding: 20px;
+<style scoped>
+/* GENERAL CONTAINER & TITLE */
+.phong-container {
+  background-color: #f8f9fa;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
-.table th, .table td {
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 25px;
+  color: #343a40;
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* CONTROLS BAR */
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* LEFT SIDE: SEARCH BOX */
+.search-box {
+  position: relative;
+  width: 450px;
+}
+
+.search-control-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex-grow: 1;
+}
+
+.search-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon {
+  color: #495057;
+}
+
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
+}
+
+.search-input {
+  width: 100%;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.25s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.search-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.25s ease;
+}
+
+.clear-search-btn:hover {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+/* RIGHT SIDE: FILTERS & ADD BUTTON */
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.status-filter {
+  min-width: 180px;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
+}
+
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
+}
+
+.add-button, .loai-phong-btn, .vattu-phong-btn {
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+  font-weight: 600;
+  padding: 0 20px;
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
+  border: none;
+}
+
+.add-button {
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+}
+
+.add-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
+}
+
+.loai-phong-btn {
+  background: linear-gradient(135deg, #0dcaf0, #0aa2c0);
+}
+
+.loai-phong-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 202, 240, 0.4);
+  background: linear-gradient(135deg, #0aa2c0, #0892ac);
+}
+
+.vattu-phong-btn {
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.vattu-phong-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(255, 193, 7, 0.4);
+  background: linear-gradient(135deg, #e0a800, #e76b00);
+}
+
+.loai-phong-btn, .vattu-phong-btn {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 21px;
+  font-weight: 600;
+  padding: 0 20px;
+  gap: 8px;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.loai-phong-btn:hover, .vattu-phong-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* TABLE STYLES */
+.table-responsive {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 2px solid #e9ecef;
+  padding: 15px 10px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.table tbody td {
+  padding: 15px 10px;
   vertical-align: middle;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
 }
 
-.btn-group .btn {
-  padding: 0.25rem 0.5rem;
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
 }
 
-/* Modal styling */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1055;
+/* Image styling */
+.image-wrapper {
+  position: relative;
+  width: 70px;
+  height: 50px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.phong-image {
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  outline: 0;
-  display: none;
+  object-fit: cover;
+}
+
+.no-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  color: #6c757d;
+}
+
+.no-image-placeholder i {
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.no-image-placeholder span {
+  font-size: 0.7rem;
+}
+
+/* Badge styling */
+.badge {
+  padding: 6px 10px;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-warning-light {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  border: none;
+}
+
+.btn-warning-light:hover {
+  background-color: rgba(255, 193, 7, 0.3);
+  color: #e0a800;
+}
+
+.btn-danger-light {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+  border: none;
+}
+
+.btn-danger-light:hover {
+  background-color: rgba(220, 53, 69, 0.3);
+  color: #bd2130;
+}
+
+.btn-info-light {
+  background-color: rgba(13, 202, 240, 0.15);
+  color: #0dcaf0;
+  border: none;
+}
+
+.btn-info-light:hover {
+  background-color: rgba(13, 202, 240, 0.3);
+  color: #0aa2c0;
+}
+
+/* Loading indicator */
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 50px 0;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #adb5bd;
+  margin-bottom: 15px;
+}
+
+.empty-state p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+/* Pagination */
+.pagination-container {
+  padding: 20px 10px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.pagination {
+  margin-bottom: 0;
+}
+
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  border: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
   color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
 }
 
-.modal-content {
-  background-color: #212529;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(255,255,255,0.1);
+.pagination .page-item:not(.active) .page-link:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
 }
 
-.modal-header {
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.modal-footer {
-  border-top: 1px solid rgba(255,255,255,0.1);
+/* Empty rows */
+.empty-row td {
+  padding: 10px !important;
+  border-bottom: none !important;
 }
 
-.form-control, .form-select {
-  background-color: #2c3034;
-  border-color: rgba(255,255,255,0.1);
-  color: #fff;
-}
-
-.form-control:focus, .form-select:focus {
-  background-color: #2c3034;
-  color: #fff;
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 0.25rem rgb(13 110 253 / 25%);
-}
-
-.form-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-}
-
-.input-group-text {
-  background-color: #2c3034;
-  border-color: rgba(255,255,255,0.1);
-  color: #fff;
-}
-
-::placeholder {
-  color: rgba(255,255,255,0.5) !important;
-}
-
-/* Update modal backdrop for dark theme */
-.modal.show {
-  display: block;
-}
-
-.custom-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1050;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-/* Toggle switch styling */
-.form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+/* Alert styling */
+.alert {
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
 }
 </style>

@@ -25,7 +25,7 @@
         <select
           class="form-select status-filter"
           v-model="selectedStatus"
-          @change="handleStatusChange(selectedStatus)"
+          @change="handleStatusChange"
         >
           <option value="all">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
@@ -70,7 +70,7 @@
             :key="loai.id"
             @dblclick="viewLoaiHomestayDetails(loai)"
           >
-            <td class="text-center">{{ index + 1 + currentPage * pageSize }}</td>
+            <td class="text-center">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
             <td class="text-center">{{ loai.tenLoaiHomestay }}</td>
             <td class="text-center">{{ loai.moTa || 'Không có mô tả' }}</td>
             <td class="text-center">{{ formatDate(loai.ngayTao) }}</td>
@@ -122,22 +122,22 @@
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 0 }">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
             <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
           <li
-            v-for="page in totalPages"
+            v-for="page in displayedPages"
             :key="page"
             class="page-item"
-            :class="{ active: page - 1 === currentPage }"
+            :class="{ active: page === currentPage }"
           >
-            <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
           </li>
           <li
             class="page-item"
-            :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            :class="{ disabled: currentPage === totalPages || totalPages === 0 }"
           >
             <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
@@ -188,9 +188,8 @@ export default {
     const loading = ref(false)
 
     // Pagination
-    const currentPage = ref(0)
+    const currentPage = ref(1)
     const pageSize = ref(10)
-    const totalPages = ref(1)
 
     // State for modal
     const showModal = ref(false)
@@ -248,8 +247,12 @@ export default {
     })
 
     // Computed properties cho phân trang
+    const totalPages = computed(() => {
+      return Math.ceil(filteredLoaiHomestays.value.length / pageSize.value) || 1
+    })
+
     const paginatedLoaiHomestays = computed(() => {
-      const start = currentPage.value * pageSize.value
+      const start = (currentPage.value - 1) * pageSize.value
       const end = start + pageSize.value
       return filteredLoaiHomestays.value.slice(start, end)
     })
@@ -257,30 +260,47 @@ export default {
     const totalItems = computed(() => filteredLoaiHomestays.value.length)
 
     const startItem = computed(() => {
-      return totalItems.value === 0 ? 0 : currentPage.value * pageSize.value + 1
+      if (totalItems.value === 0) return 0
+      return (currentPage.value - 1) * pageSize.value + 1
     })
 
     const endItem = computed(() => {
-      const end = (currentPage.value + 1) * pageSize.value
-      return end > totalItems.value ? totalItems.value : end
+      const end = currentPage.value * pageSize.value
+      return Math.min(end, totalItems.value)
+    })
+
+    const displayedPages = computed(() => {
+      const maxDisplayed = 5
+      const pages = []
+      if (totalPages.value <= maxDisplayed) {
+        for (let i = 1; i <= totalPages.value; i++) pages.push(i)
+      } else {
+        if (currentPage.value <= 3) {
+          pages.push(1, 2, 3, 4, 5)
+        } else if (currentPage.value >= totalPages.value - 2) {
+          for (let i = totalPages.value - 4; i <= totalPages.value; i++) pages.push(i)
+        } else {
+          for (let i = currentPage.value - 2; i <= currentPage.value + 2; i++) pages.push(i)
+        }
+      }
+      return pages
     })
 
     const emptyRows = computed(() => {
-      const rowsCount = paginatedLoaiHomestays.value.length
-      return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0
+      const remainingRows = pageSize.value - paginatedLoaiHomestays.value.length
+      return remainingRows > 0 ? remainingRows : 0
     })
 
     const handleSearch = () => {
-      currentPage.value = 0
+      currentPage.value = 1
     }
 
-    const handleStatusChange = (status) => {
-      selectedStatus.value = status
-      currentPage.value = 0
+    const handleStatusChange = () => {
+      currentPage.value = 1
     }
 
     const changePage = (page) => {
-      if (page >= 0 && page < totalPages.value) {
+      if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page
       }
     }
@@ -398,6 +418,7 @@ export default {
       endItem,
       emptyRows,
       changePage,
+      displayedPages,
       // Modal state và functions
       showModal,
       selectedLoaiHomestay,
@@ -418,38 +439,37 @@ export default {
 </script>
 
 <style scoped>
-/* GENERAL CONTAINER & TITLE */
 .loai-homestay-container {
   background-color: #f8f9fa;
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.06);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .page-title {
-  font-size: 2.25rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 25px;
   color: #343a40;
-  background: linear-gradient(90deg, #0d6efd 40%, #20c997 100%);
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* CONTROLS BAR */
 .controls-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   background-color: #ffffff;
-  padding: 15px 20px;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
-/* LEFT SIDE: SEARCH BOX */
 .search-box {
   position: relative;
   width: 450px;
@@ -468,28 +488,41 @@ export default {
 
 .search-icon {
   position: absolute;
-  left: 15px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9a9a9a;
-  font-size: 1rem;
+  color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon,
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
 }
 
 .search-input {
   width: 100%;
-  border: 1px solid #e9ecef;
-  padding: 12px 15px 12px 45px;
-  border-radius: 30px;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   font-size: 1rem;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .search-input:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-  background-color: #fff;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
 }
 
 .clear-search-btn {
@@ -499,17 +532,16 @@ export default {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #9a9a9a;
+  color: #6c757d;
   cursor: pointer;
-  padding: 0;
-  font-size: 0.9rem;
+  padding: 5px;
+  font-size: 1.1rem;
 }
 
 .clear-search-btn:hover {
-  color: #495057;
+  color: #343a40;
 }
 
-/* RIGHT SIDE: FILTERS & ADD BUTTON */
 .right-controls {
   display: flex;
   align-items: center;
@@ -518,36 +550,70 @@ export default {
 
 .status-filter {
   min-width: 180px;
-  border-radius: 30px;
-  padding: 10px 15px;
-  border: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
   font-size: 0.95rem;
   color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
+}
+
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
 }
 
 .add-button {
-  height: 42px;
+  height: 48px;
+  min-width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 21px;
+  border-radius: 50px;
   font-weight: 600;
-  padding: 0 20px;
-  gap: 8px;
-  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
-  transition: all 0.3s ease;
-  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  padding: 0;
+  width: 48px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
   border: none;
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+  color: white;
 }
 
 .add-button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
-  background: linear-gradient(45deg, #0a58ca, #0077cc);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
 }
 
-/* TABLE STYLES */
+.add-button i {
+  font-size: 1.2rem;
+}
+
+.alert-warning {
+  border-radius: 12px;
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+  color: #856404;
+  font-weight: 500;
+}
+
 .table-responsive {
   background-color: #fff;
   border-radius: 12px;
@@ -557,7 +623,8 @@ export default {
 }
 
 .table {
-  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table thead th {
@@ -570,6 +637,11 @@ export default {
   font-size: 0.95rem;
 }
 
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
 .table tbody td {
   padding: 15px 10px;
   vertical-align: middle;
@@ -577,11 +649,24 @@ export default {
   font-size: 0.95rem;
 }
 
-.table-hover tbody tr:hover {
-  background-color: #f8f9fa;
+.table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-/* Action buttons */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .action-buttons {
   display: flex;
   justify-content: center;
@@ -589,20 +674,25 @@ export default {
 }
 
 .btn-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-warning-light {
   background-color: rgba(255, 193, 7, 0.15);
   color: #ffc107;
-  border: none;
 }
 
 .btn-warning-light:hover {
@@ -613,7 +703,6 @@ export default {
 .btn-danger-light {
   background-color: rgba(220, 53, 69, 0.15);
   color: #dc3545;
-  border: none;
 }
 
 .btn-danger-light:hover {
@@ -621,136 +710,87 @@ export default {
   color: #bd2130;
 }
 
-/* Badge styling */
-.badge {
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.bg-success {
-  background-color: #198754 !important;
-}
-
-.bg-danger {
-  background-color: #dc3545 !important;
-}
-
-.status-badge {
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.status-badge:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-}
-
-/* Pagination */
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-  padding: 10px 15px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
-}
-
-.pagination-info {
-  color: #6c757d;
-  font-size: 0.9rem;
-}
-
-.pagination {
-  margin: 0;
-  gap: 5px;
-}
-
-.page-item .page-link {
-  border-radius: 4px;
-  color: #0d6efd;
-  border: 1px solid #dee2e6;
-  padding: 6px 12px;
-  font-size: 0.9rem;
-}
-
-.page-item.active .page-link {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-  color: white;
-}
-
-.page-item.disabled .page-link {
-  color: #6c757d;
-  pointer-events: none;
-  background-color: #fff;
-  border-color: #dee2e6;
-}
-
-/* Loading indicator */
 .loading-indicator {
   display: flex;
   justify-content: center;
-  padding: 40px 0;
-}
-
-/* Alert styling */
-.alert {
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  border: 1px solid transparent;
-}
-
-.alert-warning {
-  background-color: #fff3cd;
-  border-color: #ffecb5;
-  color: #664d03;
-}
-
-.btn-close {
-  background: transparent;
-  border: 0;
-  font-size: 1.25rem;
-  padding: 0.25rem;
-  cursor: pointer;
-  opacity: 0.5;
-}
-
-.btn-close:hover {
-  opacity: 1;
-}
-
-/* Empty state */
-.empty-state {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  height: 300px;
+}
+
+.empty-state {
+  text-align: center;
   padding: 50px 0;
   background-color: #fff;
   border-radius: 12px;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
-  margin-bottom: 20px;
+  color: #6c757d;
 }
 
 .empty-icon {
   font-size: 3rem;
-  color: #adb5bd;
   margin-bottom: 15px;
 }
 
-.empty-state p {
-  color: #6c757d;
-  font-size: 1.1rem;
-  margin: 0;
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
 }
 
-/* Empty rows */
+.pagination-info {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.pagination {
+  margin-bottom: 0;
+}
+
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  border: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-item:not(.active) .page-link:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
 .empty-row td {
-  padding: 10px !important;
-  border-bottom: 1px solid #e9ecef;
+  padding: 24.5px !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+.empty-row:last-child td {
+  border-bottom: none !important;
 }
 </style>

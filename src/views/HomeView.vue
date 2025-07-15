@@ -124,15 +124,9 @@
               <div class="homestay-owner" v-if="home.hotenChuHomestay">
                 <i class="fas fa-user"></i> Chủ homestay: {{ home.hotenChuHomestay }}
               </div>
-              <div class="homestay-price" v-if="home.giaCaHomestay">
-                <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
-
+              <!-- Single price display -->
               <div class="homestay-price">
-
-      
-
-                <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
-                }}₫</span>
+                <span class="price">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000' }}₫</span>
 
 
                 <span class="price-unit">/đêm</span>

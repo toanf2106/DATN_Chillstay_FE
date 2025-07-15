@@ -9,6 +9,21 @@
 
     <div v-if="loading" class="loading-indicator">Đang xử lý...</div>
 
+    <div v-if="orderCode" class="payment-info">
+      <h3>Thông tin thanh toán:</h3>
+      <p><strong>Order Code:</strong> {{ orderCode }}</p>
+      <p>
+        <strong>Trạng thái:</strong>
+        <span :class="'status-' + paymentStatus?.toLowerCase()">{{
+          formatStatus(paymentStatus)
+        }}</span>
+        <span v-if="autoCheckingStatus" class="auto-checking">(Đang tự động cập nhật...)</span>
+      </p>
+      <button @click="checkPaymentStatus" class="check-status-btn" :disabled="checkingStatus">
+        {{ checkingStatus ? 'Đang kiểm tra...' : 'Kiểm tra thủ công' }}
+      </button>
+    </div>
+
     <!-- Modal hiển thị trang thanh toán -->
     <div v-if="showPaymentModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-container">
@@ -42,12 +57,18 @@ export default {
       error: null,
       showPaymentModal: false,
       checkingPaymentStatus: false,
+      paymentStatus: null,
+      checkingStatus: false,
+      autoCheckingStatus: false,
+      statusCheckInterval: null,
     }
   },
   methods: {
     async createPaymentLink() {
       this.loading = true
       this.error = null
+      this.paymentStatus = null
+      this.stopAutoStatusCheck() // Dừng interval trước đó nếu có
 
       try {
         // Gọi API để tạo link thanh toán qua PaymentService
@@ -62,6 +83,9 @@ export default {
 
         // Bắt đầu kiểm tra trạng thái thanh toán
         this.startCheckingPaymentStatus()
+
+        // Bắt đầu tự động kiểm tra trạng thái từ database
+        this.startAutoStatusCheck()
       } catch (error) {
         console.error('Lỗi khi tạo link thanh toán:', error)
         this.error = 'Không thể tạo link thanh toán. Vui lòng thử lại sau.'
@@ -72,6 +96,7 @@ export default {
     closeModal() {
       this.showPaymentModal = false
       this.stopCheckingPaymentStatus()
+      // Không dừng việc tự động kiểm tra trạng thái vì chúng ta vẫn muốn nó tiếp tục sau khi đóng modal
     },
     handleIframeLoad() {
       try {
@@ -92,6 +117,8 @@ export default {
         ) {
           console.log('Payment successful, closing modal')
           this.showPaymentModal = false
+          // Kiểm tra trạng thái thanh toán sau khi thành công
+          setTimeout(() => this.checkPaymentStatus(), 1000)
         } else if (
           currentUrl.includes('payment-failure') ||
           currentUrl.includes('cancel=true') ||
@@ -99,6 +126,8 @@ export default {
         ) {
           console.log('Payment cancelled, closing modal')
           this.showPaymentModal = false
+          // Kiểm tra trạng thái thanh toán sau khi hủy
+          setTimeout(() => this.checkPaymentStatus(), 1000)
         }
       } catch (e) {
         // Xử lý lỗi CORS - không thể truy cập URL của iframe từ domain khác
@@ -130,6 +159,8 @@ export default {
             console.log('Payment completed with status:', paymentInfo.status)
             this.showPaymentModal = false
             this.stopCheckingPaymentStatus()
+            // Cập nhật trạng thái thanh toán
+            await this.checkPaymentStatus()
           }
         } catch (error) {
           console.error('Error checking payment status:', error)
@@ -142,10 +173,86 @@ export default {
         this.checkingPaymentStatus = false
       }
     },
+    // Bắt đầu tự động kiểm tra trạng thái từ database
+    startAutoStatusCheck() {
+      if (!this.orderCode) return
+
+      this.autoCheckingStatus = true
+      console.log('Bắt đầu tự động kiểm tra trạng thái thanh toán')
+
+      // Kiểm tra ngay lập tức một lần
+      this.checkPaymentStatus(false)
+
+      // Thiết lập interval để kiểm tra mỗi 2 giây
+      this.statusCheckInterval = setInterval(() => {
+        this.checkPaymentStatus(false)
+      }, 2000)
+    },
+    // Dừng tự động kiểm tra trạng thái
+    stopAutoStatusCheck() {
+      if (this.statusCheckInterval) {
+        clearInterval(this.statusCheckInterval)
+        this.statusCheckInterval = null
+        this.autoCheckingStatus = false
+        console.log('Đã dừng tự động kiểm tra trạng thái thanh toán')
+      }
+    },
+    // Kiểm tra trạng thái thanh toán
+    // showLoading: nếu true sẽ hiển thị trạng thái đang kiểm tra, false sẽ kiểm tra ngầm
+    async checkPaymentStatus(showLoading = true) {
+      if (!this.orderCode) return
+
+      if (showLoading) {
+        this.checkingStatus = true
+      }
+      this.error = null
+
+      try {
+        // Gọi API để kiểm tra trạng thái thanh toán thủ công
+        const response = await PaymentService.checkPaymentStatus(this.orderCode)
+        console.log('Manual payment status check:', response)
+
+        // Gọi API để lấy thông tin thanh toán từ database
+        const dbStatus = await PaymentService.getPaymentStatusFromDB(this.orderCode)
+        console.log('DB payment status:', dbStatus)
+
+        if (dbStatus && dbStatus.data) {
+          this.paymentStatus = dbStatus.data.trangThai
+
+          // Nếu trạng thái là trạng thái cuối cùng (ThanhCong hoặc ThatBai), dừng việc tự động kiểm tra
+          if (this.paymentStatus === 'ThanhCong' || this.paymentStatus === 'ThatBai') {
+            this.stopAutoStatusCheck()
+          }
+        } else {
+          this.paymentStatus = 'UNKNOWN'
+        }
+      } catch (error) {
+        console.error('Error checking payment status manually:', error)
+        if (showLoading) {
+          this.error = 'Không thể kiểm tra trạng thái thanh toán. Vui lòng thử lại sau.'
+        }
+      } finally {
+        if (showLoading) {
+          this.checkingStatus = false
+        }
+      }
+    },
+    formatStatus(status) {
+      const statusMap = {
+        DangCho: 'Đang chờ thanh toán',
+        ThanhCong: 'Thanh toán thành công',
+        ThatBai: 'Thanh toán thất bại',
+        KhongXacDinh: 'Không xác định',
+        UNKNOWN: 'Không có thông tin',
+      }
+
+      return statusMap[status] || status
+    },
   },
   beforeUnmount() {
-    // Đảm bảo dừng interval khi component bị hủy
+    // Đảm bảo dừng tất cả các interval khi component bị hủy
     this.stopCheckingPaymentStatus()
+    this.stopAutoStatusCheck()
   },
 }
 </script>
@@ -167,6 +274,71 @@ export default {
   font-size: 16px;
   margin-top: 20px;
   margin-bottom: 20px;
+}
+
+.check-status-btn {
+  background-color: #2196f3;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.check-status-btn:disabled {
+  background-color: #90caf9;
+  cursor: not-allowed;
+}
+
+.payment-info {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  margin: 20px 0;
+  border-left: 4px solid #2196f3;
+}
+
+/* Trạng thái thanh toán */
+.status-dangcho {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.status-thanhcong {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.status-thatbai {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.status-khongxacdinh,
+.status-unknown {
+  color: #9e9e9e;
+  font-style: italic;
+}
+
+.auto-checking {
+  color: #2196f3;
+  font-size: 0.9em;
+  margin-left: 8px;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 
 /* Modal Styles */
@@ -194,14 +366,6 @@ export default {
   flex-direction: column;
   overflow: hidden;
 }
-/*
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-} */
 
 .close-button {
   background: transparent;

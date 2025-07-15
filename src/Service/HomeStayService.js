@@ -107,11 +107,6 @@ export function uploadAnhHomeStay(file, homestayId) {
 }
 
 
-
-export function getSoPhongByHomestayId(homestayId) {
-  return api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`);
-}
-
 // Lấy số lượng phòng theo ID homestay
 
 export function getSoPhongByHomestayId2(homestayId) {

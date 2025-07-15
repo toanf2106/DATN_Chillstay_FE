@@ -265,18 +265,6 @@
                             >
                             <span class="input-group-text">{{ item.donVi }}</span>
                           </div>
-
-                          <div class="form-check form-switch mt-2">
-                            <input
-                              class="form-check-input"
-                              type="checkbox"
-                              :id="`tiennghi-status-${item.id}`"
-                              v-model="selectedTienNghi[item.id].trangThai"
-                            >
-                            <label class="form-check-label" :for="`tiennghi-status-${item.id}`">
-                              {{ selectedTienNghi[item.id].trangThai ? 'Hoạt động' : 'Không hoạt động' }}
-                            </label>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -336,18 +324,6 @@
                           />
                         </div>
 
-                        <div class="form-check form-switch mt-3">
-                          <input
-                            class="form-check-input"
-                            type="checkbox"
-                            id="trangThaiTienNghi"
-                            v-model="newTienNghi.trangThai"
-                          >
-                          <label class="form-check-label" for="trangThaiTienNghi">
-                            {{ newTienNghi.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
-                          </label>
-                        </div>
-
                         <div class="form-actions mt-3">
                           <button type="button" class="btn btn-secondary" @click="showAddTienNghi = false">Hủy</button>
                           <button type="submit" class="btn btn-primary">Thêm</button>
@@ -357,97 +333,6 @@
                   </div>
                 </div>
 
-                <!-- Phần Dịch Vụ -->
-                <div class="form-group mt-4">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="fw-bold">Dịch Vụ</label>
-                    <button type="button" class="btn btn-sm btn-outline-primary" @click="showAddDichVu = true">
-                      <i class="fas fa-plus"></i> Thêm dịch vụ khác
-                    </button>
-                  </div>
-
-                  <div class="dich-vu-container">
-                    <div v-if="loadingDichVu" class="text-center py-3">
-                      <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Đang tải...</span>
-                      </div>
-                    </div>
-
-                    <div v-else-if="dichVuList.length === 0" class="text-center py-3 text-muted">
-                      <i class="fas fa-info-circle me-1"></i> Chưa có dịch vụ nào
-                    </div>
-
-                    <div v-else class="dich-vu-list">
-                      <div v-for="item in dichVuList" :key="item.id" class="dich-vu-item">
-                        <div class="form-check">
-                          <input
-                            class="form-check-input"
-                            type="checkbox"
-                            :id="`dichvu-${item.id}`"
-                            v-model="selectedDichVu[item.id].selected"
-                          >
-                          <label class="form-check-label" :for="`dichvu-${item.id}`">
-                            {{ item.tenDichVu }} - {{ formatCurrency(item.gia) }}
-                          </label>
-                        </div>
-
-                        <div v-if="selectedDichVu[item.id].selected" class="dich-vu-details">
-                          <div class="input-group input-group-sm">
-                            <span class="input-group-text">Số lượng</span>
-                            <input
-                              type="number"
-                              class="form-control"
-                              v-model="selectedDichVu[item.id].soLuong"
-                              min="1"
-                            >
-                            <span class="input-group-text">{{ item.donVi }}</span>
-                          </div>
-
-                          <div class="form-check form-switch mt-2">
-                            <input
-                              class="form-check-input"
-                              type="checkbox"
-                              :id="`dichvu-status-${item.id}`"
-                              v-model="selectedDichVu[item.id].trangThai"
-                            >
-                            <label class="form-check-label" :for="`dichvu-status-${item.id}`">
-                              {{ selectedDichVu[item.id].trangThai ? 'Hoạt động' : 'Không hoạt động' }}
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Modal thêm dịch vụ mới -->
-                <div v-if="showAddDichVu" class="modal-overlay" @click.self="showAddDichVu = false">
-                  <div class="modal-form">
-                    <div class="modal-header">
-                      <h3>Thêm Dịch Vụ Mới</h3>
-                      <button class="close-button" @click="showAddDichVu = false">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                      <form @submit.prevent="addNewDichVu">
-                        <div class="form-group">
-                          <label for="tenDichVu">Tên Dịch Vụ <span class="text-danger">*</span></label>
-                          <input
-                            id="tenDichVu"
-                            v-model="newDichVu.tenDichVu"
-                            type="text"
-                            class="form-control"
-                            required
-                          />
-                        </div>
-
-                        <div class="form-actions mt-3">
-                          <button type="button" class="btn btn-secondary" @click="showAddDichVu = false">Hủy</button>
-                          <button type="submit" class="btn btn-primary">Thêm</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <!-- Read-only view for view mode -->
@@ -597,7 +482,6 @@
 <script>
 import { ref, watch, computed, onMounted } from 'vue'
 import { getAllTienNghi, addTienNghi } from '@/Service/TienNghiService'
-import { getAllDichVu } from '@/Service/dichVuService'
 import notification from '@/utils/notification'
 import api from '@/utils/api'
 
@@ -657,22 +541,7 @@ export default {
       tenTienNghi: '',
       donVi: '',
       moTa: '',
-      soLuong: 1,
-      trangThai: true
-    })
-
-    // Dịch vụ
-    const dichVuList = ref([])
-    const selectedDichVu = ref({})
-    const showAddDichVu = ref(false)
-    const loadingDichVu = ref(false)
-    const newDichVu = ref({
-      tenDichVu: '',
-      gia: 0,
-      donVi: 'VND',
-      moTa: '',
-      soLuong: 1,
-      trangThai: true
+      soLuong: 1
     })
 
     // Lấy danh sách tiện nghi
@@ -686,8 +555,7 @@ export default {
         tienNghiList.value.forEach(item => {
           selectedTienNghi.value[item.id] = {
             selected: false,
-            soLuong: 1,
-            trangThai: true
+            soLuong: 1
           }
         })
       } catch (error) {
@@ -695,29 +563,6 @@ export default {
         notification.error('Không thể tải danh sách tiện nghi')
       } finally {
         loading.value = false
-      }
-    }
-
-    // Lấy danh sách dịch vụ
-    const fetchDichVu = async () => {
-      try {
-        loadingDichVu.value = true
-        const response = await getAllDichVu()
-        dichVuList.value = response.data || []
-
-        // Khởi tạo đối tượng selectedDichVu
-        dichVuList.value.forEach(item => {
-          selectedDichVu.value[item.id] = {
-            selected: false,
-            soLuong: 1,
-            trangThai: true
-          }
-        })
-      } catch (error) {
-        console.error('Lỗi khi lấy danh sách dịch vụ:', error)
-        notification.error('Không thể tải danh sách dịch vụ')
-      } finally {
-        loadingDichVu.value = false
       }
     }
 
@@ -732,34 +577,12 @@ export default {
           if (selectedTienNghi.value[item.tienNghi.id]) {
             selectedTienNghi.value[item.tienNghi.id] = {
               selected: true,
-              soLuong: item.soLuong || 1,
-              trangThai: item.trangThai
+              soLuong: item.soLuong || 1
             }
           }
         })
       } catch (error) {
         console.error('Lỗi khi lấy thông tin tiện nghi của homestay:', error)
-      }
-    }
-
-    // Lấy thông tin dịch vụ của homestay
-    const fetchHomestayDichVu = async (homestayId) => {
-      try {
-        const response = await api.get(`/api/dich-vu/by-homestay/${homestayId}`)
-        const homestayDichVu = response.data || []
-
-        // Cập nhật selectedDichVu dựa trên dữ liệu từ API
-        homestayDichVu.forEach(item => {
-          if (selectedDichVu.value[item.id]) {
-            selectedDichVu.value[item.id] = {
-              selected: true,
-              soLuong: item.soLuong || 1,
-              trangThai: item.trangThai
-            }
-          }
-        })
-      } catch (error) {
-        console.error('Lỗi khi lấy thông tin dịch vụ homestay:', error)
       }
     }
 
@@ -781,8 +604,7 @@ export default {
         // Thêm vào đối tượng selectedTienNghi
         selectedTienNghi.value[addedTienNghi.id] = {
           selected: true,
-          soLuong: newTienNghi.value.soLuong,
-          trangThai: newTienNghi.value.trangThai
+          soLuong: newTienNghi.value.soLuong
         }
 
         // Reset form
@@ -790,8 +612,7 @@ export default {
           tenTienNghi: '',
           donVi: '',
           moTa: '',
-          soLuong: 1,
-          trangThai: true
+          soLuong: 1
         }
 
         showAddTienNghi.value = false
@@ -948,19 +769,6 @@ export default {
 
         homestayData.tienNghi = selectedTienNghiData
 
-        // Thêm dữ liệu dịch vụ
-        const selectedDichVuData = []
-        for (const [id, data] of Object.entries(selectedDichVu.value)) {
-          if (data.selected) {
-            selectedDichVuData.push({
-              dichVuId: parseInt(id, 10),
-              soLuong: data.soLuong,
-              trangThai: data.trangThai
-            })
-          }
-        }
-        homestayData.dichVu = selectedDichVuData
-
         // Thêm dữ liệu homestay dạng JSON
         formDataToSend.append('homestay', JSON.stringify(homestayData))
 
@@ -975,57 +783,6 @@ export default {
 
     const viewDetailImages = () => {
       emit('view-images', formData.value)
-    }
-
-    // Thêm dịch vụ mới
-    const addNewDichVu = async () => {
-      try {
-        // Validate
-        if (!newDichVu.value.tenDichVu) {
-          notification.error('Vui lòng điền tên dịch vụ')
-          return
-        }
-
-        // Thêm dịch vụ mới
-        const response = await api.post('/api/dich-vu/add', {
-          tenDichVu: newDichVu.value.tenDichVu,
-          homeStay: {
-            id: props.isEdit ? formData.value.id : null
-          },
-          trangThai: true
-        })
-
-        if (response.status === 200 || response.status === 201) {
-          // Thêm dịch vụ mới vào danh sách
-          const newItem = response.data
-          dichVuList.value.push(newItem)
-
-          // Thêm vào selectedDichVu
-          selectedDichVu.value[newItem.id] = {
-            selected: true,
-            soLuong: 1,
-            trangThai: true
-          }
-
-          // Reset form
-          newDichVu.value = {
-            tenDichVu: '',
-            gia: 0,
-            donVi: 'VND',
-            moTa: '',
-            soLuong: 1,
-            trangThai: true
-          }
-
-          // Đóng modal
-          showAddDichVu.value = false
-
-          notification.success('Thêm dịch vụ thành công')
-        }
-      } catch (error) {
-        console.error('Lỗi khi thêm dịch vụ:', error)
-        notification.error('Có lỗi xảy ra khi thêm dịch vụ')
-      }
     }
 
     // Nếu là chỉnh sửa, điền dữ liệu hiện có
@@ -1067,7 +824,6 @@ export default {
     // Tải danh sách tiện nghi khi component được tạo
     onMounted(() => {
       fetchTienNghi()
-      fetchDichVu()
 
       // Nếu là chỉnh sửa, điền dữ liệu hiện có
       if (props.isEdit && props.homestay) {
@@ -1080,10 +836,9 @@ export default {
       if (props.isEdit && props.homestay) {
         formData.value = { ...props.homestay }
 
-        // Lấy thông tin tiện nghi và dịch vụ của homestay
+        // Lấy thông tin tiện nghi của homestay
         if (props.homestay.id) {
           await fetchHomestayTienNghi(props.homestay.id)
-          await fetchHomestayDichVu(props.homestay.id)
         }
       }
     }
@@ -1113,13 +868,6 @@ export default {
       showAddTienNghi,
       newTienNghi,
       addNewTienNghi,
-      // Dịch vụ
-      loadingDichVu,
-      dichVuList,
-      selectedDichVu,
-      showAddDichVu,
-      newDichVu,
-      addNewDichVu
     }
   },
 }
@@ -1508,6 +1256,42 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* Dịch vụ container */
+.dich-vu-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: #f9fafb;
+}
+
+.dich-vu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dich-vu-item {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.dich-vu-item:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.dich-vu-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+  animation: fade-in 0.3s ease;
 }
 </style>
 

@@ -15,6 +15,7 @@ import BookingView from '../views/BookingView.vue'
 
 import NewsView from '../views/NewsView.vue'
 import NewsDetailView from '../views/NewsDetailView.vue'
+import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
 
 
 import { useAuthStore } from '../stores/authStore'
@@ -73,6 +74,12 @@ const router = createRouter({
           component: () => import('../views/Admin/Home/QlyLoaiHomestay.vue'),
         },
 
+        {
+          path: 'qly-loai-phong',
+          name: 'admin-qly-loai-phong',
+          component: QlyLoaiPhong,
+        },
+
         // Quản lý Tiện nghi Homestay
         {
           path: 'homestay-tien-nghi',
@@ -93,12 +100,6 @@ const router = createRouter({
           redirect: { name: 'admin-homestay-tien-nghi' },
         },
 
-        // Quản lý Phòng - Thông tin về các phòng trong homestay
-        {
-          path: 'phong',
-          name: 'admin-phong',
-          component: () => import('../views/Admin/Home/QlyPhong.vue'),
-        },
 
         // Thống kê - Hiển thị dữ liệu tổng quan
         {
@@ -197,6 +198,17 @@ const router = createRouter({
           path: 'test-thanh-toan',
           name: 'admin-test-thanh-toan',
           component: TestThanhToan,
+        },
+
+        // Thêm route cho QlyPhong trong phần admin routes
+        {
+          path: '/admin/phong',
+          name: 'admin-phong',
+          component: () => import('../views/Admin/Home/QlyPhong.vue'),
+          meta: {
+            requiresAuth: true,
+            requiresAdmin: true
+          }
         },
 
         {

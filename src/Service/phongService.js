@@ -1,102 +1,137 @@
-import api from '@/utils/api'
+import api from '@/utils/api';
 
-/**
- * Lấy danh sách tất cả các phòng
- * @returns {Promise} Promise containing the response
- */
-export const getAllPhong = async () => {
-  return await api.get('/api/phong/all')
+export function getAllPhong() {
+  return api.get('/api/phong');
 }
 
-/**
- * Lấy thông tin chi tiết của phòng theo ID
- * @param {number} id - ID của phòng cần lấy thông tin
- * @returns {Promise} Promise containing the response
- */
-export const getPhongById = async (id) => {
-  return await api.get(`/api/phong/detail/${id}`)
+export function getPhongById(id) {
+  return api.get(`/api/phong/${id}`);
 }
 
-/**
- * Thêm phòng mới
- * @param {Object} phongData - Dữ liệu phòng cần thêm
- * @returns {Promise} Promise containing the response
- */
-export const addPhong = async (phongData) => {
-  return await api.post('/api/phong/add', phongData)
+export function getPhongByMaPhong(maPhong) {
+  return api.get(`/api/phong/ma/${maPhong}`);
 }
 
-/**
- * Cập nhật thông tin phòng
- * @param {number} id - ID của phòng cần cập nhật
- * @param {Object} phongData - Dữ liệu phòng đã cập nhật
- * @returns {Promise} Promise containing the response
- */
-export const updatePhong = async (id, phongData) => {
-  return await api.put(`/api/phong/update/${id}`, phongData)
+export function getPhongByHomeStayId(homestayId) {
+  return api.get(`/api/phong/homestay/${homestayId}`);
 }
 
-/**
- * Xóa phòng theo ID
- * @param {number} id - ID của phòng cần xóa
- * @returns {Promise} Promise containing the response
- */
-export const deletePhong = async (id) => {
-  console.log('Gọi API xóa phòng ID:', id);
-  try {
-    // Thử sử dụng phương thức DELETE trước
-    return await api.delete(`/api/phong/delete/${id}`);
-  } catch (error) {
-    console.log('Lỗi với phương thức DELETE, thử lại với PUT:', error);
-    // Nếu DELETE không được, thử sử dụng PUT (theo chuẩn REST, DELETE là phương thức chuẩn để xóa)
-    return await api.put(`/api/phong/delete/${id}`);
-  }
+export function getPhongByLoaiPhongId(loaiPhongId) {
+  return api.get(`/api/phong/loaiphong/${loaiPhongId}`);
 }
 
-/**
- * Tìm kiếm phòng với các tiêu chí khác nhau
- * @param {Object} searchParams - Các tham số tìm kiếm (id, maPhong, tenPhong)
- * @returns {Promise} Promise containing the response
- */
-export const searchPhong = async (searchParams) => {
-  const params = new URLSearchParams();
-
-  if (searchParams.id) {
-    params.append('id', searchParams.id);
-  }
-
-  if (searchParams.maPhong) {
-    params.append('maPhong', searchParams.maPhong);
-  }
-
-  if (searchParams.tenPhong) {
-    params.append('tenPhong', searchParams.tenPhong);
-  }
-
-  return await api.get(`/api/phong/search?${params.toString()}`);
+export function searchPhongByKeyword(keyword) {
+  return api.get(`/api/phong/search?keyword=${encodeURIComponent(keyword)}`);
 }
 
-/**
- * Phân trang danh sách phòng
- * @param {number} page - Số trang (mặc định là 0)
- * @returns {Promise} Promise containing the response
- */
-export const getPhongPaginated = async (page = 0) => {
-  return await api.get(`/api/phong/list?page=${page}`);
+export function getPhongBySoNguoi(soNguoi) {
+  return api.get(`/api/phong/songuoi/${soNguoi}`);
 }
 
-/**
- * Lấy danh sách loại phòng
- * @returns {Promise} Promise containing the response
- */
-export const getLoaiPhongList = async () => {
-  return await api.get('/api/loaiphong/all')
+export function createPhong(phongData) {
+  return api.post('/api/phong/add', phongData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 }
 
-/**
- * Lấy danh sách homestay
- * @returns {Promise} Promise containing the response
- */
-export const getHomestayList = async () => {
-  return await api.get('/api/homestay/all')
+export function updatePhong(id, phongData) {
+  return api.put(`/api/phong/update/${id}`, phongData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}
+
+export function deletePhong(id) {
+  return api.delete(`/api/phong/${id}`);
+}
+
+// Lấy danh sách loại phòng để hiển thị trong form
+export function getLoaiPhongList() {
+  return api.get('/api/loaiphong/all');
+}
+
+export function createLoaiPhong(data) {
+  return api.post('/api/loaiphong/add', data);
+}
+
+export function updateLoaiPhong(id, data) {
+  return api.put(`/api/loaiphong/update/${id}`, data);
+}
+
+export function deleteLoaiPhong(id) {
+  return api.delete(`/api/loaiphong/delete/${id}`);
+}
+
+// Lấy danh sách homestay để hiển thị trong form
+export function getHomestayList() {
+  return api.get('/api/homestay/all');
+}
+
+export function searchPhongAdvanced({
+  keyword = null,
+  homestayId = null,
+  loaiPhongId = null,
+  soNguoi = null,
+} = {}) {
+  const params = {};
+
+  if (keyword) params.keyword = keyword;
+  if (homestayId) params.homestayId = homestayId;
+  if (loaiPhongId) params.loaiPhongId = loaiPhongId;
+  if (soNguoi) params.soNguoi = soNguoi;
+
+  return api.get('/api/phong/search', { params });
+}
+
+// Quản lý ảnh phòng
+export function getAnhPhongByPhongId(phongId) {
+  return api.get(`/api/anh_phong/by-phong/${phongId}`);
+}
+
+export function uploadAnhPhong(file, phongId) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('phongId', phongId);
+
+  return api.post('/api/anh_phong/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}
+
+export function deleteAnhPhong(anhPhongId) {
+  return api.put(`/api/anh_phong/delete/${anhPhongId}`);
+}
+
+export function updateAnhPhongStatus(anhPhongId, status) {
+  return api.put(`/api/anh_phong/${anhPhongId}/status`, { trangThai: status });
+}
+
+// Quản lý vật tư trong phòng
+export function getVatTuPhongByPhongId(phongId) {
+  return api.get(`/api/vat-tu-phong/phong/${phongId}`);
+}
+
+export function addVatTuToPhong(phongId, vatTuId, soLuong) {
+  return api.post(`/api/vat-tu-phong`, {
+    phong: { id: phongId },
+    vatTu: { id: vatTuId },
+    soLuong: soLuong
+  });
+}
+
+export function updateVatTuPhong(phongId, vatTuId, soLuong) {
+  return api.put(`/api/vat-tu-phong`, {
+    phong: { id: phongId },
+    vatTu: { id: vatTuId },
+    soLuong: soLuong
+  });
+}
+
+export function deleteVatTuFromPhong(phongId, vatTuId) {
+  return api.delete(`/api/vat-tu-phong/${phongId}/${vatTuId}`);
 }

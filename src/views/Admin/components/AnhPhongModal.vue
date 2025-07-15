@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="anh-homestay-details-modal">
+    <div class="anh-phong-details-modal">
       <div class="modal-header">
         <h3>{{ modalTitle }}</h3>
         <button class="close-button" @click="$emit('close')">&times;</button>
@@ -90,16 +90,16 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import {
-  getAnhHomeStayByHomestayId,
-  uploadAnhHomeStay,
-  deleteAnhHomeStay,
-} from '@/Service/HomeStayService'
+  getAnhPhongByPhongId,
+  uploadAnhPhong,
+  deleteAnhPhong,
+} from '@/Service/phongService'
 import { useToast } from '@/stores/notificationStore'
 
 export default {
-  name: 'AnhHomestayModal',
+  name: 'AnhPhongModal',
   props: {
-    homestay: {
+    phong: {
       type: Object,
       required: true,
     },
@@ -120,14 +120,21 @@ export default {
 
     const modalTitle = computed(() => {
       return props.viewOnly
-        ? `Ảnh chi tiết - ${props.homestay.tenHomestay}`
-        : `Quản lý ảnh - ${props.homestay.tenHomestay}`
+        ? `Ảnh chi tiết - ${props.phong.tenPhong || 'Phòng'}`
+        : `Quản lý ảnh - ${props.phong.tenPhong || 'Phòng'}`
     })
 
     const fetchImages = async () => {
       try {
         loading.value = true
-        const response = await getAnhHomeStayByHomestayId(props.homestay.id)
+          console.log('Fetching images for phong:', props.phong)
+        if (!props.phong || !props.phong.id) {
+          console.error('Lỗi: ID phòng không hợp lệ:', props.phong)
+          toast.error('Không thể tải ảnh: ID phòng không hợp lệ')
+          loading.value = false
+          return
+        }
+        const response = await getAnhPhongByPhongId(props.phong.id)
         images.value = response.data || []
       } catch (error) {
         console.error('Lỗi khi tải ảnh:', error)
@@ -166,11 +173,19 @@ export default {
 
       try {
         isUploading.value = true
+
+        if (!props.phong || !props.phong.id) {
+          console.error('Lỗi: ID phòng không hợp lệ khi tải ảnh lên:', props.phong)
+          toast.error('Không thể tải ảnh lên: ID phòng không hợp lệ')
+          isUploading.value = false
+          return
+        }
+
         const formData = new FormData()
         formData.append('file', selectedFile.value)
-        formData.append('homestayId', props.homestay.id)
+        formData.append('phongId', props.phong.id)
 
-        await uploadAnhHomeStay(selectedFile.value, props.homestay.id)
+        await uploadAnhPhong(selectedFile.value, props.phong.id)
         toast.success('Tải ảnh lên thành công!')
         resetUpload()
         await fetchImages()
@@ -187,7 +202,7 @@ export default {
 
       try {
         isDeleting.value = imageId
-        await deleteAnhHomeStay(imageId)
+        await deleteAnhPhong(imageId)
         toast.success('Xóa ảnh thành công!')
         await fetchImages()
       } catch (error) {
@@ -198,7 +213,15 @@ export default {
       }
     }
 
-    onMounted(fetchImages)
+    onMounted(() => {
+      if (props.phong && props.phong.id) {
+        fetchImages()
+      } else {
+        console.error('Không thể tải ảnh: Không có ID phòng hợp lệ')
+        loading.value = false
+        toast.error('Không thể mở xem ảnh: Dữ liệu phòng không hợp lệ')
+      }
+    })
 
     return {
       modalTitle,
@@ -235,7 +258,7 @@ export default {
   transition: opacity 0.3s ease;
 }
 
-.anh-homestay-details-modal {
+.anh-phong-details-modal {
   position: relative;
   background-color: #fff;
   border-radius: 16px;

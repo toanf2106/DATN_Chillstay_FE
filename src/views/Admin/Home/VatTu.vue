@@ -260,6 +260,14 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 import notification from '@/utils/notification'
+import {
+  getVatTuList,
+  createVatTu,
+  updateVatTu,
+  deleteVatTu as apiDeleteVatTu,
+  resetVatTu as apiResetVatTu,
+  searchVatTu,
+} from '@/Service/vatTuService'
 
 const vatTuList = ref([])
 const showForm = ref(false)
@@ -433,10 +441,10 @@ async function saveVatTu() {
       trangThai: form.value.trangThai === 'Đang hoạt động',
     }
     if (isEdit.value) {
-      await api.put(`/api/vattu/update/${form.value.id}`, payload)
+      await updateVatTu(form.value.id, payload)
       notification.success('Cập nhật vật tư thành công!')
     } else {
-      await api.post('/api/vattu/create', payload)
+      await createVatTu(payload)
       notification.success('Thêm vật tư mới thành công!')
     }
     showForm.value = false

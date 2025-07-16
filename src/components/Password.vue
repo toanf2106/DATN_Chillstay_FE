@@ -1,122 +1,124 @@
 <script setup>
-import { ref, onMounted,  } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { forgotPassword, resetPassword, checkResetToken } from '@/Service/authService';
-import notification from '@/utils/notification';
+
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { forgotPassword, resetPassword, checkResetToken } from '@/Service/authService'
+import notification from '@/utils/notification'
+
 
 defineOptions({
-  name: 'ForgotPasswordForm'
-});
+  name: 'ForgotPasswordForm',
+})
 
 // Các biến cho form quên mật khẩu
-const email = ref('');
-const emailError = ref('');
-const emailSuccess = ref('');
-const isEmailProcessing = ref(false);
+const email = ref('')
+const emailError = ref('')
+const emailSuccess = ref('')
+const isEmailProcessing = ref(false)
 
 // Các biến cho form đặt lại mật khẩu
-const token = ref('');
-const matKhauMoi = ref('');
-const xacNhanMatKhau = ref('');
-const matKhauError = ref('');
-const matKhauSuccess = ref('');
-const isResetProcessing = ref(false);
+const token = ref('')
+const matKhauMoi = ref('')
+const xacNhanMatKhau = ref('')
+const matKhauError = ref('')
+const matKhauSuccess = ref('')
+const isResetProcessing = ref(false)
 
 // Hiển thị mật khẩu
-const matKhauVisible = ref(false);
-const xacNhanMatKhauVisible = ref(false);
+const matKhauVisible = ref(false)
+const xacNhanMatKhauVisible = ref(false)
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
 
 onMounted(() => {
   // Kiểm tra xem có token trong URL không
   if (route.query.token) {
-    token.value = route.query.token;
+    token.value = route.query.token
 
     // Kiểm tra token có hợp lệ không
     checkResetToken(token.value)
-      .then(response => {
+      .then((response) => {
         if (!response.data.valid) {
-          matKhauError.value = 'Token không hợp lệ hoặc đã hết hạn';
+          matKhauError.value = 'Token không hợp lệ hoặc đã hết hạn'
           notification.error('Token không hợp lệ hoặc đã hết hạn', {
             position: 'top-right',
-            duration: 5000
-          });
-          router.push('/quen-mat-khau');
+            duration: 5000,
+          })
+          router.push('/quen-mat-khau')
         }
       })
-      .catch(error => {
-        console.error('Lỗi kiểm tra token:', error);
-        matKhauError.value = 'Không thể xác thực token';
+      .catch((error) => {
+        console.error('Lỗi kiểm tra token:', error)
+        matKhauError.value = 'Không thể xác thực token'
         notification.error('Không thể xác thực token', {
           position: 'top-right',
-          duration: 5000
-        });
-        router.push('/quen-mat-khau');
-      });
+          duration: 5000,
+        })
+        router.push('/quen-mat-khau')
+      })
   }
-});
+})
 
 // Hàm xử lý quên mật khẩu
 async function handleForgotPassword() {
   try {
     // Reset thông báo
-    emailError.value = '';
-    emailSuccess.value = '';
+    emailError.value = ''
+    emailSuccess.value = ''
 
     // Validate email
     if (!email.value) {
-      emailError.value = 'Vui lòng nhập email của bạn';
-      return;
+      emailError.value = 'Vui lòng nhập email của bạn'
+      return
     }
 
-    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!regexEmail.test(email.value)) {
-      emailError.value = 'Email không hợp lệ';
-      return;
+      emailError.value = 'Email không hợp lệ'
+      return
     }
 
-    isEmailProcessing.value = true;
+    isEmailProcessing.value = true
 
     // Đảm bảo email được format đúng trước khi gửi đi
-    const trimmedEmail = email.value.trim().toLowerCase();
-    console.log('Đang gửi yêu cầu quên mật khẩu cho email (đã chuẩn hóa):', trimmedEmail);
+    const trimmedEmail = email.value.trim().toLowerCase()
+    console.log('Đang gửi yêu cầu quên mật khẩu cho email (đã chuẩn hóa):', trimmedEmail)
 
     // Gọi API quên mật khẩu
-    const response = await forgotPassword(trimmedEmail);
-    console.log('Kết quả từ API:', response.data);
+    const response = await forgotPassword(trimmedEmail)
+    console.log('Kết quả từ API:', response.data)
 
-    emailSuccess.value = 'Vui lòng kiểm tra email của bạn để đặt lại mật khẩu';
+    emailSuccess.value = 'Vui lòng kiểm tra email của bạn để đặt lại mật khẩu'
     notification.success('Vui lòng kiểm tra email của bạn để đặt lại mật khẩu', {
       position: 'top-right',
-      duration: 5000
-    });
+      duration: 5000,
+    })
 
     // Reset form
-    email.value = '';
+    email.value = ''
   } catch (error) {
-    console.error('Lỗi quên mật khẩu:', error);
+    console.error('Lỗi quên mật khẩu:', error)
 
     // Hiển thị message lỗi từ API nếu có
     if (error.response && error.response.data) {
       if (typeof error.response.data === 'string') {
-        emailError.value = error.response.data;
+        emailError.value = error.response.data
       } else if (error.response.data.message) {
-        emailError.value = error.response.data.message;
+        emailError.value = error.response.data.message
       } else {
-        emailError.value = 'Có lỗi xảy ra khi xử lý yêu cầu';
+        emailError.value = 'Có lỗi xảy ra khi xử lý yêu cầu'
       }
     } else {
-      emailError.value = 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.';
+      emailError.value = 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
     }
 
     notification.error(emailError.value, {
       position: 'top-right',
-      duration: 5000
-    });
+      duration: 5000,
+    })
   } finally {
-    isEmailProcessing.value = false;
+    isEmailProcessing.value = false
   }
 }
 
@@ -124,65 +126,65 @@ async function handleForgotPassword() {
 async function handleResetPassword() {
   try {
     // Reset thông báo
-    matKhauError.value = '';
-    matKhauSuccess.value = '';
+    matKhauError.value = ''
+    matKhauSuccess.value = ''
 
     // Validate mật khẩu
     if (!matKhauMoi.value) {
-      matKhauError.value = 'Vui lòng nhập mật khẩu mới';
-      return;
+      matKhauError.value = 'Vui lòng nhập mật khẩu mới'
+      return
     }
 
     // Kiểm tra độ dài mật khẩu (ít nhất 8 ký tự)
     if (matKhauMoi.value.length < 8) {
-      matKhauError.value = 'Mật khẩu phải có ít nhất 8 ký tự';
-      return;
+      matKhauError.value = 'Mật khẩu phải có ít nhất 8 ký tự'
+      return
     }
 
     // Kiểm tra mật khẩu xác nhận
     if (!xacNhanMatKhau.value) {
-      matKhauError.value = 'Vui lòng xác nhận mật khẩu';
-      return;
+      matKhauError.value = 'Vui lòng xác nhận mật khẩu'
+      return
     }
 
     if (matKhauMoi.value !== xacNhanMatKhau.value) {
-      matKhauError.value = 'Mật khẩu xác nhận không khớp';
-      return;
+      matKhauError.value = 'Mật khẩu xác nhận không khớp'
+      return
     }
 
-    isResetProcessing.value = true;
+    isResetProcessing.value = true
 
     // Gọi API đặt lại mật khẩu
-    await resetPassword(token.value, matKhauMoi.value);
+    await resetPassword(token.value, matKhauMoi.value)
 
-    matKhauSuccess.value = 'Đặt lại mật khẩu thành công';
+    matKhauSuccess.value = 'Đặt lại mật khẩu thành công'
     notification.success('Đặt lại mật khẩu thành công! Vui lòng đăng nhập', {
       position: 'top-right',
-      duration: 5000
-    });
+      duration: 5000,
+    })
 
     // Chuyển hướng về trang đăng nhập sau 2 giây
     setTimeout(() => {
-      router.push('/');
-    }, 2000);
+      router.push('/')
+    }, 2000)
   } catch (error) {
-    console.error('Lỗi đặt lại mật khẩu:', error);
-    matKhauError.value = error.response?.data || 'Token không hợp lệ hoặc đã hết hạn';
+    console.error('Lỗi đặt lại mật khẩu:', error)
+    matKhauError.value = error.response?.data || 'Token không hợp lệ hoặc đã hết hạn'
     notification.error(matKhauError.value, {
       position: 'top-right',
-      duration: 5000
-    });
+      duration: 5000,
+    })
   } finally {
-    isResetProcessing.value = false;
+    isResetProcessing.value = false
   }
 }
 
 function toggleMatKhauVisibility() {
-  matKhauVisible.value = !matKhauVisible.value;
+  matKhauVisible.value = !matKhauVisible.value
 }
 
 function toggleXacNhanMatKhauVisibility() {
-  xacNhanMatKhauVisible.value = !xacNhanMatKhauVisible.value;
+  xacNhanMatKhauVisible.value = !xacNhanMatKhauVisible.value
 }
 </script>
 
@@ -218,11 +220,7 @@ function toggleXacNhanMatKhauVisibility() {
               {{ emailSuccess }}
             </div>
 
-            <button
-              type="submit"
-              class="btn btn-primary w-100 mt-3"
-              :disabled="isEmailProcessing"
-            >
+            <button type="submit" class="btn btn-primary w-100 mt-3" :disabled="isEmailProcessing">
               <span v-if="isEmailProcessing" class="spinner-border spinner-border-sm me-2"></span>
               {{ isEmailProcessing ? 'Đang xử lý...' : 'Gửi yêu cầu' }}
             </button>
@@ -240,9 +238,7 @@ function toggleXacNhanMatKhauVisibility() {
       <div class="card">
         <div class="card-body">
           <h3 class="card-title text-center">Đặt lại mật khẩu</h3>
-          <p class="text-center text-muted mb-4">
-            Nhập mật khẩu mới của bạn
-          </p>
+          <p class="text-center text-muted mb-4">Nhập mật khẩu mới của bạn</p>
 
           <form @submit.prevent="handleResetPassword">
             <div class="form-group mb-3">
@@ -287,11 +283,7 @@ function toggleXacNhanMatKhauVisibility() {
               {{ matKhauSuccess }}
             </div>
 
-            <button
-              type="submit"
-              class="btn btn-primary w-100 mt-3"
-              :disabled="isResetProcessing"
-            >
+            <button type="submit" class="btn btn-primary w-100 mt-3" :disabled="isResetProcessing">
               <span v-if="isResetProcessing" class="spinner-border spinner-border-sm me-2"></span>
               {{ isResetProcessing ? 'Đang xử lý...' : 'Đặt lại mật khẩu' }}
             </button>

@@ -187,6 +187,13 @@ const router = createRouter({
           component: () => import('../views/Admin/NoiDung&DanhGia/DanhGia.vue'),
         },
 
+        {
+          path: 'danh-gia/:homestayId',
+          name: 'ReviewDetails',
+          component: () => import('../views/Admin/NoiDung&DanhGia/ReviewDetails.vue'),
+          props: true
+        },
+
         // Quản lý Tin tức - Các tin tức được sử dụng trong homestay
         {
           path: 'content/tintuc',

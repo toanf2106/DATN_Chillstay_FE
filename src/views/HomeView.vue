@@ -96,7 +96,7 @@
         <div v-else class="homestays-grid">
           <div class="homestay-card" v-for="home in displayedHomestays" :key="home.id">
             <div class="homestay-image">
-              <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
+              <img v-if="home.hinhAnh" :src="fixImageUrl(home.hinhAnh)" :alt="home.tenHomestay" />
               <img v-else :src="defaultImage" :alt="home.tenHomestay" />
               <div class="homestay-rating" v-if="home.danhGiaTrungBinh !== undefined">
                 <span class="stars">★</span> {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }}
@@ -231,6 +231,7 @@ import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStaySe
 import { getAllTinTuc } from '@/Service/TinTucService'
 import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService'
 import { useRouter } from 'vue-router'
+import api from '@/utils/api'
 
 const router = useRouter()
 const homestays = ref([])
@@ -408,10 +409,19 @@ const fetchHomestayData = async () => {
               // Tìm hình ảnh cho homestay
               const anhResponse = await getAnhHomeStayByHomestayId(homestay.id)
               if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
-                const mainImage = anhResponse.data.find((img) => img.trangThai !== false)
+                // Tìm ảnh bìa (anhBia = true) hoặc ảnh đầu tiên có trạng thái hoạt động
+                const mainImage = anhResponse.data.find(img => img.anhBia === true) ||
+                  anhResponse.data.find(img => img.trangThai !== false) ||
+                  anhResponse.data[0]
+
                 if (mainImage) {
                   homestay.hinhAnh = mainImage.duongDanAnh
+                  console.log(`Đã tìm thấy ảnh bìa cho homestay ${homestay.id}:`, mainImage.duongDanAnh)
+                } else {
+                  console.log(`Không tìm thấy ảnh phù hợp cho homestay ${homestay.id}`)
                 }
+              } else {
+                console.log(`Không có ảnh nào cho homestay ${homestay.id}`)
               }
             } catch (imgError) {
               console.error(`Lỗi khi lấy ảnh cho homestay ${homestay.id}:`, imgError)
@@ -513,6 +523,24 @@ onMounted(async () => {
   await fetchHomestayData()
   await fetchNewsData()
 })
+
+// Helper function to fix image URLs if they start with a slash
+const fixImageUrl = (url) => {
+  if (!url) return defaultImage;
+
+  // If it's already an absolute URL, return it as is
+  if (url.startsWith('http')) {
+    return url;
+  }
+
+  // If it's a relative URL
+  if (url.startsWith('/')) {
+    // Use the API base URL from api.js
+    return api.defaults.baseURL + url;
+  }
+
+  return url;
+}
 </script>
 
 <style scoped>

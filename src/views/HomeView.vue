@@ -112,15 +112,9 @@
               </p>
               <h3>{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
-                <span v-if="home.loaiHomeStay"
-                  ><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span
-                >
-                <span v-if="home.dienTich"
-                  ><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span
-                >
-                <span v-if="home.sucChua"
-                  ><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span
-                >
+                <span v-if="home.loaiHomeStay"><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span>
+                <span v-if="home.dienTich"><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span>
+                <span v-if="home.sucChua"><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span>
               </div>
 
               <div class="homestay-owner" v-if="home.hotenChuHomestay">
@@ -175,12 +169,8 @@
           </div>
 
           <div class="review-tabs">
-            <button
-              v-for="(review, index) in reviews"
-              :key="index"
-              :class="['tab-button', { active: activeReviewIndex === index }]"
-              @click="activeReviewIndex = index"
-            >
+            <button v-for="(review, index) in reviews" :key="index"
+              :class="['tab-button', { active: activeReviewIndex === index }]" @click="activeReviewIndex = index">
               {{ review.author }}
             </button>
           </div>
@@ -204,14 +194,28 @@
           <div class="news-divider"></div>
         </div>
 
-        <div class="news-grid">
-          <div v-for="(article, index) in newsArticles" :key="index" class="news-card">
+        <!-- Trạng thái đang tải tin tức -->
+        <div v-if="isLoadingNews" class="loading-container">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Đang tải tin tức...</p>
+        </div>
+
+        <!-- Thông báo lỗi tin tức -->
+        <div v-else-if="hasNewsError" class="error-container">
+          <i class="fas fa-exclamation-circle"></i>
+          <p>{{ newsErrorMessage }}</p>
+          <button class="retry-btn" @click="fetchNewsData">Thử lại</button>
+        </div>
+
+        <!-- Hiển thị tin tức -->
+        <div v-else class="news-grid">
+          <div v-for="article in newsArticles" :key="article.id" class="news-card">
             <div class="news-image">
-              <img :src="article.image" :alt="article.title" />
+              <img :src="article.anhBia || defaultNewsImage" :alt="article.tieuDe" />
             </div>
-            <h3 class="news-title">{{ article.title }}</h3>
-            <p class="news-excerpt">{{ article.excerpt }}</p>
-            <a href="#" class="news-read-more">Đọc thêm</a>
+            <h3 class="news-title">{{ article.tieuDe }}</h3>
+            <p class="news-excerpt">{{ article.moTaNgan }}</p>
+            <router-link :to="`/tin-tuc/${article.id}`" class="news-read-more">Đọc thêm</router-link>
           </div>
         </div>
       </div>
@@ -224,6 +228,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService'
+import { getAllTinTuc } from '@/Service/TinTucService'
+import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -286,35 +292,43 @@ const reviews = ref([
 ])
 
 // Thêm dữ liệu tin tức mẫu
-const newsArticles = ref([
-  {
-    id: 1,
-    title: 'Top 3 đồi chè đẹp nhất đáng để ghé thăm tại Mộc Châu',
-    excerpt:
-      'Những đồi chè xanh mướt trải dài tạo nên khung cảnh tuyệt đẹp là điểm đến không thể bỏ qua khi du lịch Mộc Châu.',
-    image:
-      'https://images.unsplash.com/photo-1598968693740-7ed0a5c0a8a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-    date: '20/05/2023',
-  },
-  {
-    id: 2,
-    title: 'Ẩm thực Mộc Châu - Món ngon đặc sản không thể bỏ lỡ',
-    excerpt:
-      'Khám phá các món ăn đặc trưng của Mộc Châu từ thịt trâu gác bếp, cá suối nướng đến rau đặc sản vùng cao.',
-    image:
-      'https://images.unsplash.com/photo-1569058242253-92a0c8223b47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-    date: '15/06/2023',
-  },
-  {
-    id: 3,
-    title: 'Top 3 khu nghỉ dưỡng gần thác Dải Yếm dành cho gia đình',
-    excerpt:
-      'Chỉ cần rời khỏi thành phố khoảng 1-2 giờ đồng hồ, bạn đã có thể tận hưởng không gian nghỉ dưỡng tuyệt vời.',
-    image:
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-    date: '10/07/2023',
-  },
-])
+// const newsArticles = ref([
+//   {
+//     id: 1,
+//     title: 'Top 3 đồi chè đẹp nhất đáng để ghé thăm tại Mộc Châu',
+//     excerpt:
+//       'Những đồi chè xanh mướt trải dài tạo nên khung cảnh tuyệt đẹp là điểm đến không thể bỏ qua khi du lịch Mộc Châu.',
+//     image:
+//       'https://images.unsplash.com/photo-1598968693740-7ed0a5c0a8a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+//     date: '20/05/2023',
+//   },
+//   {
+//     id: 2,
+//     title: 'Ẩm thực Mộc Châu - Món ngon đặc sản không thể bỏ lỡ',
+//     excerpt:
+//       'Khám phá các món ăn đặc trưng của Mộc Châu từ thịt trâu gác bếp, cá suối nướng đến rau đặc sản vùng cao.',
+//     image:
+//       'https://images.unsplash.com/photo-1569058242253-92a0c8223b47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+//     date: '15/06/2023',
+//   },
+//   {
+//     id: 3,
+//     title: 'Top 3 khu nghỉ dưỡng gần thác Dải Yếm dành cho gia đình',
+//     excerpt:
+//       'Chỉ cần rời khỏi thành phố khoảng 1-2 giờ đồng hồ, bạn đã có thể tận hưởng không gian nghỉ dưỡng tuyệt vời.',
+//     image:
+//       'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+//     date: '10/07/2023',
+//   },
+// ])
+
+// // Thêm state cho phần tin tức
+const newsArticles = ref([])
+const isLoadingNews = ref(false)
+const hasNewsError = ref(false)
+const newsErrorMessage = ref('')
+const defaultNewsImage =
+  'https://images.unsplash.com/photo-1598968693740-7ed0a5c0a8a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80'
 
 // Đánh giá hiện tại đang được hiển thị
 const activeReview = computed(() => {
@@ -438,8 +452,66 @@ const fetchHomestayData = async () => {
   }
 }
 
+// Hàm lấy dữ liệu tin tức từ API
+const fetchNewsData = async () => {
+  try {
+    isLoadingNews.value = true
+    hasNewsError.value = false
+    newsErrorMessage.value = ''
+
+    const res = await getAllTinTuc()
+    console.log('Dữ liệu tin tức từ API:', res.data)
+
+    if (res.data && Array.isArray(res.data)) {
+      // Lấy 3 tin tức mới nhất
+      const latestNews = res.data
+        .filter(news => news.trangThai !== false) // Lọc tin tức có trạng thái hoạt động
+        .sort((a, b) => new Date(b.ngayDang) - new Date(a.ngayDang)) // Sắp xếp theo ngày đăng mới nhất
+        .slice(0, 3) // Lấy 3 tin tức đầu tiên
+
+      // Lấy ảnh bìa cho mỗi tin tức
+      newsArticles.value = await Promise.all(
+        latestNews.map(async (news) => {
+          try {
+            const anhResponse = await getAnhTinTucByTinTucId(news.id)
+            if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
+              // Tìm ảnh bìa hoặc ảnh đầu tiên
+              const coverImage = anhResponse.data.find(img => img.anhBia === true) || anhResponse.data[0]
+              if (coverImage) {
+                news.anhBia = coverImage.duongDanAnh
+              }
+            }
+          } catch (imgError) {
+            console.error(`Lỗi khi lấy ảnh cho tin tức ${news.id}:`, imgError)
+          }
+
+          // Tạo mô tả ngắn nếu không có
+          if (!news.moTaNgan && news.noiDung) {
+            // Lấy 150 ký tự đầu tiên từ nội dung và loại bỏ các thẻ HTML
+            news.moTaNgan = news.noiDung
+              .replace(/<[^>]*>/g, '') // Loại bỏ các thẻ HTML
+              .slice(0, 150) + '...'
+          }
+
+          return news
+        })
+      )
+    } else {
+      hasNewsError.value = true
+      newsErrorMessage.value = 'Không có dữ liệu tin tức nào được tìm thấy.'
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải dữ liệu tin tức:', error)
+    hasNewsError.value = true
+    newsErrorMessage.value = 'Đã xảy ra lỗi khi tải dữ liệu tin tức. Vui lòng thử lại sau.'
+  } finally {
+    isLoadingNews.value = false
+  }
+}
+
 onMounted(async () => {
   await fetchHomestayData()
+  await fetchNewsData()
 })
 </script>
 
@@ -471,8 +543,7 @@ onMounted(async () => {
 
 /* Phần Hero */
 .hero-section {
-  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
-    no-repeat center/cover;
+  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center/cover;
   color: #fff;
   padding: 100px 0;
   position: relative;

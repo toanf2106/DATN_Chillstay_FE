@@ -625,6 +625,9 @@ import { getAllTienNghi } from '@/Service/TienNghiService';
 import { getVatTuList } from '@/Service/vatTuService';
 import { getPhongByHomeStayId, getAnhPhongByPhongId } from '@/Service/phongService';
 import { getDichVuByIdHomeStay } from '@/Service/DatHomeService';
+import { useAuthStore } from '@/stores/authStore';
+import notification from '@/utils/notification';
+import eventBus from '@/utils/event-bus';
 
 const route = useRoute();
 const router = useRouter();
@@ -999,14 +1002,51 @@ const goBack = () => {
   router.back();
 };
 
+// Khởi tạo authStore
+const authStore = useAuthStore();
+
 // Hàm để xử lý việc đặt phòng
-const bookNow = () => {
+const bookNow = async () => {
   console.log('Đặt phòng cho homestay:', homestay.value?.id);
-  // Chuyển đến trang đặt phòng với ID homestay
+
+  // Kiểm tra xem người dùng đã đăng nhập chưa
+  if (!authStore.isLoggedIn) {
+    // Hiển thị thông báo yêu cầu đăng nhập
+    notification.warning('Vui lòng đăng nhập để đặt homestay', {
+      position: 'top-right',
+      duration: 5000
+    });
+
+    // Lưu URL hiện tại để quay lại sau khi đăng nhập
+    localStorage.setItem('redirectAfterLogin', router.currentRoute.value.fullPath);
+
+    // Sử dụng event bus để mở modal đăng nhập
+    eventBus.emit('open-login-modal');
+
+    // Fallback nếu event bus không hoạt động
+    setTimeout(() => {
+      const authModal = document.getElementById('authModal');
+      if (authModal) {
+        authModal.style.display = 'block';
+        authModal.classList.add('modal-active');
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+          loginForm.classList.add('form-active');
+        }
+      }
+    }, 100);
+
+    return;
+  }
+
+  // Nếu đã đăng nhập, chuyển đến trang đặt phòng với ID homestay
   if (homestay.value?.id) {
     router.push(`/booking/${homestay.value.id}`);
   } else {
-    alert('Không thể đặt phòng vào lúc này. Vui lòng thử lại sau.');
+    notification.error('Không thể đặt phòng vào lúc này. Vui lòng thử lại sau.', {
+      position: 'top-right',
+      duration: 5000
+    });
   }
 };
 

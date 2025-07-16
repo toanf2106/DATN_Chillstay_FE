@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import notification from '@/utils/notification'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/utils/api'
+import eventBus from '@/utils/event-bus'
 
 const loginUsername = ref('')
 const loginPassword = ref('')
@@ -231,6 +232,29 @@ function setupModalListeners() {
 // Kiểm tra trạng thái đăng nhập khi component được tạo
 onMounted(() => {
   setupModalListeners()
+
+  // Lắng nghe sự kiện mở modal đăng nhập từ các component khác
+  eventBus.on('open-login-modal', () => {
+    const modal = document.getElementById('authModal')
+    const loginForm = document.getElementById('loginForm')
+
+    if (modal && loginForm) {
+      // Reset form
+      resetLoginForm()
+
+      // Hiển thị modal
+      modal.style.display = 'block'
+      setTimeout(() => {
+        modal.classList.add('modal-active')
+        loginForm.style.display = 'block'
+        loginForm.classList.add('form-active')
+
+        // Focus vào input đầu tiên
+        const inputElem = loginForm.querySelector('input[type="text"]')
+        if (inputElem) inputElem.focus()
+      }, 10)
+    }
+  })
 })
 
 function resetLoginForm() {
@@ -413,8 +437,16 @@ async function handleLogin() {
     })
 
     const userData = result.userData
+
+    // Kiểm tra xem có URL chuyển hướng sau đăng nhập không
+    const redirectUrl = localStorage.getItem('redirectAfterLogin')
+
     if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
       router.push('/admin')
+    } else if (redirectUrl) {
+      // Xóa URL chuyển hướng từ localStorage
+      localStorage.removeItem('redirectAfterLogin')
+      router.push(redirectUrl)
     } else {
       router.push('/')
     }

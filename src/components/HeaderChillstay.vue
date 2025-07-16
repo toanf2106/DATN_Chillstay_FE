@@ -130,7 +130,8 @@ function setupModalListeners() {
       toForm.style.display = 'block'
       setTimeout(function () {
         toForm.classList.add('form-active')
-        const inputElem = toForm.querySelector('input[type="text"]') || toForm.querySelector('input[type="email"]')
+        const inputElem =
+          toForm.querySelector('input[type="text"]') || toForm.querySelector('input[type="email"]')
         if (inputElem) inputElem.focus()
       }, 10)
     }, 200)
@@ -310,7 +311,7 @@ async function handleForgotPassword() {
     forgotEmailSuccess.value = 'Vui lòng kiểm tra email của bạn để đặt lại mật khẩu'
     notification.success('Vui lòng kiểm tra email của bạn để đặt lại mật khẩu', {
       position: 'top-right',
-      duration: 5000
+      duration: 5000,
     })
 
     // Reset form sau khi thành công
@@ -319,7 +320,6 @@ async function handleForgotPassword() {
       closeModal(modal)
       resetForgotPasswordForm()
     }, 2000)
-
   } catch (error) {
     console.error('Lỗi quên mật khẩu:', error)
 
@@ -338,7 +338,7 @@ async function handleForgotPassword() {
 
     notification.error(forgotEmailError.value, {
       position: 'top-right',
-      duration: 5000
+      duration: 5000,
     })
   } finally {
     isEmailProcessing.value = false
@@ -368,7 +368,12 @@ async function handleLogin() {
 
     if (!result.success) {
       // Kiểm tra trường hợp tài khoản chưa xác nhận email
-      if (result.error && result.error.response && result.error.response.data && result.error.response.data.error === 'email_not_verified') {
+      if (
+        result.error &&
+        result.error.response &&
+        result.error.response.data &&
+        result.error.response.data.error === 'email_not_verified'
+      ) {
         loginError.value = result.error.response.data.message
 
         // Chuyển sang form xác nhận email
@@ -446,55 +451,55 @@ async function handleLogin() {
 
 // Kiểm tra các trường trong form đăng ký
 function validateForm() {
-  let isValid = true;
-  signupError.value = '';
+  let isValid = true
+  signupError.value = ''
 
   // Kiểm tra tên đăng nhập
   if (tenDangNhap.value === '') {
-    signupError.value = 'Tên đăng nhập không được để trống!';
-    isValid = false;
+    signupError.value = 'Tên đăng nhập không được để trống!'
+    isValid = false
   }
 
   // Kiểm tra email
-  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (email.value === '') {
-    signupError.value = 'Email không được để trống!';
-    isValid = false;
+    signupError.value = 'Email không được để trống!'
+    isValid = false
   } else if (!regexEmail.test(email.value)) {
-    signupError.value = 'Email không hợp lệ!';
-    isValid = false;
+    signupError.value = 'Email không hợp lệ!'
+    isValid = false
   }
 
   // Kiểm tra số điện thoại
-  const regexSdt = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+  const regexSdt = /^(0[3|5|7|8|9])+([0-9]{8})$/
   if (soDienThoai.value === '') {
-    signupError.value = 'Số điện thoại không được để trống!';
-    isValid = false;
+    signupError.value = 'Số điện thoại không được để trống!'
+    isValid = false
   } else if (!regexSdt.test(soDienThoai.value)) {
-    signupError.value = 'Số điện thoại không hợp lệ!';
-    isValid = false;
+    signupError.value = 'Số điện thoại không hợp lệ!'
+    isValid = false
   }
 
   // Kiểm tra mật khẩu
-  const regexMatKhau = /^.{8,}$/;
+  const regexMatKhau = /^.{8,}$/
   if (matKhau.value === '') {
-    signupError.value = 'Mật khẩu không được để trống!';
-    isValid = false;
+    signupError.value = 'Mật khẩu không được để trống!'
+    isValid = false
   } else if (!regexMatKhau.test(matKhau.value)) {
-    signupError.value = 'Mật khẩu phải có ít nhất 8 ký tự!';
-    isValid = false;
+    signupError.value = 'Mật khẩu phải có ít nhất 8 ký tự!'
+    isValid = false
   }
 
   // Kiểm tra mật khẩu nhập lại
   if (xacNhanMatKhau.value === '') {
-    signupError.value = 'Vui lòng nhập lại mật khẩu!';
-    isValid = false;
+    signupError.value = 'Vui lòng nhập lại mật khẩu!'
+    isValid = false
   } else if (xacNhanMatKhau.value !== matKhau.value) {
-    signupError.value = 'Mật khẩu nhập lại không khớp!';
-    isValid = false;
+    signupError.value = 'Mật khẩu nhập lại không khớp!'
+    isValid = false
   }
 
-  return isValid;
+  return isValid
 }
 
 // Hàm xử lý đăng ký
@@ -521,17 +526,20 @@ async function handleRegister() {
       matKhau: matKhau.value,
       email: email.value,
       soDienThoai: soDienThoai.value,
-      gioiTinh: !gioiTinh.value // Chuyển đổi: true trong UI = Nam = false trong DB
+      gioiTinh: !gioiTinh.value, // Chuyển đổi: true trong UI = Nam = false trong DB
     }
 
     // Gọi API đăng ký
     await api.post('/api/register', taiKhoan)
 
     // Xử lý thành công
-    notification.success('Đăng ký tài khoản thành công! Vui lòng kiểm tra email để xác nhận tài khoản.', {
-      position: 'top-right',
-      duration: 5000,
-    })
+    notification.success(
+      'Đăng ký tài khoản thành công! Vui lòng kiểm tra email để xác nhận tài khoản.',
+      {
+        position: 'top-right',
+        duration: 5000,
+      },
+    )
 
     // Đóng modal
     const modal = document.getElementById('authModal')
@@ -556,7 +564,6 @@ async function handleRegister() {
         loginUsername.value = tenDangNhap.value // Tự động điền tên đăng nhập
       }
     }, 500)
-
   } catch (error) {
     console.error('Lỗi đăng ký:', error)
 
@@ -656,10 +663,11 @@ async function resendVerificationEmail() {
     // Gọi API gửi lại email xác nhận
     await api.post('/api/gui-lai-xac-nhan', { email: verificationEmail.value })
 
-    verificationEmailSuccess.value = 'Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.'
+    verificationEmailSuccess.value =
+      'Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.'
     notification.success('Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.', {
       position: 'top-right',
-      duration: 5000
+      duration: 5000,
     })
   } catch (error) {
     console.error('Lỗi gửi lại email xác nhận:', error)
@@ -678,7 +686,7 @@ async function resendVerificationEmail() {
 
     notification.error(verificationEmailError.value, {
       position: 'top-right',
-      duration: 5000
+      duration: 5000,
     })
   } finally {
     isVerificationEmailProcessing.value = false
@@ -744,10 +752,16 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="loginPassword">Mật khẩu</label>
               <div class="password-input-container">
-                <input :type="passwordVisible ? 'text' : 'password'" id="loginPassword" v-model="loginPassword"
-                  required />
+                <input
+                  :type="passwordVisible ? 'text' : 'password'"
+                  id="loginPassword"
+                  v-model="loginPassword"
+                  required
+                />
                 <span class="password-toggle" @click="togglePasswordVisibility">
-                  <font-awesome-icon :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
+                  <font-awesome-icon
+                    :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
+                  />
                 </span>
               </div>
             </div>
@@ -798,9 +812,16 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="matKhau">Mật khẩu</label>
               <div class="password-input-container">
-                <input :type="signupPasswordVisible ? 'text' : 'password'" id="matKhau" v-model="matKhau" required />
+                <input
+                  :type="signupPasswordVisible ? 'text' : 'password'"
+                  id="matKhau"
+                  v-model="matKhau"
+                  required
+                />
                 <span class="password-toggle" @click="toggleSignupPasswordVisibility">
-                  <font-awesome-icon :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
+                  <font-awesome-icon
+                    :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
+                  />
                 </span>
               </div>
             </div>
@@ -808,10 +829,16 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="xacNhanMatKhau">Xác nhận mật khẩu</label>
               <div class="password-input-container">
-                <input :type="confirmPasswordVisible ? 'text' : 'password'" id="xacNhanMatKhau" v-model="xacNhanMatKhau"
-                  required />
+                <input
+                  :type="confirmPasswordVisible ? 'text' : 'password'"
+                  id="xacNhanMatKhau"
+                  v-model="xacNhanMatKhau"
+                  required
+                />
                 <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
-                  <font-awesome-icon :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
+                  <font-awesome-icon
+                    :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
+                  />
                 </span>
               </div>
             </div>
@@ -831,8 +858,14 @@ function resetVerificationForm() {
           <form @submit.prevent="handleForgotPassword">
             <div class="input-group">
               <label for="forgotEmail">Email</label>
-              <input type="email" id="forgotEmail" v-model="forgotEmail" class="form-control"
-                placeholder="Nhập email của bạn" :disabled="isEmailProcessing" />
+              <input
+                type="email"
+                id="forgotEmail"
+                v-model="forgotEmail"
+                class="form-control"
+                placeholder="Nhập email của bạn"
+                :disabled="isEmailProcessing"
+              />
             </div>
 
             <div v-if="forgotEmailError" class="form-error">
@@ -859,8 +892,14 @@ function resetVerificationForm() {
           <form @submit.prevent="resendVerificationEmail">
             <div class="input-group">
               <label for="verificationEmail">Email</label>
-              <input type="email" id="verificationEmail" v-model="verificationEmail" class="form-control"
-                placeholder="Nhập email của bạn" :disabled="isVerificationEmailProcessing" />
+              <input
+                type="email"
+                id="verificationEmail"
+                v-model="verificationEmail"
+                class="form-control"
+                placeholder="Nhập email của bạn"
+                :disabled="isVerificationEmailProcessing"
+              />
             </div>
 
             <div v-if="verificationEmailError" class="form-error">
@@ -875,7 +914,9 @@ function resetVerificationForm() {
               {{ isVerificationEmailProcessing ? 'Đang xử lý...' : 'Gửi lại email xác nhận' }}
             </button>
           </form>
-          <p class="form-switcher">Quay lại <a href="#" id="showLoginFromVerification">Đăng nhập</a></p>
+          <p class="form-switcher">
+            Quay lại <a href="#" id="showLoginFromVerification">Đăng nhập</a>
+          </p>
         </div>
       </div>
     </div>
@@ -883,6 +924,7 @@ function resetVerificationForm() {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 /* Cập nhật CSS để giống với thiết kế trong ảnh */
 .modal-content {
   background-color: white;
@@ -912,9 +954,9 @@ function resetVerificationForm() {
   font-weight: 500;
 }
 
-.input-group input[type="text"],
-.input-group input[type="email"],
-.input-group input[type="password"] {
+.input-group input[type='text'],
+.input-group input[type='email'],
+.input-group input[type='password'] {
   width: 100%;
   padding: 12px;
   border: 1px solid #ddd;
@@ -937,7 +979,7 @@ function resetVerificationForm() {
   align-items: center;
 }
 
-.radio-option input[type="radio"] {
+.radio-option input[type='radio'] {
   margin-right: 5px;
 }
 
@@ -1097,5 +1139,4 @@ function resetVerificationForm() {
 }
 
 /* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 </style>

@@ -893,9 +893,9 @@ export default {
         (home) => home.trangThai === true || home.trangThai === 'Hoạt động',
       )
     },
-    // Hiển thị tối đa 6 homestay
+    // Hiển thị toàn bộ homestay
     displayedHomestays() {
-      return this.activeHomestays.slice(0, 6)
+      return this.activeHomestays
     },
     getPaymentStatusText() {
       switch (this.paymentStatus) {
@@ -1025,6 +1025,26 @@ export default {
     },
     prevStep() {
       if (this.currentStep > 0) {
+        // Nếu đang ở step 2 và quay về step 1, xóa hết dữ liệu đã chọn
+        if (this.currentStep === 1) {
+          this.selectedRoom = null
+          this.selectedHomestay = null
+          this.selectedHomestayTienNghis = []
+          this.selectedHomestayDichVus = []
+          this.selectedServices = []
+          this.customerInfo = {
+            firstName: '',
+            email: '',
+            phone: '',
+            address: '',
+            specialRequests: '',
+            gender: '',
+          }
+          this.checkInDate = this.getTodayDate()
+          this.checkOutDate = this.getNextDay(this.checkInDate)
+          this.validationErrors = {}
+          this.giamGia = null
+        }
         this.currentStep--
       }
     },

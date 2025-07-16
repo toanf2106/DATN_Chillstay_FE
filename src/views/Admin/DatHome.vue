@@ -173,7 +173,7 @@
             </thead>
             <tbody v-if="isLoading">
               <tr>
-                <td colspan="8" class="text-center">
+                <td colspan="9" class="text-center">
                   <div class="loading">Đang tải dữ liệu...</div>
                 </td>
               </tr>
@@ -181,7 +181,7 @@
             <tbody v-else>
               <tr v-for="(booking, index) in paginatedBookings" :key="booking.id">
                 <td>{{ startItem + index }}</td>
-                <td>#{{ booking.maDatHome }}</td>
+                <td class="text-left">{{ booking.maDatHome }}</td>
                 <td>{{ booking.tenKhachHang }}</td>
                 <td>{{ booking.tenHomestay }}</td>
                 <td>{{ formatDateOnly(booking.ngayDat) }}</td>
@@ -200,43 +200,42 @@
                 </td>
               </tr>
               <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
-                <td colspan="9">&nbsp;</td>
+                <td colspan="9"><span class="sr-only">Empty row</span></td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} đặt phòng
-            <span class="pagination-note">(5 đặt phòng mỗi trang)</span>
-          </div>
-          <nav aria-label="Page navigation">
-            <ul class="pagination">
-              <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
-                  <i class="fas fa-chevron-left"></i>
-                </a>
-              </li>
-              <li
-                v-for="page in totalPages"
-                :key="page"
-                class="page-item"
-                :class="{ active: page - 1 === currentPage }"
-              >
-                <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
-              </li>
-              <li
-                class="page-item"
-                :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
-              >
-                <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
-                  <i class="fas fa-chevron-right"></i>
-                </a>
-              </li>
-            </ul>
-          </nav>
+      </div>
+      <div class="pagination-container">
+        <div class="pagination-info">
+          Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} đặt phòng
+          <span class="pagination-note">(5 đặt phòng mỗi trang)</span>
         </div>
+        <nav aria-label="Page navigation">
+          <ul class="pagination">
+            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+              <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+                <i class="fas fa-chevron-left"></i>
+              </a>
+            </li>
+            <li
+              v-for="page in totalPages"
+              :key="page"
+              class="page-item"
+              :class="{ active: page - 1 === currentPage }"
+            >
+              <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+            </li>
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            >
+              <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+                <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 
@@ -251,7 +250,7 @@
           @click="viewBookingDetails(booking)"
         >
           <div class="card-header">
-            <div class="card-booking-code">#</div>
+            <div class="card-booking-code">{{ booking.maDatHome }}</div>
             <div class="card-status">
               <span class="status-badge-card" :class="getStatusClass(booking.trangThai)">
                 {{ getStatusLabel(booking.trangThai) }}
@@ -346,17 +345,18 @@
                         formatCurrency(selectedBooking.tongTienDichVu)
                       }}</span>
                     </div>
-                    <div class="payment-item">
-                      <span class="payment-label">Số tiền cọc:</span>
-                      <span class="payment-value deposit">{{
-                        formatCurrency(selectedBooking.soTienCoc)
-                      }}</span>
-                    </div>
+
                     <div class="payment-divider"></div>
                     <div class="payment-item total">
                       <span class="payment-label">Tổng tiền:</span>
                       <span class="payment-value total-value">{{
                         formatCurrency(selectedBooking.tongTien)
+                      }}</span>
+                    </div>
+                    <div class="payment-item">
+                      <span class="payment-label">Số tiền cọc:</span>
+                      <span class="payment-value deposit">{{
+                        formatCurrency(selectedBooking.soTienCoc)
                       }}</span>
                     </div>
                   </div>
@@ -1708,6 +1708,10 @@ export default {
   border-bottom: 1px solid #eee;
   padding: 14px 18px;
   height: 59px; /* Match the height of regular rows */
+  font-size: 0;
+  color: transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 .empty-row:hover {
@@ -2477,6 +2481,10 @@ textarea.form-control {
   border-bottom: 1px solid #eee;
   padding: 14px 18px;
   height: 59px; /* Match the height of regular rows */
+  font-size: 0;
+  color: transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Form styling */
@@ -3249,5 +3257,18 @@ textarea.form-control {
     backdrop-filter: blur(5px);
     background-color: rgba(0, 0, 0, 0.6);
   }
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style>

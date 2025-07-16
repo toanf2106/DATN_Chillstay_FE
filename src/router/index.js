@@ -15,6 +15,8 @@ import BookingView from '../views/BookingView.vue'
 
 import NewsView from '../views/NewsView.vue'
 import NewsDetailView from '../views/NewsDetailView.vue'
+import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
+import QlyVatTuPhong from '@/views/Admin/Home/QlyVatTuPhong.vue'
 
 
 import { useAuthStore } from '../stores/authStore'
@@ -73,6 +75,12 @@ const router = createRouter({
           component: () => import('../views/Admin/Home/QlyLoaiHomestay.vue'),
         },
 
+        {
+          path: 'qly-loai-phong',
+          name: 'admin-qly-loai-phong',
+          component: QlyLoaiPhong,
+        },
+
         // Quản lý Tiện nghi Homestay
         {
           path: 'homestay-tien-nghi',
@@ -93,12 +101,6 @@ const router = createRouter({
           redirect: { name: 'admin-homestay-tien-nghi' },
         },
 
-        // Quản lý Phòng - Thông tin về các phòng trong homestay
-        {
-          path: 'phong',
-          name: 'admin-phong',
-          component: () => import('../views/Admin/Home/QlyPhong.vue'),
-        },
 
         // Thống kê - Hiển thị dữ liệu tổng quan
         {
@@ -127,6 +129,13 @@ const router = createRouter({
           path: 'homestay/vattu',
           name: 'admin-homestay-vattu',
           component: () => import('../views/Admin/Home/VatTu.vue'),
+        },
+
+        // Quản lý Vật tư Phòng - Thông tin về vật tư trong phòng
+        {
+          path: 'homestay/vattu-phong',
+          name: 'admin-vattu-phong',
+          component: QlyVatTuPhong,
         },
 
         // Quản lý Tiện nghi - Các tiện nghi cung cấp cho khách hàng
@@ -204,6 +213,17 @@ const router = createRouter({
           path: 'test-thanh-toan',
           name: 'admin-test-thanh-toan',
           component: TestThanhToan,
+        },
+
+        // Thêm route cho QlyPhong trong phần admin routes
+        {
+          path: '/admin/phong',
+          name: 'admin-phong',
+          component: () => import('../views/Admin/Home/QlyPhong.vue'),
+          meta: {
+            requiresAuth: true,
+            requiresAdmin: true
+          }
         },
 
         {

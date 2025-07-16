@@ -12,13 +12,18 @@ class PaymentService {
     }
   }
 
-  // Tạo link thanh toán cho đơn đặt home
-  async createDatHomePaymentLink(datHomeId) {
+  // Tạo link thanh toán cho đơn đặt homestay
+  async createPaymentLink(datHomeData) {
     try {
-      const response = await api.post(`/api/payment/create-dathome-link/${datHomeId}`)
-      return response.data
+      // Gọi API tạo link thanh toán với dữ liệu đặt homestay và loại thanh toán
+      const response = await api.post('/api/payment/create-dathome-payment', datHomeData, {
+        params: {
+          paymentMethod: datHomeData.paymentType // 'Coc' hoặc 'ThanhToanToanBo'
+        }
+      })
+      return response
     } catch (error) {
-      console.error(`Error creating payment link for dat home ${datHomeId}:`, error)
+      console.error('Lỗi khi tạo link thanh toán:', error)
       throw error
     }
   }
@@ -43,6 +48,33 @@ class PaymentService {
       return response.data
     } catch (error) {
       console.error(`Error cancelling payment link for order ${orderCode}:`, error)
+      throw error
+    }
+  }
+
+  // Kiểm tra trạng thái thanh toán thủ công (thay thế webhook)
+  async checkPaymentStatus(orderCode, isUserCancelled = false) {
+    try {
+      // Thêm tham số isUserCancelled để thông báo nếu người dùng đã hủy
+      const response = await api.post(`/api/payment/check-status/${orderCode}`, {
+        isUserCancelled: isUserCancelled
+      })
+      return response.data
+    } catch (error) {
+      console.error(`Lỗi khi kiểm tra trạng thái thanh toán cho đơn ${orderCode}:`, error)
+      throw error
+    }
+  }
+
+  // Lấy thông tin thanh toán từ database (để hiển thị trạng thái cập nhật)
+  async getPaymentStatusFromDB(orderCode, signal) {
+    try {
+      const response = await api.get(`/api/payment/status/${orderCode}`, {
+        signal: signal // Thêm signal để có thể hủy request
+      })
+      return response
+    } catch (error) {
+      console.error(`Lỗi khi lấy trạng thái thanh toán từ database cho đơn hàng ${orderCode}:`, error)
       throw error
     }
   }

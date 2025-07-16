@@ -143,6 +143,14 @@
               <img :src="filteredImages[currentImageIndex]"
                 :alt="`${homestay.tenHomestay} - Ảnh ${currentImageIndex + 1}`" class="main-image" />
               <div class="image-counter">{{ currentImageIndex + 1 }}/{{ filteredImages.length }}</div>
+
+              <!-- Room info overlay when viewing room images -->
+              <div v-if="activeTab === 'phong' && currentRoomInfo" class="room-info-overlay">
+                <div class="room-info-content">
+                  <h4>{{ currentRoomInfo.roomName }}</h4>
+                  <p v-if="currentRoomInfo.roomType">{{ currentRoomInfo.roomType }}</p>
+                </div>
+              </div>
             </div>
 
             <button class="nav-arrow next" @click="nextImage" v-if="currentImageIndex < filteredImages.length - 1">
@@ -161,11 +169,13 @@
 
           <div class="info-section">
             <h3>Mô tả</h3>
-            <p>{{ homestay.moTa || "Homestay xinh đẹp tọa lạc tại trung tâm Mộc Châu với tầm nhìn núi non hùng vĩ, không gian yên bình và thiết kế hiện đại kết hợp với nét văn hóa địa phương. Đây là nơi lý tưởng để nghỉ dưỡng, thư giãn và khám phá vẻ đẹp thiên nhiên của Mộc Châu." }}</p>
+            <p>Homestay xinh đẹp tọa lạc tại trung tâm Mộc Châu với tầm nhìn núi non hùng vĩ, không
+              gian yên bình và thiết kế hiện đại kết hợp với nét văn hóa địa phương. Đây là nơi lý tưởng để nghỉ dưỡng,
+              thư giãn và khám phá vẻ đẹp thiên nhiên của Mộc Châu</p>
           </div>
 
           <div class="info-section" ref="roomsSection">
-            <h3>Thông tin cơ bản</h3>
+            <h3>Thông tin cơ bản của Homestay</h3>
             <div v-if="isLoading" class="loading-indicator">
               <div class="spinner-sm"></div>
               <span>Đang tải thông tin...</span>
@@ -248,6 +258,79 @@
                 </div>
               </div>
 
+              <!-- Danh sách phòng -->
+              <div class="rooms-section">
+                <h4 class="sub-heading">Thông tin các phòng</h4>
+                <div v-if="isLoadingRooms" class="loading-indicator">
+                  <div class="spinner-sm"></div>
+                  <span>Đang tải thông tin phòng...</span>
+                </div>
+                <div v-else-if="rooms.length > 0">
+                  <div v-for="room in rooms" :key="room.id" class="room-section">
+                    <div class="room-header">
+                      <h5 class="room-title">{{ room.tenPhong }}</h5>
+                      <button v-if="room.images && room.images.length > 0" @click="openRoomGallery(room)"
+                        class="view-room-images">
+                        <i class="fas fa-images"></i> Xem ảnh ({{ room.images.length }})
+                      </button>
+                    </div>
+                    <div class="info-grid">
+                      <div class="info-item">
+                        <i class="fas fa-tag"></i>
+                        <div class="info-content">
+                          <strong>Loại phòng</strong>
+                          <span>{{ room.loaiPhong?.tenLoai || room.tenLoaiPhong || 'N/A' }}</span>
+                        </div>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-ruler-combined"></i>
+                        <div class="info-content">
+                          <strong>Diện tích</strong>
+                          <span>{{ room.dienTich }} m²</span>
+                        </div>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-building"></i>
+                        <div class="info-content">
+                          <strong>Tầng</strong>
+                          <span>{{ room.tang || room.tangSo || 'N/A' }}</span>
+                        </div>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-male"></i>
+                        <div class="info-content">
+                          <strong>Số người lớn</strong>
+                          <span>{{ room.soNguoiLon }}</span>
+                        </div>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-child"></i>
+                        <div class="info-content">
+                          <strong>Số trẻ nhỏ</strong>
+                          <span>{{ room.soTreNho || room.soNguoiNho || 0 }}</span>
+                        </div>
+                      </div>
+                      <div class="info-item">
+                        <i class="fas fa-users"></i>
+                        <div class="info-content">
+                          <strong>Tổng số người</strong>
+                          <span>{{ room.soNguoiToiDa || (room.soNguoiLon + (room.soTreNho || room.soNguoiNho || 0))
+                            }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-if="room.moTa" class="room-description">
+                      <strong>Mô tả:</strong> {{ room.moTa }}
+                    </div>
+
+                  </div>
+                </div>
+                <div v-else class="no-data">
+                  <i class="fas fa-info-circle"></i>
+                  <span>Chưa có thông tin phòng cho homestay này.</span>
+                </div>
+              </div>
+
               <!-- Thông tin thêm nếu có -->
               <div v-if="homestay.thongTinThem" class="additional-info">
                 <h4 class="sub-heading">Thông tin thêm</h4>
@@ -268,7 +351,7 @@
           </div>
 
           <div class="info-section" ref="amenitiesSection">
-            <h3>Tiện nghi và vật tư</h3>
+            <h3>Tiện nghi, vật tư và dịch vụ</h3>
 
             <!-- Tiện nghi -->
             <h4 class="sub-heading">Tiện nghi</h4>
@@ -279,13 +362,19 @@
             <div v-else-if="tienNghiList.length > 0" class="amenities-grid">
               <div class="amenity-item" v-for="(item, index) in tienNghiList" :key="index">
                 <i :class="item.icon || 'fas fa-check-circle'"></i>
-                <span>{{ item.tenTienNghi }}</span>
+                <div class="amenity-content">
+                  <span class="amenity-name">{{ item.tenTienNghi }}</span>
+                  <p v-if="item.moTa" class="amenity-description">{{ item.moTa }}</p>
+                </div>
               </div>
             </div>
             <div v-else class="amenities-grid">
               <div class="amenity-item" v-for="(amenity, index) in amenities" :key="index">
                 <i :class="amenity.icon"></i>
-                <span>{{ amenity.name }}</span>
+                <div class="amenity-content">
+                  <span class="amenity-name">{{ amenity.name }}</span>
+                  <p v-if="amenity.description" class="amenity-description">{{ amenity.description }}</p>
+                </div>
               </div>
             </div>
 
@@ -298,12 +387,40 @@
             <div v-else-if="vatTuList.length > 0" class="supplies-grid">
               <div class="supply-item" v-for="(item, index) in vatTuList" :key="index">
                 <i class="fas fa-box"></i>
-                <span>{{ item.tenVatTu }} <small v-if="item.soLuong">({{ item.soLuong }})</small></span>
+                <div class="supply-content">
+                  <span class="supply-name">{{ item.tenVatTu }} <small v-if="item.soLuong">({{ item.soLuong
+                      }})</small></span>
+                  <p v-if="item.moTa" class="supply-description">{{ item.moTa }}</p>
+                </div>
               </div>
             </div>
             <div v-else class="no-data">
               <i class="fas fa-info-circle"></i>
               <span>Không có thông tin vật tư</span>
+            </div>
+
+            <!-- Dịch vụ -->
+            <h4 class="sub-heading">Dịch vụ</h4>
+            <div v-if="isLoadingServices" class="loading-indicator">
+              <div class="spinner-sm"></div>
+              <span>Đang tải dịch vụ...</span>
+            </div>
+            <div v-else-if="dichVuList.length > 0" class="services-grid">
+              <div class="service-item" v-for="(item, index) in dichVuList" :key="index">
+                <i class="fas fa-concierge-bell"></i>
+                <div class="service-content">
+                  <div class="service-header">
+                    <span class="service-name">{{ item.tenDichVu }}</span>
+                    <span class="service-price">{{ formatPrice(item.gia) }}<small>/{{ item.donVi || 'Ngày'
+                        }}</small></span>
+                  </div>
+                  <p v-if="item.moTa" class="service-description">{{ item.moTa }}</p>
+                </div>
+              </div>
+            </div>
+            <div v-else class="no-data">
+              <i class="fas fa-info-circle"></i>
+              <span>Không có thông tin dịch vụ</span>
             </div>
           </div>
 
@@ -506,6 +623,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { getHomeStayById, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
 import { getAllTienNghi } from '@/Service/TienNghiService';
 import { getVatTuList } from '@/Service/vatTuService';
+import { getPhongByHomeStayId, getAnhPhongByPhongId } from '@/Service/phongService';
+import { getDichVuByIdHomeStay } from '@/Service/DatHomeService';
+import { useAuthStore } from '@/stores/authStore';
+import notification from '@/utils/notification';
+import eventBus from '@/utils/event-bus';
 
 const route = useRoute();
 const router = useRouter();
@@ -515,16 +637,14 @@ const hasError = ref(false);
 const errorMessage = ref('');
 const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80';
 
+// Dữ liệu phòng
+const rooms = ref([]);
+const isLoadingRooms = ref(false);
+
 // Hình ảnh homestay từ API
 const additionalImages = ref([]);
 const mainImage = ref('');
-const roomImages = ref([
-  'https://pix8.agoda.net/hotelImages/9053250/-1/e671580e8863a2d2221d3acd4d0a05b3.jpg',
-  'https://pix8.agoda.net/hotelImages/9053250/-1/833d8f8279b117bcae6eddf9b4fe8604.jpg',
-  'https://pix8.agoda.net/hotelImages/9053250/-1/97bd9ebea5cdb3989dab16be61436bfc.jpg',
-  'https://pix8.agoda.net/hotelImages/9053250/-1/8ba16972712144eece2fcadf51dbbbd0.jpg',
-  'https://pix8.agoda.net/hotelImages/9053250/-1/f5e6590c1b7ddd9e33ea3c0448d6ee4c.jpg'
-]);
+const roomImages = ref([]);
 
 // Quản lý tab
 const activeTab = ref('tongquan'); // 'tongquan', 'homestay', 'phong'
@@ -535,11 +655,32 @@ const filteredImages = computed(() => {
     case 'homestay':
       return [...additionalImages.value];
     case 'phong':
-      return [...roomImages.value];
+      return roomImages.value.map(img => img.url || img);
     case 'tongquan':
     default:
-      return [...additionalImages.value, ...roomImages.value];
+      return [
+        ...additionalImages.value,
+        ...roomImages.value.map(img => img.url || img)
+      ];
   }
+});
+
+// Thông tin phòng của ảnh đang hiển thị
+const currentRoomInfo = computed(() => {
+  if (activeTab.value === 'phong' && roomImages.value.length > 0) {
+    const currentImg = roomImages.value[currentImageIndex.value];
+    if (currentImg && currentImg.roomId) {
+      const room = rooms.value.find(r => r.id === currentImg.roomId);
+      if (room) {
+        return {
+          roomId: room.id,
+          roomName: room.tenPhong,
+          roomType: room.loaiPhong?.tenLoai || room.tenLoaiPhong
+        };
+      }
+    }
+  }
+  return null;
 });
 
 // Dữ liệu và chức năng cho modal gallery
@@ -593,26 +734,29 @@ const setActiveSection = (section) => {
 
 // Danh sách tiện nghi mẫu (fallback nếu API không trả về dữ liệu)
 const amenities = [
-  { name: 'WiFi miễn phí', icon: 'fas fa-wifi' },
-  { name: 'Điều hòa', icon: 'fas fa-snowflake' },
-  { name: 'TV', icon: 'fas fa-tv' },
-  { name: 'Bếp', icon: 'fas fa-utensils' },
-  { name: 'Máy giặt', icon: 'fas fa-tshirt' },
-  { name: 'Chỗ đậu xe', icon: 'fas fa-parking' },
-  { name: 'Hồ bơi', icon: 'fas fa-swimming-pool' },
-  { name: 'Bữa sáng', icon: 'fas fa-coffee' }
+  { name: 'WiFi miễn phí', icon: 'fas fa-wifi', description: 'Kết nối internet tốc độ cao miễn phí trong toàn bộ khu vực' },
+  { name: 'Điều hòa', icon: 'fas fa-snowflake', description: 'Điều hòa hai chiều, điều chỉnh nhiệt độ theo nhu cầu' },
+  { name: 'TV', icon: 'fas fa-tv', description: 'TV màn hình phẳng với các kênh truyền hình cáp' },
+  { name: 'Bếp', icon: 'fas fa-utensils', description: 'Bếp đầy đủ tiện nghi với các dụng cụ nấu ăn cơ bản' },
+  { name: 'Máy giặt', icon: 'fas fa-tshirt', description: 'Máy giặt miễn phí trong khu vực chung' },
+  { name: 'Chỗ đậu xe', icon: 'fas fa-parking', description: 'Bãi đậu xe miễn phí trong khuôn viên' },
+  { name: 'Hồ bơi', icon: 'fas fa-swimming-pool', description: 'Hồ bơi ngoài trời mở cửa từ 7:00 đến 19:00' },
+  { name: 'Bữa sáng', icon: 'fas fa-coffee', description: 'Bữa sáng miễn phí với các món ăn địa phương và quốc tế' }
 ];
 
 // Danh sách tiện nghi từ API
 const tienNghiList = ref([]);
 const vatTuList = ref([]);
+const dichVuList = ref([]);
 const isLoadingAmenities = ref(false);
 const isLoadingSupplies = ref(false);
+const isLoadingServices = ref(false);
 
-// Lấy dữ liệu tiện nghi và vật tư
+// Lấy dữ liệu tiện nghi, vật tư và dịch vụ
 const fetchAmenitiesAndSupplies = async () => {
   isLoadingAmenities.value = true;
   isLoadingSupplies.value = true;
+  isLoadingServices.value = true;
 
   try {
     // Lấy danh sách tiện nghi
@@ -636,6 +780,23 @@ const fetchAmenitiesAndSupplies = async () => {
     console.error('Lỗi khi lấy danh sách vật tư:', error);
   } finally {
     isLoadingSupplies.value = false;
+  }
+
+  // Nếu đã có ID homestay, lấy danh sách dịch vụ
+  if (route.params.id) {
+    try {
+      const dichVuResponse = await getDichVuByIdHomeStay(route.params.id);
+      if (dichVuResponse && dichVuResponse.data) {
+        dichVuList.value = dichVuResponse.data.filter(item => item.trangThai !== false);
+        console.log('Danh sách dịch vụ:', dichVuList.value);
+      }
+    } catch (error) {
+      console.error('Lỗi khi lấy danh sách dịch vụ:', error);
+    } finally {
+      isLoadingServices.value = false;
+    }
+  } else {
+    isLoadingServices.value = false;
   }
 };
 
@@ -701,8 +862,9 @@ const fetchHomestayData = async () => {
         allProps: Object.keys(homestay.value)
       });
 
-      // Sau khi lấy thông tin homestay thành công, tiếp tục lấy ảnh
+      // Sau khi lấy thông tin homestay thành công, tiếp tục lấy ảnh và phòng
       await fetchHomestayImages(homestayId);
+      await fetchRooms(homestayId);
     } else {
       throw new Error('Không tìm thấy thông tin homestay');
     }
@@ -714,6 +876,61 @@ const fetchHomestayData = async () => {
     isLoading.value = false;
   }
 };
+
+// Lấy thông tin phòng của homestay
+const fetchRooms = async (homestayId) => {
+  isLoadingRooms.value = true;
+  try {
+    const response = await getPhongByHomeStayId(homestayId);
+    if (response && response.data) {
+      // Lọc ra các phòng đang hoạt động
+      rooms.value = response.data.filter(room => room.trangThai === 'Hoạt động' || room.trangThai === true);
+      console.log('Room data:', rooms.value); // Log room data to verify structure
+
+      // Fetch room images for each room
+      await fetchRoomImages();
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách phòng:', error);
+  } finally {
+    isLoadingRooms.value = false;
+  }
+};
+
+// Lấy ảnh cho từng phòng
+const fetchRoomImages = async () => {
+  try {
+    roomImages.value = []; // Reset room images array
+
+    // Fetch images for each room
+    for (const room of rooms.value) {
+      if (room.id) {
+        const response = await getAnhPhongByPhongId(room.id);
+        if (response && response.data && response.data.length > 0) {
+          // Filter valid images
+          const images = response.data
+            .filter(img => img.trangThai !== false)
+            .map(img => ({
+              url: img.duongDanAnh,
+              roomId: room.id,
+              roomName: room.tenPhong
+            }));
+
+          // Add room images to the array
+          roomImages.value.push(...images);
+
+          // Add images to the room object for reference
+          room.images = images.map(img => img.url);
+        }
+      }
+    }
+
+    console.log('Room images loaded:', roomImages.value.length);
+  } catch (error) {
+    console.error('Lỗi khi lấy ảnh phòng:', error);
+  }
+};
+
 
 // Đặt tab active
 const setActiveTab = (tab) => {
@@ -747,6 +964,27 @@ const setModalImage = (index) => {
   modalImage.value = filteredImages.value[index];
 };
 
+// Mở gallery cho một phòng cụ thể
+const openRoomGallery = (room) => {
+  if (room.images && room.images.length > 0) {
+    // Chuyển sang tab phòng
+    setActiveTab('phong');
+
+    // Tìm index của ảnh đầu tiên của phòng này trong mảng roomImages
+    const firstImageIndex = roomImages.value.findIndex(img =>
+      img.roomId === room.id && img.url === room.images[0]
+    );
+
+    // Nếu tìm thấy, mở gallery tại ảnh đó
+    if (firstImageIndex !== -1) {
+      openGalleryModal(firstImageIndex);
+    } else {
+      // Nếu không tìm thấy, mở gallery ở ảnh đầu tiên
+      openGalleryModal(0);
+    }
+  }
+};
+
 // Chuyển đến ảnh trước
 const prevImage = () => {
   currentImageIndex.value = (currentImageIndex.value - 1 + filteredImages.value.length) % filteredImages.value.length;
@@ -764,14 +1002,51 @@ const goBack = () => {
   router.back();
 };
 
+// Khởi tạo authStore
+const authStore = useAuthStore();
+
 // Hàm để xử lý việc đặt phòng
-const bookNow = () => {
+const bookNow = async () => {
   console.log('Đặt phòng cho homestay:', homestay.value?.id);
-  // Chuyển đến trang đặt phòng với ID homestay
+
+  // Kiểm tra xem người dùng đã đăng nhập chưa
+  if (!authStore.isLoggedIn) {
+    // Hiển thị thông báo yêu cầu đăng nhập
+    notification.warning('Vui lòng đăng nhập để đặt homestay', {
+      position: 'top-right',
+      duration: 5000
+    });
+
+    // Lưu URL hiện tại để quay lại sau khi đăng nhập
+    localStorage.setItem('redirectAfterLogin', router.currentRoute.value.fullPath);
+
+    // Sử dụng event bus để mở modal đăng nhập
+    eventBus.emit('open-login-modal');
+
+    // Fallback nếu event bus không hoạt động
+    setTimeout(() => {
+      const authModal = document.getElementById('authModal');
+      if (authModal) {
+        authModal.style.display = 'block';
+        authModal.classList.add('modal-active');
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+          loginForm.classList.add('form-active');
+        }
+      }
+    }, 100);
+
+    return;
+  }
+
+  // Nếu đã đăng nhập, chuyển đến trang đặt phòng với ID homestay
   if (homestay.value?.id) {
     router.push(`/booking/${homestay.value.id}`);
   } else {
-    alert('Không thể đặt phòng vào lúc này. Vui lòng thử lại sau.');
+    notification.error('Không thể đặt phòng vào lúc này. Vui lòng thử lại sau.', {
+      position: 'top-right',
+      duration: 5000
+    });
   }
 };
 
@@ -1671,7 +1946,8 @@ onMounted(() => {
 
 /* Amenities */
 .amenities-grid,
-.supplies-grid {
+.supplies-grid,
+.services-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
@@ -1679,9 +1955,10 @@ onMounted(() => {
 }
 
 .amenity-item,
-.supply-item {
+.supply-item,
+.service-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 8px 12px;
   border-radius: 6px;
@@ -1691,16 +1968,64 @@ onMounted(() => {
 }
 
 .amenity-item:hover,
-.supply-item:hover {
+.supply-item:hover,
+.service-item:hover {
   background-color: #f9f9f9;
   transform: translateY(-2px);
 }
 
 .amenity-item i,
-.supply-item i {
+.supply-item i,
+.service-item i {
   color: #007bff;
   width: 20px;
   text-align: center;
+  margin-top: 4px;
+}
+
+.amenity-content,
+.supply-content,
+.service-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.amenity-name,
+.supply-name,
+.service-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.amenity-description,
+.supply-description,
+.service-description {
+  margin: 0;
+  font-size: 13px;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+/* Service specific styles */
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.service-price {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 14px;
+}
+
+.service-price small {
+  font-weight: normal;
+  font-size: 12px;
+  color: #6c757d;
+  margin-left: 2px;
 }
 
 /* No data message */
@@ -1892,7 +2217,8 @@ onMounted(() => {
   }
 
   .amenities-grid,
-  .supplies-grid {
+  .supplies-grid,
+  .services-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 
@@ -2031,14 +2357,75 @@ html {
   text-align: center;
 }
 
-@media (max-width: 768px) {
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
+/* Room list styles */
+.rooms-section {
+  margin-top: 40px;
+}
 
-  .nearby-grid {
-    grid-template-columns: 1fr;
-  }
+.rooms-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.room-card {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.room-card-header {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.room-card-header h5 {
+  margin: 0;
+  font-size: 18px;
+  color: #212529;
+}
+
+.room-type {
+  display: inline-block;
+  margin-top: 5px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.room-card-body {
+  padding: 15px;
+}
+
+.room-detail {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.room-detail:last-child {
+  margin-bottom: 0;
+}
+
+.room-detail i {
+  width: 20px;
+  margin-right: 10px;
+  color: #007bff;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.room-detail span {
+  flex: 1;
+  line-height: 1.4;
 }
 
 /* CSS cho nút đặt phòng */
@@ -2109,5 +2496,113 @@ html {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Room section styles */
+.room-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.room-section:last-child {
+  border-bottom: none;
+}
+
+.room-title {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #212529;
+  font-weight: 600;
+}
+
+.room-description {
+  margin-top: 15px;
+  padding: 12px 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.room-description strong {
+  color: #495057;
+}
+
+/* Room header with title and view images button */
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.view-room-images {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.3s;
+}
+
+.view-room-images:hover {
+  background-color: #0056b3;
+}
+
+/* Room image preview */
+.room-image-preview {
+  margin-top: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 300px;
+  height: 200px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.room-image-preview:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.room-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Room info overlay in modal */
+.room-info-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px;
+  backdrop-filter: blur(5px);
+}
+
+.room-info-content {
+  text-align: center;
+}
+
+.room-info-content h4 {
+  margin: 0 0 5px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.room-info-content p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
 }
 </style>

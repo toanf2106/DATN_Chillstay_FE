@@ -1,6 +1,6 @@
 <template>
-  <div class="homestay-dichvu-container">
-    <h1 class="page-title">Quản Lý Dịch Vụ Homestay</h1>
+  <div class="vattu-phong-container">
+    <h1 class="page-title">Quản Lý Vật Tư Phòng</h1>
 
     <div class="controls-container">
       <div class="search-box">
@@ -10,7 +10,7 @@
             <input
               type="text"
               v-model="searchTerm"
-              placeholder="Tìm kiếm theo tên homestay..."
+              placeholder="Tìm kiếm theo tên phòng..."
               class="search-input"
               @input="handleSearch"
             />
@@ -36,40 +36,38 @@
       </div>
     </div>
 
-    <!-- Homestay Dịch Vụ Table -->
+    <!-- VatTu Phong Table -->
     <div class="table-responsive" v-if="!loading">
       <table class="table table-hover table-bordered table-sm">
         <thead>
           <tr>
             <th>STT</th>
-            <th>Tên Homestay</th>
-            <th>Tên Dịch Vụ</th>
-            <th>Giá</th>
-            <th>Đơn Vị</th>
-            <th>Mô Tả</th>
-            <th>Trạng Thái</th>
+            <th>Tên Phòng</th>
+            <th>Vật Tư</th>
+            <th>Số Lượng</th>
+            <th>Trạng thái</th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="(item, index) in paginatedItems"
-            :key="`${item.homeStay?.id}-${item.id}`"
+            :key="`${item.phong.id}-${item.vatTu.id}`"
           >
             <td class="text-center">{{ index + 1 + currentPage * pageSize }}</td>
-            <td class="text-center">{{ item.homeStay?.tenHomestay }}</td>
-            <td class="text-center">{{ item.tenDichVu }}</td>
-            <td class="text-center">{{ formatCurrency(item.gia) }}</td>
-            <td class="text-center">{{ item.donVi }}</td>
-            <td class="text-center">{{ item.moTa }}</td>
+            <td class="text-center">{{ item.phong.tenPhong }}</td>
+            <td class="text-center">{{ item.vatTu.tenVatTu }}</td>
+            <td class="text-center">{{ item.soLuong }}</td>
             <td class="text-center">
-              <span :class="`badge ${item.trangThai ? 'bg-success' : 'bg-danger'}`">
-                {{ item.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
+              <span
+                :class="`badge ${item.trangThai ? 'bg-success' : 'bg-danger'} status-badge`"
+              >
+                {{ item.trangThai ? 'Hoạt động' : 'Khóa' }}
               </span>
             </td>
           </tr>
           <!-- Empty rows to ensure space for 10 rows -->
           <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
-            <td colspan="7">&nbsp;</td>
+            <td colspan="5">&nbsp;</td>
           </tr>
         </tbody>
       </table>
@@ -78,13 +76,13 @@
     <!-- Empty state -->
     <div v-if="!loading && filteredItems.length === 0" class="empty-state">
       <i class="fas fa-box-open empty-icon"></i>
-      <p>Không tìm thấy dịch vụ nào cho homestay.</p>
+      <p>Không tìm thấy vật tư nào cho phòng.</p>
     </div>
 
     <!-- Pagination -->
     <div class="pagination-container" v-if="!loading && filteredItems.length > 0">
       <div class="pagination-info">
-        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} dịch vụ
+        Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} vật tư
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
@@ -117,15 +115,12 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-import { getAllHomeStay } from '@/Service/HomeStayService'
-import { getAllDichVu } from '@/Service/dichVuService'
-import { useToast } from '@/stores/notificationStore'
+import api from '@/utils/api'
 
 export default {
-  name: 'QlyHomestayDichVu',
+  name: 'VatTuPhong',
   setup() {
-    const toast = useToast()
-    const homestayDichVuList = ref([])
+    const vatTuPhongList = ref([])
     const searchTerm = ref('')
     const apiError = ref(false)
     const apiErrorMessage = ref('')
@@ -140,71 +135,31 @@ export default {
     const fetchData = async () => {
       try {
         loading.value = true
-        // Lấy tất cả homestay
-        const homestaysResponse = await getAllHomeStay()
-        const homestays = homestaysResponse.data || []
-
-        // Tạo mảng tạm để lưu tất cả các dịch vụ của homestay
-        const allDichVu = []
-
-        // Lấy tất cả dịch vụ một lần
-        try {
-          const dichVuResponse = await getAllDichVu()
-          const allDichVuList = dichVuResponse.data || []
-
-          // Xử lý dịch vụ cho từng homestay
-          for (const homestay of homestays) {
-            // Lọc các dịch vụ thuộc về homestay hiện tại
-            const filteredDichVu = allDichVuList.filter(dichVu =>
-              dichVu.homeStay && dichVu.homeStay.id === homestay.id
-            )
-
-            // Thêm thông tin homestay vào mỗi dịch vụ nếu chưa có
-            const dichVuWithHomestay = filteredDichVu.map(dichVu => ({
-              ...dichVu,
-              homeStay: dichVu.homeStay || homestay
-            }))
-
-            // Thêm vào mảng tổng
-            allDichVu.push(...dichVuWithHomestay)
-          }
-        } catch (error) {
-          apiError.value = true
-          apiErrorMessage.value = 'Không thể tải dữ liệu dịch vụ. Vui lòng thử lại sau.'
-          toast.error('Không thể tải dữ liệu dịch vụ')
-          console.error('Error fetching dich vu data:', error)
-        }
-
-        homestayDichVuList.value = allDichVu
+        // Lấy tất cả vật tư phòng trong một lần gọi
+        const response = await api.get('/api/vat-tu-phong')
+        vatTuPhongList.value = response.data || []
         apiError.value = false
 
         // Cập nhật thông tin phân trang
-        totalPages.value = Math.ceil(homestayDichVuList.value.length / pageSize.value) || 1
+        totalPages.value = Math.ceil(vatTuPhongList.value.length / pageSize.value) || 1
       } catch (e) {
         apiError.value = true
-        apiErrorMessage.value = 'Không thể tải dữ liệu dịch vụ homestay. Vui lòng thử lại sau.'
-        console.error('Error fetching homestay dich vu data:', e)
+        apiErrorMessage.value = 'Không thể tải dữ liệu vật tư phòng. Vui lòng thử lại sau.'
+        console.error('Error fetching vat tu phong data:', e)
       } finally {
         loading.value = false
       }
     }
 
-    // Format currency
-    const formatCurrency = (value) => {
-      if (!value) return '0 đ'
-      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
-    }
-
     // Filtered items
     const filteredItems = computed(() => {
-      let filtered = homestayDichVuList.value
+      let filtered = vatTuPhongList.value
 
       // Lọc theo từ khóa tìm kiếm
       if (searchTerm.value) {
         const key = searchTerm.value.toLowerCase()
         filtered = filtered.filter((item) =>
-          item.homeStay?.tenHomestay?.toLowerCase().includes(key) ||
-          item.tenDichVu?.toLowerCase().includes(key)
+          item.phong?.tenPhong?.toLowerCase().includes(key)
         )
       }
 
@@ -252,7 +207,7 @@ export default {
     })
 
     return {
-      homestayDichVuList,
+      vatTuPhongList,
       searchTerm,
       apiError,
       apiErrorMessage,
@@ -267,37 +222,37 @@ export default {
       emptyRows,
       filteredItems,
       changePage,
-      handleSearch,
-      formatCurrency
+      handleSearch
     }
   },
 }
 </script>
 
 <style scoped>
-.homestay-dichvu-container {
+.vattu-phong-container {
   padding: 20px;
   background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .page-title {
   font-size: 24px;
-  font-weight: 600;
   margin-bottom: 20px;
   color: #333;
+  font-weight: 600;
 }
 
 .controls-container {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .search-box {
-  flex-grow: 1;
+  flex: 1;
   max-width: 500px;
 }
 
@@ -308,7 +263,7 @@ export default {
 
 .search-input-wrapper {
   position: relative;
-  width: 100%;
+  flex: 1;
 }
 
 .search-icon {
@@ -316,50 +271,123 @@ export default {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6b7280;
+  color: #6c757d;
 }
 
 .search-input {
   width: 100%;
   padding: 10px 40px 10px 35px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 16px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 .clear-search-btn {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #6b7280;
+  color: #6c757d;
   cursor: pointer;
+  font-size: 14px;
+  padding: 0;
 }
 
-.alert {
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  border-radius: 8px;
+.right-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
-.alert-warning {
-  background-color: #fff3cd;
-  border: 1px solid #ffecb5;
-  color: #664d03;
+.status-filter {
+  width: auto;
+  min-width: 150px;
+}
+
+.add-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+.table {
+  width: 100%;
+  margin-bottom: 0;
+  color: #212529;
+  border-collapse: collapse;
+}
+
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+  padding: 12px 8px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+  padding: 12px 8px;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 .loading-indicator {
   display: flex;
   justify-content: center;
-  padding: 30px 0;
+  align-items: center;
+  padding: 40px;
 }
 
 .empty-state {
-  text-align: center;
-  padding: 40px 0;
-  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6c757d;
 }
 
 .empty-icon {
@@ -373,95 +401,63 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .pagination-info {
-  color: #6b7280;
+  color: #6c757d;
   font-size: 14px;
 }
 
 .pagination {
-  display: flex;
-  list-style: none;
-  padding: 0;
   margin: 0;
 }
 
-.page-item {
-  margin: 0 2px;
-}
-
 .page-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background-color: #f9fafb;
-  border: 1px solid #d1d5db;
-  color: #4b5563;
-  text-decoration: none;
+  color: #007bff;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  padding: 6px 12px;
+  transition: all 0.2s;
 }
 
 .page-item.active .page-link {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
+  background-color: #007bff;
+  border-color: #007bff;
+  color: #fff;
 }
 
 .page-item.disabled .page-link {
-  opacity: 0.5;
+  color: #6c757d;
   pointer-events: none;
-}
-
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.table th {
-  background-color: #f9fafb;
-  color: #4b5563;
-  font-weight: 600;
-  padding: 12px 16px;
-  text-align: center;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
+  background-color: #fff;
+  border-color: #dee2e6;
 }
 
 .empty-row td {
-  border-bottom: 1px solid #e5e7eb;
-  height: 53px; /* Match the height of regular rows */
+  padding: 10px;
+  border-top: 1px solid #dee2e6;
 }
 
-.table-hover tbody tr:hover {
-  background-color: #f9fafb;
-}
+@media (max-width: 768px) {
+  .controls-container {
+    flex-direction: column;
+  }
 
-.status-badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-}
+  .search-box {
+    max-width: 100%;
+    margin-bottom: 10px;
+  }
 
-.bg-success {
-  background-color: #10b981;
-  color: white;
-}
+  .right-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
 
-.bg-danger {
-  background-color: #ef4444;
-  color: white;
+  .pagination-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

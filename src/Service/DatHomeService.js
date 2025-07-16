@@ -30,6 +30,11 @@ export function getDatHomeByTrangThai(trangThai) {
   return api.get(`/api/datHome/trangThai/${trangThai}`)
 }
 
+// Lấy số lượng khách hàng theo ID tài khoản
+export function getSoLuongKhachHangByTaiKhoanId(taiKhoanId) {
+  return api.get(`/api/datHome/count/${taiKhoanId}`)
+}
+
 // Lấy dịch vụ theo ID homestay
 export function getDichVuByIdHomeStay(homestayId) {
   return api.get(`/api/dich-vu/by-homeStay2/${homestayId}`)

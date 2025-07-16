@@ -16,6 +16,7 @@ import BookingView from '../views/BookingView.vue'
 import NewsView from '../views/NewsView.vue'
 import NewsDetailView from '../views/NewsDetailView.vue'
 import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
+import QlyVatTuPhong from '@/views/Admin/Home/QlyVatTuPhong.vue'
 
 
 import { useAuthStore } from '../stores/authStore'
@@ -128,6 +129,13 @@ const router = createRouter({
           path: 'homestay/vattu',
           name: 'admin-homestay-vattu',
           component: () => import('../views/Admin/Home/VatTu.vue'),
+        },
+
+        // Quản lý Vật tư Phòng - Thông tin về vật tư trong phòng
+        {
+          path: 'homestay/vattu-phong',
+          name: 'admin-vattu-phong',
+          component: QlyVatTuPhong,
         },
 
         // Quản lý Tiện nghi - Các tiện nghi cung cấp cho khách hàng

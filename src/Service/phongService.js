@@ -113,7 +113,7 @@ export function updateAnhPhongStatus(anhPhongId, status) {
 
 // Quản lý vật tư trong phòng
 export function getVatTuPhongByPhongId(phongId) {
-  return api.get(`/api/vat-tu-phong/phong/${phongId}`);
+  return api.get(`/api/vat-tu-phong/by-phong/${phongId}`);
 }
 
 export function addVatTuToPhong(phongId, vatTuId, soLuong) {
@@ -133,5 +133,9 @@ export function updateVatTuPhong(phongId, vatTuId, soLuong) {
 }
 
 export function deleteVatTuFromPhong(phongId, vatTuId) {
-  return api.delete(`/api/vat-tu-phong/${phongId}/${vatTuId}`);
+  return api.delete(`/api/vat-tu-phong/delete?phongId=${phongId}&vatTuId=${vatTuId}`);
+}
+
+export function batchUpdateVatTuPhong(phongId, vatTuPhongList) {
+  return api.post(`/api/vat-tu-phong/batch/${phongId}`, vatTuPhongList);
 }

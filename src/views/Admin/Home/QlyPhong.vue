@@ -38,7 +38,11 @@
         >
           <i class="fas fa-tags"></i>
         </button>
-        <button class="btn btn-warning vattu-phong-btn" title="Quản lý vật tư phòng">
+        <button
+          class="btn btn-warning vattu-phong-btn"
+          title="Quản lý vật tư phòng"
+          @click="goToVatTuPhong"
+        >
           <i class="fas fa-box"></i>
         </button>
         <button class="btn btn-primary add-button" @click="openAddModal">
@@ -263,6 +267,10 @@ export default {
 
     const goToLoaiPhong = () => {
       router.push({ name: 'admin-qly-loai-phong' })
+    }
+
+    const goToVatTuPhong = () => {
+      router.push({ name: 'admin-vattu-phong' })
     }
 
     // API calls
@@ -698,7 +706,8 @@ export default {
       selectedPhongForAnh,
       viewOnlyAnh,
       closeAnhModal,
-      goToLoaiPhong
+      goToLoaiPhong,
+      goToVatTuPhong
     }
   },
 }

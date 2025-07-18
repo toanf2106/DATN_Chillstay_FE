@@ -25,8 +25,6 @@
     <!-- News Content Section -->
     <section class="news-content">
       <div class="container">
-        <!-- Remove search container -->
-
         <!-- Loading indicator -->
         <div v-if="loading" class="loading-indicator">
           <div class="spinner-border text-primary" role="status">
@@ -41,55 +39,47 @@
           <button @click="fetchNews" class="retry-btn">Thử lại</button>
         </div>
 
-        <!-- News Grid -->
-        <div v-else class="news-grid">
-          <div v-for="news in paginatedNews" :key="news.id" class="news-card" @click="navigateToNews(news.id)">
-            <div class="news-image">
-              <img :src="news.anhBia || 'https://placehold.co/400x250/e9ecef/0d6efd?text=ChillStay+News'"
-                :alt="news.tieuDe" />
-              <div class="image-overlay">
-                <button class="view-btn">
-                  <i class="fas fa-eye"></i> Xem chi tiết
-                </button>
-              </div>
-            </div>
-            <div class="news-body">
-              <h3 class="news-title">{{ news.tieuDe }}</h3>
-              <p class="news-excerpt">{{ truncateText(news.noiDung, 100) }}</p>
-              <div class="news-meta">
-                <span class="news-date"><i class="fas fa-calendar-alt"></i> {{ formatDate(news.ngayDang) }}</span>
-                <span class="news-author"><i class="fas fa-user"></i> {{ news.tenTaiKhoan || 'ChillStay' }}</span>
+        <div v-else>
+          <!-- Hàng tin tức 1 -->
+          <div class="news-section">
+            <div class="news-grid">
+              <div v-for="news in displayedNews" :key="news.id" class="news-card" @click="navigateToNews(news.id)">
+                <div class="news-image">
+                  <img :src="news.anhBia || 'https://placehold.co/400x250/e9ecef/0d6efd?text=ChillStay+News'"
+                    :alt="news.tieuDe" />
+                  <div class="image-overlay">
+                    <button class="view-btn">
+                      <i class="fas fa-eye"></i> Xem chi tiết
+                    </button>
+                  </div>
+                </div>
+                <div class="news-body">
+                  <h3 class="news-title">{{ news.tieuDe }}</h3>
+                  <p class="news-excerpt">{{ truncateText(news.noiDung, 100) }}</p>
+                  <div class="news-meta">
+                    <span class="news-date"><i class="fas fa-calendar-alt"></i> {{ formatDate(news.ngayDang) }}</span>
+                    <span class="news-author"><i class="fas fa-user"></i> {{ news.tenTaiKhoan || 'ChillStay' }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Empty state -->
-          <div v-if="paginatedNews.length === 0" class="empty-state">
-            <i class="fas fa-newspaper empty-icon"></i>
-            <p>Không tìm thấy tin tức nào.</p>
-          </div>
-        </div>
+          <!-- Phân trang -->
+          <div class="pagination-container">
+            <button class="pagination-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
 
-        <!-- Pagination -->
-        <div class="pagination-container" v-if="!loading && totalPages > 1">
-          <nav aria-label="Page navigation">
-            <ul class="pagination">
-              <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
-                  <i class="fas fa-chevron-left"></i>
-                </a>
-              </li>
-              <li v-for="page in displayedPages" :key="page" class="page-item"
-                :class="{ active: page - 1 === currentPage }">
-                <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
-              </li>
-              <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }">
-                <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
-                  <i class="fas fa-chevron-right"></i>
-                </a>
-              </li>
-            </ul>
-          </nav>
+            <button v-for="page in totalPages" :key="page" class="pagination-btn"
+              :class="{ active: currentPage === page }" @click="changePage(page)">
+              {{ page }}
+            </button>
+
+            <button class="pagination-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -97,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { getAllTinTuc } from '@/Service/TinTucService';
 import { useRouter } from 'vue-router';
 
@@ -106,9 +96,11 @@ const allNews = ref([]);
 const loading = ref(true);
 const error = ref(false);
 const errorMessage = ref('');
-const currentPage = ref(0);
-const pageSize = ref(6); // 6 news items per page
 const router = useRouter();
+
+// Phân trang
+const currentPage = ref(1);
+const itemsPerPage = 9; // Hiển thị 9 tin tức mỗi trang (3 hàng x 3 cột)
 
 // Fetch news data
 const fetchNews = async () => {
@@ -132,58 +124,28 @@ const fetchNews = async () => {
   }
 };
 
-// Paginated news
-const paginatedNews = computed(() => {
-  const start = currentPage.value * pageSize.value;
-  const end = start + pageSize.value;
-  return allNews.value.slice(start, end);
-});
-
-// Total items
-const totalItems = computed(() => {
-  return allNews.value.length;
-});
-
-// Calculate total pages
+// Tính tổng số trang
 const totalPages = computed(() => {
-  return Math.ceil(totalItems.value / pageSize.value) || 1;
+  return Math.ceil(allNews.value.length / itemsPerPage);
 });
 
-// Display 5 pages at a time in pagination
-const displayedPages = computed(() => {
-  const total = totalPages.value;
-  const current = currentPage.value;
-  const pages = [];
-
-  if (total <= 5) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    if (current < 2) {
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-    } else if (current > total - 3) {
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      for (let i = current - 1; i <= current + 3; i++) {
-        pages.push(i);
-      }
-    }
-  }
-
-  return pages;
+// Lấy tin tức hiển thị cho trang hiện tại
+const displayedNews = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  return allNews.value.slice(startIndex, endIndex);
 });
 
-// Change page
+// Thay đổi trang
 const changePage = (page) => {
-  if (page >= 0 && page < totalPages.value) {
-    currentPage.value = page;
-  }
+  currentPage.value = page;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
+
+// Reset về trang 1 khi dữ liệu thay đổi
+watch(allNews, () => {
+  currentPage.value = 1;
+});
 
 // Navigate to news detail
 const navigateToNews = (id) => {
@@ -256,7 +218,7 @@ onMounted(() => {
 .news-banner {
   background: white;
   color: rgb(14, 13, 13);
-  padding: 50px 0;
+  padding: 40px 0;
   text-align: left;
 }
 
@@ -280,12 +242,12 @@ onMounted(() => {
   height: 3px;
   width: 60px;
   background-color: #4ddbff;
-  margin: 25px 0;
+  margin: 20px 0;
 }
 
 /* Container */
 .container {
-  max-width: 1140px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 15px;
 }
@@ -296,17 +258,22 @@ onMounted(() => {
   background-color: #f8f9fa;
 }
 
+/* News Section */
+.news-section {
+  margin-bottom: 30px;
+}
+
 /* News Grid */
 .news-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
-  padding: 10px;
+  gap: 25px;
+  padding: 0;
 }
 
 .news-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
   transition: transform 0.3s, box-shadow 0.3s;
@@ -325,7 +292,7 @@ onMounted(() => {
 .news-image {
   position: relative;
   width: 100%;
-  height: 220px;
+  height: 200px;
   overflow: hidden;
 }
 
@@ -384,7 +351,7 @@ onMounted(() => {
 }
 
 .news-title {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 700;
   margin: 0 0 12px;
   color: #2c3e50;
@@ -417,12 +384,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 0.85rem;
 }
 
 .news-date,
 .news-author {
   color: #777;
-  font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -433,10 +400,72 @@ onMounted(() => {
   color: #0096c7;
 }
 
+/* Phân trang */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
+  gap: 8px;
+}
+
+.pagination-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  color: #333;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f5f5f5;
+  border-color: #ccc;
+}
+
+.pagination-btn.active {
+  background-color: #ff6200;
+  color: white;
+  border-color: #ff6200;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .news-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+  }
+
+  .pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+}
+
 /* Loading and Error States */
 .loading-indicator,
-.error-message,
-.empty-state {
+.error-message {
   text-align: center;
   padding: 50px 0;
 }
@@ -471,120 +500,5 @@ onMounted(() => {
 .retry-btn:hover {
   background: #4ddbff;
   transform: translateY(-2px);
-}
-
-.empty-state {
-  color: #6c757d;
-}
-
-.empty-state .empty-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
-  opacity: 0.5;
-}
-
-/* Pagination */
-.pagination-container {
-  margin-top: 40px;
-  display: flex;
-  justify-content: center;
-}
-
-.pagination {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  gap: 8px;
-}
-
-.page-item {
-  margin: 0;
-}
-
-.page-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: white;
-  color: #333;
-  text-decoration: none;
-  border: 1px solid #ddd;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.page-link:hover {
-  background: #f0f7ff;
-  border-color: #4ddbff;
-}
-
-.page-item.active .page-link {
-  background: #ff6200;
-  color: white;
-  border-color: #ff6200;
-}
-
-.page-item.disabled .page-link {
-  color: #aaa;
-  cursor: not-allowed;
-  background: #f5f5f5;
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-  .news-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-
-  .news-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
-}
-
-@media (max-width: 768px) {
-  .page-title {
-    font-size: 1.8rem;
-  }
-
-  .news-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .news-image {
-    height: 180px;
-  }
-}
-
-@media (max-width: 576px) {
-  .news-banner {
-    padding: 30px 0 20px;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-  }
-
-  .page-description {
-    font-size: 0.9rem;
-  }
-
-  .news-card {
-    border-radius: 8px;
-  }
-
-  .news-body {
-    padding: 15px;
-  }
-
-  .news-title {
-    font-size: 1.2rem;
-  }
 }
 </style>

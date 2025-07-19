@@ -1,5 +1,5 @@
 <template>
-  <div class="news-detail-container">
+  <div class="news-detail-container" @mousedown.prevent="allowCopyOnly" @contextmenu.prevent>
     <!-- Breadcrumb -->
     <div class="breadcrumb-container">
       <div class="container">
@@ -33,7 +33,7 @@
         <!-- News Detail Content -->
         <div v-else-if="news" class="news-detail-content">
           <div class="row">
-            <div class="col-lg-8 content-main">
+            <div class="col-lg-12 content-main">
               <h1 class="news-title">{{ news.tieuDe }}</h1>
 
               <div class="news-meta">
@@ -43,81 +43,16 @@
 
               <div class="news-main-image" v-if="news.anhBia">
                 <img :src="fixImageUrl(news.anhBia)" :alt="news.tieuDe" />
-                <div class="image-caption">{{ news.tieuDe }}</div>
+                <div class="image-caption" v-if="!isSimpleImageId(news.tieuDe) && shouldDisplayCaption(news.tieuDe)">{{
+                  getCustomCaption(news.tieuDe) }}</div>
               </div>
 
               <!-- Article Content with Interspersed Images -->
               <div class="article-content">
-                <!-- If we have structured content, render it -->
-                <template v-if="formattedContent && formattedContent.length > 0">
-                  <div v-for="(block, index) in formattedContent" :key="index" :class="block.type">
-                    <!-- Text block -->
-                    <div v-if="block.type === 'text'" class="text-block" v-html="block.content"></div>
-
-                    <!-- Image block -->
-                    <div v-else-if="block.type === 'image'" class="image-block">
-                      <img :src="block.src" :alt="block.alt || ''" @click="openLightbox(block.src)" />
-                      <div class="image-caption" v-if="block.caption">{{ block.caption }}</div>
-                    </div>
-                  </div>
-                </template>
-
                 <!-- Fallback if no structured content -->
-                <div v-else class="text-block">
+                <div class="text-block">
                   <div v-html="processedContent"></div>
-
-                  <!-- Intersperse a few images from the gallery -->
-                  <template v-if="newsImages && newsImages.length > 0">
-                    <div v-for="(image, idx) in firstThreeImages" :key="idx" class="image-block">
-                      <img :src="fixImageUrl(image.duongDanAnh)" :alt="news.tieuDe" @click="openImageViewer(idx)" />
-                      <div class="image-caption">{{ news.tieuDe }} - Hình ảnh {{ idx + 1 }}</div>
-                    </div>
-                  </template>
                 </div>
-              </div>
-
-              <!-- If there are more images, show them in the gallery -->
-              <div class="news-gallery" v-if="newsImages && newsImages.length > 3">
-                <h3 class="gallery-title">Hình ảnh khác</h3>
-                <div class="gallery-grid">
-                  <div v-for="(image, index) in remainingImages" :key="index" class="gallery-item">
-                    <img :src="fixImageUrl(image.duongDanAnh)" :alt="`Hình ảnh ${index + 4}`"
-                      @click="openImageViewer(index + 3)" />
-                    <div class="image-overlay">
-                      <button class="view-image-btn">
-                        <i class="fas fa-search-plus"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-lg-4 sidebar">
-              <div class="sidebar-section">
-                <h3 class="sidebar-title">Tin tức liên quan</h3>
-                <div class="related-list">
-                  <div v-for="item in relatedNews" :key="item.id" class="related-item" @click="navigateToNews(item.id)">
-                    <div class="related-image">
-                      <img
-                        :src="fixImageUrl(item.anhBia) || 'https://placehold.co/400x250/e9ecef/0d6efd?text=ChillStay+News'"
-                        :alt="item.tieuDe" />
-                    </div>
-                    <div class="related-content">
-                      <h4>{{ item.tieuDe }}</h4>
-                      <span class="related-date"><i class="fas fa-calendar-alt"></i> {{ formatDate(item.ngayDang)
-                        }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="sidebar-section cta-section">
-                <h3 class="cta-title">Khám phá các homestay</h3>
-                <p class="cta-text">Tìm kiếm và đặt những homestay tuyệt vời ngay hôm nay!</p>
-                <router-link to="/homestays" class="cta-button">
-                  <i class="fas fa-home"></i> Xem homestay
-                </router-link>
               </div>
             </div>
           </div>
@@ -162,22 +97,65 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { getTinTucById, getAllTinTuc } from '@/Service/TinTucService';
+import { useRoute } from 'vue-router';
+import { getTinTucById } from '@/Service/TinTucService';
 import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService';
 import api from '@/utils/api';
 
 const route = useRoute();
-const router = useRouter();
 const news = ref(null);
 const loading = ref(true);
 const error = ref(false);
 const errorMessage = ref('');
-const allNews = ref([]);
 const showImageViewer = ref(false);
 const currentImageIndex = ref(0);
 const newsImages = ref([]);
 const lightboxImage = ref(null); // For opening any image in lightbox
+
+// Prevent editing but allow copying text
+const allowCopyOnly = (event) => {
+  // Allow selection for copying
+  if (event.shiftKey || event.ctrlKey) {
+    // Only allow selection if user is trying to copy (Ctrl or Shift key)
+    return true;
+  }
+
+  // Prevent all other interactions
+  return false;
+};
+
+// Function to check if a caption is just a simple image identifier (like "anh1", "anh2", etc.)
+const isSimpleImageId = (text) => {
+  if (!text) return false;
+
+  // Check if it's in the format "anhX" where X is a number
+  const simpleImagePattern = /^anh\d+$/i;
+  return simpleImagePattern.test(text);
+};
+
+// Function to check if a specific caption should be displayed
+const shouldDisplayCaption = (caption) => {
+  if (!caption) return false;
+
+  // Check if the caption matches exactly the one we want to hide
+  if (caption === 'Mộc Châu - Điểm đến thiên nhiên hàng đầu thế giới') {
+    return false;
+  }
+
+  return true;
+};
+
+// Function to get custom caption if needed
+const getCustomCaption = (caption) => {
+  if (!caption) return '';
+
+  // Replace specific captions with custom ones
+  if (caption.includes('Mộc Châu - Điểm đến thiên nhiên hàng đầu thế giới')) {
+    return 'Cảnh đẹp Mộc Châu';
+  }
+
+  return caption;
+};
 
 // Function to fix image URLs
 const fixImageUrl = (url) => {
@@ -236,9 +214,6 @@ const fetchNewsDetail = async () => {
     } else {
       throw new Error('Không tìm thấy tin tức');
     }
-
-    // Lấy tất cả tin tức để hiển thị tin tức liên quan
-    await fetchAllNews();
   } catch (err) {
     error.value = true;
     errorMessage.value = err.message || 'Đã xảy ra lỗi khi tải tin tức';
@@ -260,29 +235,6 @@ const fetchNewsImages = async (id) => {
   }
 };
 
-// Lấy tất cả tin tức để hiển thị tin tức liên quan
-const fetchAllNews = async () => {
-  try {
-    const response = await getAllTinTuc();
-    if (response && response.data) {
-      allNews.value = response.data.filter(item => item.trangThai === true && item.id !== news.value.id);
-    }
-  } catch (err) {
-    console.error('Error fetching all news:', err);
-  }
-};
-
-// Tin tức liên quan (3 tin tức ngẫu nhiên)
-const relatedNews = computed(() => {
-  if (allNews.value.length <= 3) {
-    return allNews.value;
-  }
-
-  // Lấy ngẫu nhiên 3 tin tức
-  const shuffled = [...allNews.value].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, 3);
-});
-
 // Hình ảnh hiện tại trong image viewer
 const currentImage = computed(() => {
   if (!newsImages.value || newsImages.value.length === 0) {
@@ -290,13 +242,6 @@ const currentImage = computed(() => {
   }
   return newsImages.value[currentImageIndex.value].duongDanAnh;
 });
-
-// Mở image viewer
-const openImageViewer = (index) => {
-  currentImageIndex.value = index;
-  showImageViewer.value = true;
-  document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
-};
 
 // Đóng image viewer
 const closeImageViewer = () => {
@@ -334,27 +279,38 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
-// Chuyển hướng đến tin tức khác
-const navigateToNews = (id) => {
-  if (id === Number(route.params.id)) return;
-  router.push(`/tin-tuc/${id}`);
-};
-
 // Lấy dữ liệu khi component được tạo
 onMounted(() => {
   fetchNewsDetail();
-});
 
-// First three images for display in the article
-const firstThreeImages = computed(() => {
-  if (!newsImages.value || newsImages.value.length === 0) return [];
-  return newsImages.value.slice(0, 3);
-});
+  // Make all content non-editable
+  document.addEventListener('selectstart', (e) => {
+    // Only allow selection if Ctrl key is pressed (for copying)
+    if (!e.ctrlKey) {
+      e.preventDefault();
+    }
+  });
 
-// Remaining images for the gallery
-const remainingImages = computed(() => {
-  if (!newsImages.value || newsImages.value.length <= 3) return [];
-  return newsImages.value.slice(3);
+  // Prevent paste events
+  document.addEventListener('paste', (e) => {
+    if (e.target.closest('.news-detail-container')) {
+      e.preventDefault();
+    }
+  });
+
+  // Prevent drag events
+  document.addEventListener('dragstart', (e) => {
+    if (e.target.closest('.news-detail-container')) {
+      e.preventDefault();
+    }
+  });
+
+  // Prevent input events
+  document.addEventListener('beforeinput', (e) => {
+    if (e.target.closest('.news-detail-container')) {
+      e.preventDefault();
+    }
+  });
 });
 
 // Processed content with fixed image URLs
@@ -365,15 +321,21 @@ const processedContent = computed(() => {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = news.value.noiDung;
 
+  // Remove all delete buttons and controls
+  const deleteButtons = tempDiv.querySelectorAll('.image-delete-btn, .btn-danger, button[class*="btn-danger"], [data-image-id], button[style*="background-color: #dc3545"]');
+  deleteButtons.forEach(el => el.remove());
+
   // Remove any red buttons or elements
-  const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], button.btn-danger, .fa-trash, [style*="background-color: red"], [class*="btn-danger"]');
+  const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], .fa-trash, [style*="background-color: red"]');
   redElements.forEach(el => el.remove());
 
-  // Also remove any elements with class containing "btn" that might be red icons
+  // Remove any elements with class containing "btn" that might be delete buttons
   const btnElements = tempDiv.querySelectorAll('[class*="btn"]');
   btnElements.forEach(btn => {
     if (btn.classList.contains('btn-danger') ||
-      (btn.style && btn.style.backgroundColor && btn.style.backgroundColor.includes('red'))) {
+      (btn.style && btn.style.backgroundColor &&
+        (btn.style.backgroundColor.includes('red') || btn.style.backgroundColor.includes('#dc3545'))) ||
+      btn.closest('.article-image')) {
       btn.remove();
     }
   });
@@ -386,85 +348,14 @@ const processedContent = computed(() => {
       // Fix image URL using our helper function
       const fixedSrc = fixImageUrl(src);
       img.setAttribute('src', fixedSrc);
+
+      // Add click handler for lightbox
+      img.style.cursor = 'pointer';
+      img.addEventListener('click', () => openLightbox(fixedSrc));
     }
   });
 
   return tempDiv.innerHTML;
-});
-
-// Formatted content for articles with interspersed images
-const formattedContent = computed(() => {
-  if (!news.value || !news.value.noiDung || !newsImages.value) return [];
-
-  // Check if the content already has HTML tags for images
-  if (news.value.noiDung.includes('<img')) {
-    // Process the content to fix image URLs
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = news.value.noiDung;
-
-    // Remove any red buttons or elements
-    const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], button.btn-danger, .fa-trash, [style*="background-color: red"], [class*="btn-danger"]');
-    redElements.forEach(el => el.remove());
-
-    // Also remove any elements with class containing "btn" that might be red icons
-    const btnElements = tempDiv.querySelectorAll('[class*="btn"]');
-    btnElements.forEach(btn => {
-      if (btn.classList.contains('btn-danger') ||
-        (btn.style && btn.style.backgroundColor && btn.style.backgroundColor.includes('red'))) {
-        btn.remove();
-      }
-    });
-
-    const images = tempDiv.querySelectorAll('img');
-    images.forEach(img => {
-      const src = img.getAttribute('src');
-      if (src && !src.startsWith('data:')) {
-        // Fix image URL using our helper function
-        const fixedSrc = fixImageUrl(src);
-        img.setAttribute('src', fixedSrc);
-      }
-    });
-
-    // Return the processed content
-    return [{
-      type: 'text',
-      content: tempDiv.innerHTML
-    }];
-  }
-
-  // For now, we'll create a simple algorithm to intersperse images
-  // In a real app, you might have a structured format stored in the database
-  const content = [];
-
-  // Split content into paragraphs
-  const paragraphs = news.value.noiDung.split('\n\n').filter(p => p.trim() !== '');
-
-  // If we have multiple paragraphs and images, intersperse them
-  if (paragraphs.length > 1 && newsImages.value.length > 0) {
-    paragraphs.forEach((paragraph, index) => {
-      // Add the paragraph
-      content.push({
-        type: 'text',
-        content: paragraph.replace(/\n/g, '<br>')
-      });
-
-      // Add an image after some paragraphs if available
-      if (index % 2 === 1 && newsImages.value[Math.floor(index / 2)]) {
-        const image = newsImages.value[Math.floor(index / 2)];
-        content.push({
-          type: 'image',
-          src: image.duongDanAnh,
-          alt: news.value.tieuDe,
-          caption: `${news.value.tieuDe} - Hình ảnh ${Math.floor(index / 2) + 1}`
-        });
-      }
-    });
-
-    return content;
-  }
-
-  // If there aren't multiple paragraphs or images, return empty array to use fallback
-  return [];
 });
 
 // Open any image in lightbox
@@ -486,95 +377,157 @@ const extractImagesFromHtml = (htmlContent) => {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
 
+  // Remove any delete buttons and controls
+  const deleteButtons = tempDiv.querySelectorAll('.image-delete-btn, .btn-danger, button[class*="btn-danger"], [data-image-id]');
+  deleteButtons.forEach(el => el.remove());
+
   // Remove any elements with red background or red square icons
-  const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], button.btn-danger, .fa-trash, [style*="background-color: red"], [class*="btn-danger"]');
+  const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], .fa-trash, [style*="background-color: red"]');
   redElements.forEach(el => el.remove());
 
   // Also remove any square elements with class containing "btn" that might be red icons
   const squareButtons = tempDiv.querySelectorAll('button[class*="btn"]');
   squareButtons.forEach(btn => {
-    // Check if it's a small square button that might be a delete/remove button
-    if (btn.offsetWidth === btn.offsetHeight && btn.offsetWidth < 50) {
+    // Remove all buttons in the image container that could be delete buttons
+    if (btn.closest('.article-image')) {
       btn.remove();
     }
   });
 
+  // Get all image sources
   const images = tempDiv.querySelectorAll('img');
-  const imageUrls = [];
-
+  const sources = [];
   images.forEach(img => {
     const src = img.getAttribute('src');
     if (src && !src.startsWith('data:')) {
-      // Fix the image URL
-      const fixedSrc = fixImageUrl(src);
-
-      // Update the image src in the DOM
-      img.setAttribute('src', fixedSrc);
-      imageUrls.push(fixedSrc);
+      sources.push(src);
     }
   });
 
-  // Update the content with fixed image URLs and removed red elements
-  if (news.value && images.length > 0) {
-    news.value.noiDung = tempDiv.innerHTML;
-  }
-
-  return imageUrls;
+  return sources;
 };
 </script>
 
 <style scoped>
+/* News Detail Page Styles */
+.news-detail-container {
+  background-color: #f8f9fa;
+  font-family: 'Roboto', sans-serif;
+  color: #333;
+  min-height: 100vh;
+  padding-bottom: 40px;
+  user-select: text;
+  /* Allow text selection but not editing */
+}
+
+.news-detail-container img,
+.news-detail-container .image-block,
+.news-detail-container .news-main-image {
+  pointer-events: auto;
+  /* Allow clicking on images for lightbox */
+  user-select: none;
+  /* Prevent image selection */
+}
+
+/* Strengthened styles to prevent editing */
+.news-detail-container {
+  user-select: none;
+  /* Prevent selection by default */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: auto;
+  /* Allow clicking for navigation */
+  cursor: default;
+}
+
+/* Allow selection only when pressing Ctrl for copying */
+.news-detail-container.allow-select {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.news-detail-container [contenteditable] {
+  -webkit-user-modify: read-only;
+  -moz-user-modify: read-only;
+  user-modify: read-only;
+  cursor: default;
+}
+
+.news-detail-container * {
+  -webkit-user-modify: read-only !important;
+  -moz-user-modify: read-only !important;
+  user-modify: read-only !important;
+}
+
+.text-block {
+  cursor: default !important;
+  pointer-events: none;
+}
+
+.text-block a,
+.breadcrumb a,
+.back-btn {
+  pointer-events: auto;
+  /* Allow clicking links */
+}
+
+.news-detail-container input,
+.news-detail-container textarea {
+  pointer-events: none !important;
+}
+
 /* Breadcrumb */
 .breadcrumb-container {
-  background-color: #f5f5f5;
+  background-color: #fff;
+  border-bottom: 1px solid #eaeaea;
   padding: 10px 0;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
 }
 
 .breadcrumb {
   display: flex;
-  align-items: center;
-  font-size: 14px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
 }
 
 .breadcrumb a {
-  color: #0066cc;
+  color: #0096c7;
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease;
 }
 
 .breadcrumb a:hover {
   color: #ff6200;
 }
 
-.breadcrumb .separator {
-  margin: 0 10px;
-  color: #999;
+.separator {
+  color: #adb5bd;
+  margin: 0 8px;
 }
 
-.breadcrumb .current {
-  color: #666;
+.current {
+  color: #6c757d;
   font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 300px;
 }
 
-/* Container */
+/* Content Section */
+.news-content-section {
+  padding: 15px 0 30px;
+}
+
 .container {
-  max-width: 1140px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 0 15px;
 }
 
-/* News Content Section */
-.news-content-section {
-  padding: 40px 0 60px;
-  background-color: #f8f9fa;
-}
-
-/* Row and columns */
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -582,8 +535,7 @@ const extractImagesFromHtml = (htmlContent) => {
   margin-left: -15px;
 }
 
-.col-lg-8,
-.col-lg-4 {
+.col-lg-12 {
   position: relative;
   width: 100%;
   padding-right: 15px;
@@ -591,50 +543,47 @@ const extractImagesFromHtml = (htmlContent) => {
 }
 
 @media (min-width: 992px) {
-  .col-lg-8 {
-    flex: 0 0 66.666667%;
-    max-width: 66.666667%;
-  }
-
-  .col-lg-4 {
-    flex: 0 0 33.333333%;
-    max-width: 33.333333%;
+  .col-lg-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
   }
 }
 
-/* News Detail Content */
 .news-detail-content {
-  margin-bottom: 30px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
+/* Main Content */
 .content-main {
   background: white;
-  border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-  margin-bottom: 30px;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .news-title {
-  font-size: 2.2rem;
-  font-weight: 700;
+  font-size: 1.6rem;
   color: #2c3e50;
-  margin: 0 0 15px;
+  margin-bottom: 12px;
   line-height: 1.3;
+  font-weight: 700;
 }
 
 .news-meta {
   display: flex;
-  gap: 20px;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 10px;
 }
 
 .news-date,
 .news-author {
-  color: #777;
-  font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -646,38 +595,68 @@ const extractImagesFromHtml = (htmlContent) => {
 }
 
 .news-main-image {
-  margin-bottom: 30px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  margin: 0 -20px 20px;
+  position: relative;
 }
 
 .news-main-image img {
   width: 100%;
-  max-height: 500px;
+  height: auto;
   object-fit: cover;
+  max-height: 400px;
 }
 
 .image-caption {
-  background: rgba(0, 0, 0, 0.7);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 10px 15px;
-  font-size: 0.9rem;
-  text-align: center;
+  padding: 8px 20px;
+  font-size: 0.85rem;
 }
 
-/* Gallery */
+/* Article Content */
+.article-content {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.text-block {
+  margin-bottom: 15px;
+}
+
+.text-block p {
+  margin-bottom: 15px;
+}
+
+.image-block {
+  margin: 15px 0;
+  position: relative;
+}
+
+.image-block img {
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.image-block img:hover {
+  transform: scale(1.01);
+}
+
+/* Image Gallery */
 .news-gallery {
   margin-top: 40px;
 }
 
 .gallery-title {
   font-size: 1.5rem;
-  margin-bottom: 20px;
   color: #2c3e50;
+  margin-bottom: 20px;
   font-weight: 600;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f0f0f0;
 }
 
 .gallery-grid {
@@ -686,31 +665,33 @@ const extractImagesFromHtml = (htmlContent) => {
   gap: 15px;
 }
 
-.gallery-item {
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s;
+@media (max-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.gallery-item:hover {
-  transform: translateY(-5px);
+@media (max-width: 480px) {
+  .gallery-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gallery-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 180px;
 }
 
 .gallery-item img {
   width: 100%;
-  height: 180px;
+  height: 100%;
   object-fit: cover;
-  transition: transform 0.5s;
+  transition: transform 0.3s ease;
 }
 
-.gallery-item:hover img {
-  transform: scale(1.05);
-}
-
-.gallery-item .image-overlay {
+.image-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -728,161 +709,27 @@ const extractImagesFromHtml = (htmlContent) => {
   opacity: 1;
 }
 
+.gallery-item:hover img {
+  transform: scale(1.1);
+}
+
 .view-image-btn {
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  border: none;
+  background: none;
+  border: 2px solid white;
+  color: white;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .view-image-btn:hover {
-  background: #ff6200;
-  color: white;
-  transform: scale(1.1);
-}
-
-/* Sidebar */
-.sidebar {
-  margin-top: 0;
-}
-
-.sidebar-section {
   background: white;
-  border-radius: 12px;
-  padding: 25px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-}
-
-.sidebar-title {
-  font-size: 1.3rem;
-  color: #2c3e50;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f0f0f0;
-  font-weight: 600;
-}
-
-.related-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.related-item {
-  display: flex;
-  gap: 12px;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 15px;
-  transition: all 0.3s ease;
-}
-
-.related-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.related-item:hover {
-  transform: translateX(5px);
-}
-
-.related-image {
-  flex: 0 0 80px;
-  height: 60px;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.related-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.related-item:hover .related-image img {
-  transform: scale(1.1);
-}
-
-.related-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.related-content h4 {
-  font-size: 0.95rem;
-  margin: 0 0 8px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: color 0.3s;
-}
-
-.related-item:hover .related-content h4 {
-  color: #ff6200;
-}
-
-.related-date {
-  color: #777;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.related-date i {
   color: #0096c7;
-}
-
-/* CTA Section */
-.cta-section {
-  background: linear-gradient(135deg, #4ddbff 0%, #0066cc 100%);
-  color: white;
-  text-align: center;
-  border-radius: 12px;
-}
-
-.cta-title {
-  color: white;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-}
-
-.cta-text {
-  margin-bottom: 20px;
-  font-size: 1rem;
-}
-
-.cta-button {
-  display: inline-block;
-  background: #ff6200;
-  color: white;
-  padding: 10px 25px;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.cta-button:hover {
-  background: white;
-  color: #0066cc;
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
 /* Loading and Error States */
@@ -1004,45 +851,45 @@ const extractImagesFromHtml = (htmlContent) => {
 .image-container {
   max-width: 90%;
   max-height: 90%;
+  position: relative;
 }
 
 .image-container img {
   max-width: 100%;
   max-height: 90vh;
   object-fit: contain;
-  border-radius: 4px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .nav-button {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: rgba(0, 0, 0, 0.5);
   color: white;
-  font-size: 1.5rem;
   width: 50px;
   height: 50px;
   border-radius: 50%;
+  border: none;
+  font-size: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s;
   z-index: 1010;
+  transition: all 0.3s ease;
 }
 
 .nav-button:hover {
-  background: rgba(255, 255, 255, 0.4);
-  transform: translateY(-50%) scale(1.1);
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.nav-button.prev {
+.prev {
   left: 20px;
 }
 
-.nav-button.next {
+.next {
   right: 20px;
 }
 
@@ -1051,143 +898,51 @@ const extractImagesFromHtml = (htmlContent) => {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.5);
   color: white;
+  background: rgba(0, 0, 0, 0.7);
   padding: 5px 15px;
   border-radius: 20px;
   font-size: 0.9rem;
 }
 
-/* Article Content with Images */
-.article-content {
-  margin-bottom: 30px;
-}
-
-.text-block {
-  margin-bottom: 25px;
-  line-height: 1.8;
-  color: #333;
-  font-size: 1.1rem;
-}
-
-.text-block p {
-  margin-bottom: 1rem;
-}
-
-.image-block {
-  margin: 30px 0;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
-}
-
-.image-block img {
-  width: 100%;
-  max-height: 500px;
-  object-fit: contain;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.image-block:hover img {
-  transform: scale(1.02);
-}
-
-.image-block .image-caption {
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 10px 15px;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
-.article-content button.btn-danger,
-.article-content .fa-trash,
-.article-content [style*="background-color: red"],
-.article-content [class*="btn-danger"],
-.article-content button[style*="background-color: red"] {
-  display: none !important;
-}
-
 /* Responsive adjustments */
-@media (max-width: 992px) {
-  .gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .news-title {
-    font-size: 1.8rem;
-  }
-}
-
 @media (max-width: 768px) {
-
-  .content-main,
-  .sidebar-section {
-    padding: 20px;
+  .content-main {
+    padding: 15px;
   }
 
   .news-title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
 
   .news-meta {
     flex-direction: column;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .news-main-image {
+    margin: 0 -15px 15px;
   }
 
   .gallery-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .news-title {
+    font-size: 1.3rem;
   }
 
-  .gallery-item img {
-    height: 150px;
+  .gallery-grid {
+    grid-template-columns: 1fr;
   }
 
   .nav-button {
     width: 40px;
     height: 40px;
     font-size: 1.2rem;
-  }
-
-  .related-image {
-    flex: 0 0 70px;
-    height: 50px;
-  }
-}
-
-@media (max-width: 576px) {
-  .gallery-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .news-title {
-    font-size: 1.3rem;
-  }
-
-  .breadcrumb .current {
-    max-width: 150px;
-  }
-
-  .close-button {
-    top: 10px;
-    right: 10px;
-    font-size: 2rem;
-  }
-
-  .nav-button {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
-  }
-
-  .nav-button.prev {
-    left: 10px;
-  }
-
-  .nav-button.next {
-    right: 10px;
   }
 }
 </style>

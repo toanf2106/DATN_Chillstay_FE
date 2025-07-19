@@ -272,7 +272,7 @@
                 </div>
               </div>
 
-              <h4 class="text-center mt-3">{{ detailItem.tieuDe || 'Tin tức' }}</h4>
+              <h4 class="text-center mt-3 news-title-preview">{{ detailItem.tieuDe || 'Tin tức' }}</h4>
               <p class="text-center homestay-id" v-if="detailItem.maTinTuc">
                 Mã: {{ detailItem.maTinTuc }}
               </p>
@@ -295,7 +295,7 @@
             <div class="staff-info">
               <div class="form-group">
                 <label>Tiêu đề</label>
-                <input type="text" class="form-control" v-model="detailItem.tieuDe" readonly />
+                <div class="form-control news-title-display">{{ detailItem.tieuDe }}</div>
               </div>
 
               <div class="form-group">
@@ -322,7 +322,8 @@
               <div class="form-group">
                 <label>Nội dung</label>
                 <div class="content-preview-box">
-                  <div v-html="detailItem.noiDung" class="content-preview-html"></div>
+                  <div ref="contentPreview" v-html="processedDetailContent" class="content-preview-html non-editable">
+                  </div>
                 </div>
               </div>
             </div>
@@ -484,6 +485,30 @@ export default {
     emptyRows() {
       const rowsCount = this.paginatedTinTucs.length;
       return rowsCount < this.pageSize ? this.pageSize - rowsCount : 0;
+    },
+
+    // Xử lý nội dung chi tiết tin tức để loại bỏ nút xóa
+    processedDetailContent() {
+      if (!this.detailItem || !this.detailItem.noiDung) return '';
+
+      // Tạo một div tạm để xử lý HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = this.detailItem.noiDung;
+
+      // Xóa tất cả các nút xóa
+      const deleteButtons = tempDiv.querySelectorAll('.image-delete-btn, .btn-danger, button[class*="btn-danger"], [data-image-id]');
+      deleteButtons.forEach(btn => btn.remove());
+
+      // Xóa các nút có icon thùng rác
+      const trashIcons = tempDiv.querySelectorAll('.fa-trash');
+      trashIcons.forEach(icon => {
+        const parentButton = icon.closest('button');
+        if (parentButton) {
+          parentButton.remove();
+        }
+      });
+
+      return tempDiv.innerHTML;
     }
   },
   mounted() {
@@ -604,21 +629,29 @@ export default {
                 <figcaption contenteditable="true" class="image-caption">Nhấn vào đây để thêm mô tả ảnh</figcaption>
               </figure>
               <button type="button" class="btn btn-sm btn-danger image-delete-btn" data-image-id="${imageId}">
-                <i class="fas fa-trash"></i>
+                <i class="fas fa-trash"></i> Xóa
               </button>
             </div>
           `;
 
           document.execCommand('insertHTML', false, imageHtml);
-          this.updateContentValue();
-          console.log('Đã thêm ảnh vào editor với ID:', imageId);
 
-          // Add event listener for the delete button
+          // Thêm event listener cho nút xóa
           this.$nextTick(() => {
-            const deleteBtn = this.$refs.contentEditor.querySelector(`button[data-image-id="${imageId}"]`);
+            const deleteBtn = document.querySelector(`button[data-image-id="${imageId}"]`);
             if (deleteBtn) {
-              deleteBtn.addEventListener('click', () => this.deleteImage(imageId));
+              deleteBtn.onclick = function () {
+                const imageElement = document.getElementById(imageId);
+                if (imageElement) {
+                  imageElement.remove();
+                  // Cập nhật nội dung sau khi xóa
+                  document.dispatchEvent(new Event('content-changed'));
+                }
+              };
             }
+
+            // Cập nhật nội dung sau khi thêm ảnh
+            this.updateContentValue();
           });
         };
         reader.readAsDataURL(file);
@@ -630,9 +663,6 @@ export default {
           name: file.name,
           size: file.size
         });
-        console.log('Đã thêm ảnh vào danh sách uploads:', this.imageUploads.length, 'ảnh');
-
-        this.form.noiDung = this.$refs.contentEditor.innerHTML;
       } catch (error) {
         console.error('Lỗi khi xử lý ảnh:', error);
         alert('Có lỗi khi xử lý ảnh. Vui lòng thử lại.');
@@ -679,9 +709,61 @@ export default {
         // Hiển thị nội dung HTML trong editor
         this.$refs.contentEditor.innerHTML = this.form.noiDung || '';
 
+        // Đảm bảo editor có thể chỉnh sửa
+        this.$refs.contentEditor.contentEditable = "true";
+
+        // Thêm sự kiện để cập nhật nội dung khi có thay đổi
+        this.$refs.contentEditor.addEventListener('input', this.updateContentValue);
+
         // Nếu đang chỉnh sửa tin tức, tải ảnh và xử lý
         if (this.isEditing && this.form.id) {
           this.processContentImagesForEditor();
+
+          // Fix các nút xóa ảnh hiện có
+          this.$nextTick(() => {
+            // Tìm tất cả các container ảnh
+            const imageContainers = this.$refs.contentEditor.querySelectorAll('.article-image');
+
+            imageContainers.forEach(container => {
+              const imageId = container.id || `image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+              // Nếu container không có id, thêm id mới
+              if (!container.id) {
+                container.id = imageId;
+              }
+
+              // Xóa nút xóa cũ nếu có
+              const oldDeleteBtn = container.querySelector('.image-delete-btn');
+              if (oldDeleteBtn) {
+                oldDeleteBtn.remove();
+              }
+
+              // Tạo nút xóa mới
+              const deleteBtn = document.createElement('button');
+              deleteBtn.type = 'button';
+              deleteBtn.className = 'btn btn-sm btn-danger image-delete-btn';
+              deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa';
+              deleteBtn.setAttribute('data-image-id', imageId);
+
+              // Gắn sự kiện click trực tiếp
+              deleteBtn.onclick = function () {
+                const imageToRemove = document.getElementById(imageId);
+                if (imageToRemove) {
+                  imageToRemove.remove();
+                  // Cập nhật nội dung sau khi xóa
+                  document.dispatchEvent(new Event('content-changed'));
+                }
+              };
+
+              // Thêm nút xóa vào container
+              container.appendChild(deleteBtn);
+            });
+
+            // Thêm sự kiện để cập nhật nội dung khi có thay đổi
+            document.addEventListener('content-changed', () => {
+              this.updateContentValue();
+            });
+          });
         }
       }
     },
@@ -733,6 +815,8 @@ export default {
       this.$nextTick(() => {
         if (this.$refs.contentEditor) {
           this.$refs.contentEditor.innerHTML = '';
+          this.$refs.contentEditor.contentEditable = "true";
+          this.$refs.contentEditor.focus();
         }
       });
     },
@@ -756,7 +840,6 @@ export default {
       // Nếu có ảnh bìa, đặt preview
       if (item.anhBia) {
         this.coverImagePreview = item.anhBia;
-        console.log('Đã đặt ảnh bìa preview:', this.coverImagePreview);
       } else {
         this.coverImagePreview = null;
       }
@@ -768,10 +851,7 @@ export default {
 
       // Cập nhật editor với nội dung từ tin tức
       this.$nextTick(() => {
-        if (this.$refs.contentEditor) {
-          this.$refs.contentEditor.innerHTML = this.form.noiDung || '';
-          this.updateContentValue();
-        }
+        this.updateEditor();
       });
 
       // Đóng modal chi tiết nếu đang mở
@@ -1183,6 +1263,8 @@ export default {
       if (imageElement) {
         imageElement.remove();
         this.updateContentValue();
+        // Thông báo đã xóa ảnh thành công
+        console.log('Đã xóa ảnh:', imageId);
       }
     },
 
@@ -1200,6 +1282,13 @@ export default {
           this.$refs.contentEditor.focus();
         }
       });
+    },
+
+    saveContentChanges(event) {
+      if (this.detailItem && event.target) {
+        this.detailItem.noiDung = event.target.innerHTML;
+        this.contentChanged = false;
+      }
     },
   }
 }
@@ -1413,130 +1502,70 @@ export default {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1050;
-  padding: 20px;
 }
 
 .modal-editor {
+  width: 900px;
+  max-width: 900px;
+  margin: auto;
   background-color: white;
-  width: 95%;
-  max-width: 1200px;
-  height: 90vh;
   border-radius: 8px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  height: 80vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background-color: white;
+  border-bottom: 1px solid #dee2e6;
   padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #6c757d;
+  cursor: pointer;
 }
 
 .modal-body {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  background-color: white;
 }
 
-.close-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6c757d;
-}
-
-/* Editor Styles */
-.content-editor-wrapper {
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  height: 400px;
-}
-
-.content-editor-toolbar {
-  background-color: #f8f9fa;
-  padding: 8px;
-  border-bottom: 1px solid #ced4da;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.content-editor-container {
-  flex: 1;
+.homestay-details-modal .modal-body {
+  padding: 20px;
   overflow-y: auto;
 }
 
-.content-editor {
-  height: 100%;
-  padding: 15px;
-  outline: none;
-}
-
-.toolbar-button {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 1px solid #dee2e6;
+.modal-footer {
   background-color: white;
-  border-radius: 4px;
+  border-top: 1px solid #dee2e6;
+  padding: 15px 20px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-.toolbar-button:hover {
-  background-color: #e9ecef;
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 24px;
-  background-color: #dee2e6;
-  margin: 0 5px;
-}
-
-/* Make sure images display properly */
-.content-editor img,
-.article-image img {
-  max-width: 100%;
-  height: auto;
-}
-
-.article-image {
-  margin: 15px 0;
-  text-align: center;
-}
-
-.image-caption {
-  padding: 8px;
-  background-color: #f8f9fa;
-  font-size: 0.9rem;
-  font-style: italic;
-  color: #495057;
-  text-align: center;
-}
-
-/* Form actions */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -1966,7 +1995,6 @@ export default {
   border-color: #e9ecef #e9ecef #dee2e6;
 }
 
-/* Modal footer buttons */
 .modal-footer .btn {
   padding: 0.375rem 0.75rem;
   font-size: 0.9rem;
@@ -2059,6 +2087,80 @@ export default {
   outline: none;
   overflow-y: auto;
   line-height: 1.6;
+  cursor: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+.content-editor:focus {
+  outline: 1px solid #0d6efd;
+}
+
+.content-editor-container {
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: white;
+  position: relative;
+}
+
+.image-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer !important;
+  opacity: 0.9;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  min-width: 80px;
+  justify-content: center;
+  pointer-events: auto !important;
+}
+
+.image-delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.05);
+  background-color: #c82333;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.image-delete-btn i {
+  font-size: 16px;
+}
+
+/* Đảm bảo article-image có thể chứa nút xóa đúng vị trí */
+.article-image {
+  position: relative;
+  margin: 15px 0;
+  text-align: center;
+  width: 100%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #eee;
+  border-radius: 5px;
+  padding-bottom: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Đảm bảo nút xóa luôn hiển thị */
+.article-image .image-delete-btn {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .content-preview {
@@ -2083,16 +2185,6 @@ export default {
   overflow-y: auto;
 }
 
-.article-image {
-  position: relative;
-  margin: 15px 0;
-  text-align: center;
-  width: 100%;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .article-image img {
   max-width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -2108,24 +2200,6 @@ export default {
   height: auto;
   margin: 10px auto;
   display: block;
-}
-
-.image-delete-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  cursor: pointer;
-  opacity: 0.8;
-  z-index: 10;
-}
-
-.image-delete-btn:hover {
-  opacity: 1;
 }
 
 .image-caption {
@@ -2152,13 +2226,43 @@ export default {
   line-height: 1.6;
 }
 
-.content-preview-html img {
-  max-width: 100%;
-  height: auto;
-  margin: 1rem auto;
-  display: block;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+.content-editable {
+  cursor: text;
+  outline: none;
+  background-color: white;
+  padding: 10px;
+}
+
+.content-editable:focus {
+  box-shadow: inset 0 0 0 2px #007bff;
+}
+
+/* Modal với nền trắng */
+.modal-body {
+  background-color: white;
+}
+
+.homestay-details-modal {
+  width: 900px;
+  max-width: 900px;
+  margin: auto;
+  background-color: white;
+  height: 80vh;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background-color: white;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: white;
+  border-top: 1px solid #dee2e6;
 }
 
 /* Hide delete buttons in preview only */
@@ -2465,5 +2569,104 @@ body.gallery-open {
 
 .toolbar-button:active {
   background-color: #dee2e6;
+}
+
+.content-preview-html img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  display: block;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.content-editable {
+  cursor: text;
+  outline: none;
+  background-color: white;
+  padding: 10px;
+}
+
+.content-editable:focus {
+  box-shadow: inset 0 0 0 2px #007bff;
+}
+
+/* Modal với nền trắng */
+.modal-body {
+  background-color: white;
+}
+
+.homestay-details-modal {
+  max-width: 1000px;
+  background-color: white;
+}
+
+.modal-header {
+  background-color: white;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: white;
+  border-top: 1px solid #dee2e6;
+}
+
+.non-editable {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none;
+  cursor: default;
+  background-color: white;
+}
+
+.modal-dialog {
+  width: 900px;
+  max-width: 900px;
+  margin: auto;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.article-image:hover .image-delete-btn {
+  opacity: 1;
+}
+
+/* Xử lý tiêu đề bị tràn ra */
+.homestay-details-modal .form-control {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.homestay-details-modal .form-group input {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-title-preview {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  white-space: normal;
+  max-height: 60px;
+  line-height: 1.3;
+}
+
+.news-title-display {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.4;
+  max-height: 100px;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #f8f9fa;
 }
 </style>

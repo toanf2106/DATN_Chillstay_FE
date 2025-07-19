@@ -406,22 +406,41 @@ const fetchHomestayData = async () => {
         homestays.value = await Promise.all(
           res.data.map(async (homestay) => {
             try {
-              // Tìm hình ảnh cho homestay
-              const anhResponse = await getAnhHomeStayByHomestayId(homestay.id)
-              if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
-                // Tìm ảnh bìa (anhBia = true) hoặc ảnh đầu tiên có trạng thái hoạt động
-                const mainImage = anhResponse.data.find(img => img.anhBia === true) ||
-                  anhResponse.data.find(img => img.trangThai !== false) ||
-                  anhResponse.data[0]
+              // Kiểm tra nếu homestay đã có trường hình ảnh từ dữ liệu trực tiếp
+              if (homestay.Hinh_Anh) {
+                homestay.hinhAnh = homestay.Hinh_Anh;
+                console.log(`Sử dụng hình ảnh từ dữ liệu trực tiếp cho homestay ${homestay.id}:`, homestay.Hinh_Anh);
+              }
+              // Nếu không có trường Hinh_Anh, thử với trường viết thường hinhAnh
+              else if (homestay.hinhAnh) {
+                // Đã có hình ảnh, không cần làm gì thêm
+                console.log(`Đã có hình ảnh cho homestay ${homestay.id}:`, homestay.hinhAnh);
+              }
+              // Thử tìm trong các thuộc tính khác có thể chứa URL hình ảnh
+              else if (homestay.image || homestay.imageUrl || homestay.anhDaiDien || homestay.anhBia) {
+                homestay.hinhAnh = homestay.image || homestay.imageUrl || homestay.anhDaiDien || homestay.anhBia;
+                console.log(`Sử dụng hình ảnh thay thế cho homestay ${homestay.id}:`, homestay.hinhAnh);
+              }
+              // Nếu không có trường hình ảnh trực tiếp, gọi API để lấy
+              else {
+                const anhResponse = await getAnhHomeStayByHomestayId(homestay.id)
+                if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
+                  // Ưu tiên ảnh bìa đang hoạt động
+                  const anhBia = anhResponse.data.find(img => img.anhBia === true && img.trangThai !== false) ||
+                    anhResponse.data.find(img => img.anhBia === true);
 
-                if (mainImage) {
-                  homestay.hinhAnh = mainImage.duongDanAnh
-                  console.log(`Đã tìm thấy ảnh bìa cho homestay ${homestay.id}:`, mainImage.duongDanAnh)
+                  // Nếu không có ảnh bìa, dùng ảnh đầu tiên đang hoạt động
+                  const anhDauTien = anhBia || anhResponse.data.find(img => img.trangThai !== false) || anhResponse.data[0];
+
+                  if (anhDauTien) {
+                    homestay.hinhAnh = anhDauTien.duongDanAnh;
+                    console.log(`Lấy hình ảnh từ API cho homestay ${homestay.id}:`, anhDauTien.duongDanAnh);
+                  } else {
+                    console.log(`Không tìm thấy ảnh phù hợp cho homestay ${homestay.id}`);
+                  }
                 } else {
-                  console.log(`Không tìm thấy ảnh phù hợp cho homestay ${homestay.id}`)
+                  console.log(`Không có ảnh nào cho homestay ${homestay.id}`);
                 }
-              } else {
-                console.log(`Không có ảnh nào cho homestay ${homestay.id}`)
               }
             } catch (imgError) {
               console.error(`Lỗi khi lấy ảnh cho homestay ${homestay.id}:`, imgError)

@@ -15,6 +15,41 @@ const api = axios.create({
   },
 })
 
+// Cấu hình retry cho các request bị lỗi
+const MAX_RETRIES = 2; // Số lần thử lại tối đa
+const RETRY_DELAY = 1000; // Delay giữa các lần thử lại (ms)
+
+// Hàm thực hiện retry với delay
+const retryRequest = (config, retryCount = 0) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      console.log(`Retry attempt ${retryCount + 1} for ${config.url}`);
+
+      // Tạo request mới với cấu hình cũ
+      axios(config)
+        .then(response => resolve(response))
+        .catch(error => {
+          // Nếu vẫn còn lần thử lại và lỗi phù hợp để thử lại
+          if (retryCount < MAX_RETRIES && shouldRetry(error)) {
+            retryRequest(config, retryCount + 1)
+              .then(resolve)
+              .catch(reject);
+          } else {
+            reject(error);
+          }
+        });
+    }, RETRY_DELAY);
+  });
+};
+
+// Hàm kiểm tra xem có nên retry không
+const shouldRetry = (error) => {
+  // Retry cho lỗi mạng, timeout hoặc server error (500)
+  return !error.response ||
+    error.code === 'ECONNABORTED' ||
+    (error.response && error.response.status >= 500);
+};
+
 // Interceptor để thêm token vào header của mỗi request
 api.interceptors.request.use(
   (config) => {
@@ -71,12 +106,8 @@ api.interceptors.request.use(
 // Interceptor để xử lý response
 api.interceptors.response.use(
   (response) => {
-
     // Log success response
     console.log(`API Response [${response.status}]:`, response.config.url)
-
-    // Đảm bảo xử lý dữ liệu UTF-8 đúng cách
-
     return response
   },
   (error) => {
@@ -91,8 +122,24 @@ api.interceptors.response.use(
       if (error.config.data) {
         console.error('Request Data:', error.config.data)
       }
+
+      // Xử lý retry cho lỗi server 500
+      if (error.response.status >= 500 && !error.config.__isRetry) {
+        console.log(`Server error (${error.response.status}) detected, attempting retry...`);
+
+        // Đánh dấu request này đang được retry để tránh lặp vô hạn
+        const newConfig = {...error.config, __isRetry: true};
+        return retryRequest(newConfig);
+      }
     } else if (error.request) {
       console.error('No response received:', error.request)
+
+      // Retry cho lỗi không nhận được response
+      if (!error.config.__isRetry) {
+        console.log('No response received, attempting retry...');
+        const newConfig = {...error.config, __isRetry: true};
+        return retryRequest(newConfig);
+      }
     }
 
     // Xử lý lỗi 401 Unauthorized

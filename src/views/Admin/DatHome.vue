@@ -353,10 +353,18 @@
                         formatCurrency(selectedBooking.tongTien)
                       }}</span>
                     </div>
+
+                    <!-- Thêm hiển thị số tiền đã thanh toán -->
                     <div class="payment-item">
-                      <span class="payment-label">Số tiền cọc:</span>
-                      <span class="payment-value deposit">{{
-                        formatCurrency(selectedBooking.soTienCoc)
+                      <span class="payment-label">Đã thanh toán:</span>
+                      <span class="payment-value paid">{{
+                        formatCurrency(soTienDaThanhToan)
+                      }}</span>
+                    </div>
+                    <div class="payment-item" v-if="soTienConLai > 0">
+                      <span class="payment-label">Còn lại phải thanh toán:</span>
+                      <span class="payment-value remaining">{{
+                        formatCurrency(soTienConLai)
                       }}</span>
                     </div>
                   </div>
@@ -500,7 +508,7 @@
                     (Cần thanh toán số tiền còn lại)
                   </span>
                 </button>
-                <!-- Thêm nút thanh toán nếu số tiền đã thanh toán < tổng tiền và đang ở trạng thái check-in -->
+                <!-- Sửa nút thanh toán ngay để hiển thị số tiền còn lại -->
                 <button
                   v-if="
                     soTienConLai > 0 &&
@@ -1039,6 +1047,8 @@ export default {
 
         // Reset trạng thái thanh toán khi mở chi tiết đặt phòng mới
         this.paymentStatus = 'DangCho'
+        this.soTienDaThanhToan = 0
+        this.soTienConLai = 0
 
         // Lấy thông tin số tiền đã thanh toán khi mở chi tiết
         if (this.selectedBooking) {
@@ -1515,23 +1525,36 @@ export default {
       try {
         const response = await ThanhToanService.tongTienDatHome(idDatHome)
         // Xử lý cả trường hợp response là null
+        // API trả về số tiền trực tiếp, không phải object có tongTienDaThanhToan
         this.soTienDaThanhToan =
-          (response && response.data && response.data.tongTienDaThanhToan) || 0
-        this.soTienConLai = this.selectedBooking.tongTien - this.soTienDaThanhToan
+          response && response.data !== null && response.data !== undefined
+            ? Number(response.data)
+            : 0
+
+        // Đảm bảo lấy giá trị tongTien từ selectedBooking
+        if (this.selectedBooking && this.selectedBooking.tongTien) {
+          this.soTienConLai = this.selectedBooking.tongTien - this.soTienDaThanhToan
+        } else {
+          this.soTienConLai = 0
+        }
 
         console.log('Số tiền đã thanh toán:', this.soTienDaThanhToan)
+        console.log('Tổng tiền:', this.selectedBooking.tongTien)
         console.log('Số tiền còn lại:', this.soTienConLai)
 
         // Nếu không còn số tiền phải thanh toán, cập nhật trạng thái thanh toán thành công
         if (this.soTienConLai <= 0) {
           this.paymentStatus = 'ThanhCong'
           console.log('Đã thanh toán đủ, cập nhật trạng thái thành ThanhCong')
+        } else {
+          this.paymentStatus = 'DangCho'
+          console.log('Chưa thanh toán đủ, trạng thái thanh toán: DangCho')
         }
       } catch (error) {
         console.error('Lỗi khi lấy thông tin tổng tiền đã thanh toán:', error)
         // Đặt giá trị mặc định nếu có lỗi
         this.soTienDaThanhToan = 0
-        this.soTienConLai = this.selectedBooking.tongTien
+        this.soTienConLai = this.selectedBooking ? this.selectedBooking.tongTien : 0
       }
     },
 

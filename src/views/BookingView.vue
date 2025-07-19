@@ -608,12 +608,12 @@
               </div>
             </div>
 
-            <div class="action-buttons centered">
+            <!-- <div class="action-buttons centered">
               <button class="btn btn-primary" @click="goHome">Quay về trang chủ</button>
               <button class="btn btn-outline" @click="viewBookingDetails">
                 Xem chi tiết đặt phòng
               </button>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>

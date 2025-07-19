@@ -315,7 +315,7 @@
                         <div class="info-content">
                           <strong>Tổng số người</strong>
                           <span>{{ room.soNguoiToiDa || (room.soNguoiLon + (room.soTreNho || room.soNguoiNho || 0))
-                            }}</span>
+                          }}</span>
                         </div>
                       </div>
                     </div>
@@ -389,7 +389,7 @@
                 <i class="fas fa-box"></i>
                 <div class="supply-content">
                   <span class="supply-name">{{ item.tenVatTu }} <small v-if="item.soLuong">({{ item.soLuong
-                      }})</small></span>
+                  }})</small></span>
                   <p v-if="item.moTa" class="supply-description">{{ item.moTa }}</p>
                 </div>
               </div>
@@ -412,7 +412,7 @@
                   <div class="service-header">
                     <span class="service-name">{{ item.tenDichVu }}</span>
                     <span class="service-price">{{ formatPrice(item.gia) }}<small>/{{ item.donVi || 'Ngày'
-                        }}</small></span>
+                    }}</small></span>
                   </div>
                   <p v-if="item.moTa" class="service-description">{{ item.moTa }}</p>
                 </div>
@@ -803,33 +803,77 @@ const fetchAmenitiesAndSupplies = async () => {
 // Lấy thông tin ảnh homestay từ API
 const fetchHomestayImages = async (homestayId) => {
   try {
-    const response = await getAnhHomeStayByHomestayId(homestayId);
-    if (response && response.data && response.data.length > 0) {
-      // Lấy danh sách ảnh từ API
-      const images = response.data.filter(img => img.trangThai !== false).map(img => img.duongDanAnh);
+    // Kiểm tra nếu homestay đã có trường hình ảnh trực tiếp
+    if (homestay.value && homestay.value.Hinh_Anh) {
+      console.log('Sử dụng hình ảnh trực tiếp từ homestay:', homestay.value.Hinh_Anh);
+      // Sử dụng ảnh trực tiếp
+      mainImage.value = homestay.value.Hinh_Anh;
+      additionalImages.value = [homestay.value.Hinh_Anh];
+      modalImage.value = homestay.value.Hinh_Anh;
 
-      // Nếu có ảnh, cập nhật ảnh chính và danh sách ảnh bổ sung
-      if (images.length > 0) {
-        mainImage.value = images[0];
-        additionalImages.value = images;
-        modalImage.value = images[0]; // Initialize modal image
+      // Vẫn tiếp tục tải các ảnh khác từ API để hiển thị trong gallery
+      const response = await getAnhHomeStayByHomestayId(homestayId);
+      if (response && response.data && response.data.length > 0) {
+        const apiImages = response.data.filter(img => img.trangThai !== false).map(img => img.duongDanAnh);
+        // Thêm vào danh sách ảnh (nếu chưa có)
+        apiImages.forEach(imgUrl => {
+          if (!additionalImages.value.includes(imgUrl)) {
+            additionalImages.value.push(imgUrl);
+          }
+        });
+      }
+    }
+    // Nếu không có hình ảnh trực tiếp, tìm kiếm trong các trường khác
+    else if (homestay.value && (homestay.value.hinhAnh || homestay.value.image || homestay.value.imageUrl || homestay.value.anhDaiDien || homestay.value.anhBia)) {
+      const directImage = homestay.value.hinhAnh || homestay.value.image || homestay.value.imageUrl || homestay.value.anhDaiDien || homestay.value.anhBia;
+      console.log('Sử dụng hình ảnh từ trường thay thế:', directImage);
+      mainImage.value = directImage;
+      additionalImages.value = [directImage];
+      modalImage.value = directImage;
+
+      // Vẫn tiếp tục tải các ảnh khác từ API để hiển thị trong gallery
+      const response = await getAnhHomeStayByHomestayId(homestayId);
+      if (response && response.data && response.data.length > 0) {
+        const apiImages = response.data.filter(img => img.trangThai !== false).map(img => img.duongDanAnh);
+        // Thêm vào danh sách ảnh (nếu chưa có)
+        apiImages.forEach(imgUrl => {
+          if (!additionalImages.value.includes(imgUrl)) {
+            additionalImages.value.push(imgUrl);
+          }
+        });
+      }
+    }
+    // Nếu không có hình ảnh trực tiếp, dùng API
+    else {
+      const response = await getAnhHomeStayByHomestayId(homestayId);
+      if (response && response.data && response.data.length > 0) {
+        // Lấy danh sách ảnh từ API
+        const images = response.data.filter(img => img.trangThai !== false).map(img => img.duongDanAnh);
+
+        // Nếu có ảnh, cập nhật ảnh chính và danh sách ảnh bổ sung
+        if (images.length > 0) {
+          mainImage.value = images[0];
+          additionalImages.value = images;
+          modalImage.value = images[0]; // Initialize modal image
+        } else {
+          // Nếu không có ảnh từ API, sử dụng ảnh mặc định
+          mainImage.value = defaultImage;
+          additionalImages.value = [defaultImage];
+          modalImage.value = defaultImage;
+        }
       } else {
-        // Nếu không có ảnh từ API, sử dụng ảnh mặc định
+        // Nếu không có dữ liệu từ API, sử dụng ảnh mặc định
         mainImage.value = defaultImage;
         additionalImages.value = [defaultImage];
         modalImage.value = defaultImage;
       }
-    } else {
-      // Nếu không có dữ liệu từ API, sử dụng ảnh mặc định
-      mainImage.value = defaultImage;
-      additionalImages.value = [defaultImage];
-      modalImage.value = defaultImage;
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin ảnh homestay:', error);
     // Trong trường hợp lỗi, vẫn sử dụng ảnh mặc định
     mainImage.value = defaultImage;
     additionalImages.value = [defaultImage];
+    modalImage.value = defaultImage;
   }
 };
 
@@ -905,22 +949,81 @@ const fetchRoomImages = async () => {
     // Fetch images for each room
     for (const room of rooms.value) {
       if (room.id) {
-        const response = await getAnhPhongByPhongId(room.id);
-        if (response && response.data && response.data.length > 0) {
-          // Filter valid images
-          const images = response.data
-            .filter(img => img.trangThai !== false)
-            .map(img => ({
-              url: img.duongDanAnh,
-              roomId: room.id,
-              roomName: room.tenPhong
-            }));
+        // Kiểm tra nếu phòng đã có trường hình ảnh trực tiếp
+        let directImagesAdded = false;
 
-          // Add room images to the array
-          roomImages.value.push(...images);
+        // Kiểm tra các trường có thể chứa hình ảnh trực tiếp của phòng
+        if (room.Hinh_Anh) {
+          // Thêm ảnh trực tiếp từ trường Hinh_Anh
+          const directImageInfo = {
+            url: room.Hinh_Anh,
+            roomId: room.id,
+            roomName: room.tenPhong,
+            isMainImage: true
+          };
 
-          // Add images to the room object for reference
-          room.images = images.map(img => img.url);
+          roomImages.value.push(directImageInfo);
+
+          // Lưu ảnh vào room object để dễ truy cập
+          room.images = [directImageInfo.url];
+          directImagesAdded = true;
+          console.log(`Đã thêm ảnh trực tiếp cho phòng ${room.tenPhong} từ trường Hinh_Anh:`, room.Hinh_Anh);
+        }
+        // Kiểm tra các trường khác có thể chứa hình ảnh
+        else if (room.hinhAnh || room.image || room.imageUrl || room.anhDaiDien || room.anhBia) {
+          const directImageUrl = room.hinhAnh || room.image || room.imageUrl || room.anhDaiDien || room.anhBia;
+
+          const directImageInfo = {
+            url: directImageUrl,
+            roomId: room.id,
+            roomName: room.tenPhong,
+            isMainImage: true
+          };
+
+          roomImages.value.push(directImageInfo);
+
+          // Lưu ảnh vào room object để dễ truy cập
+          room.images = [directImageInfo.url];
+          directImagesAdded = true;
+          console.log(`Đã thêm ảnh trực tiếp cho phòng ${room.tenPhong} từ trường thay thế:`, directImageUrl);
+        }
+
+        // Vẫn tiếp tục tải ảnh từ API để có đầy đủ bộ sưu tập
+        try {
+          const response = await getAnhPhongByPhongId(room.id);
+          if (response && response.data && response.data.length > 0) {
+            // Filter valid images
+            const apiImages = response.data
+              .filter(img => img.trangThai !== false)
+              .map(img => ({
+                url: img.duongDanAnh,
+                roomId: room.id,
+                roomName: room.tenPhong
+              }));
+
+            // Thêm ảnh từ API vào mảng hình ảnh (nếu chưa có)
+            apiImages.forEach(imgInfo => {
+              // Kiểm tra xem ảnh đã tồn tại chưa để tránh trùng lặp
+              if (!roomImages.value.some(existingImg =>
+                existingImg.roomId === imgInfo.roomId && existingImg.url === imgInfo.url)) {
+                roomImages.value.push(imgInfo);
+              }
+            });
+
+            // Cập nhật danh sách ảnh trong room object
+            if (!directImagesAdded || !room.images) {
+              room.images = apiImages.map(img => img.url);
+            } else if (directImagesAdded) {
+              // Thêm các ảnh API vào danh sách đã có (nếu chưa có)
+              apiImages.forEach(apiImg => {
+                if (!room.images.includes(apiImg.url)) {
+                  room.images.push(apiImg.url);
+                }
+              });
+            }
+          }
+        } catch (apiError) {
+          console.error(`Lỗi khi lấy ảnh từ API cho phòng ${room.id}:`, apiError);
         }
       }
     }

@@ -201,9 +201,13 @@
               <select id="donVi" v-model="form.donVi" class="form-control"
                 :class="{ 'is-invalid': errorsFromBackend.donVi }" required>
                 <option value="" disabled>Chọn đơn vị tính</option>
-                <option value="phan">phần</option>
-                <option value="lan">lần</option>
-                <option value="goi">gói</option>
+                <option value="phần">Phần</option>
+                <option value="lần">Lần</option>
+                <option value="gói">Gói</option>
+                <option value="kg">Kg</option>
+                <option value="chuyến">Chuyến</option>
+                <option value="suất">Suất</option>
+                <option value="lượt">Lượt</option>
               </select>
               <small class="form-text text-muted">Đơn vị không được để trống</small>
               <div v-if="errorsFromBackend.donVi" class="error-feedback">{{ errorsFromBackend.donVi }}</div>

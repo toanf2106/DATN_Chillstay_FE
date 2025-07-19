@@ -17,6 +17,8 @@ import NewsView from '../views/NewsView.vue'
 import NewsDetailView from '../views/NewsDetailView.vue'
 import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
 import QlyVatTuPhong from '@/views/Admin/Home/QlyVatTuPhong.vue'
+import DanhGiaView from '../views/DanhGiaView.vue'
+import PublicReviewDetails from '../views/Admin/NoiDung&DanhGia/ReviewDetails.vue';
 
 
 import { useAuthStore } from '../stores/authStore'
@@ -28,6 +30,8 @@ const router = createRouter({
     { path: '/about', name: 'about', component: about },
     { path: '/booking/:id', name: 'booking', component: BookingView },
     { path: '/all-homestays', name: 'allHomestays', component: AllHomestaysView },
+    { path: '/danh-gia', name: 'danh-gia', component: DanhGiaView },
+    { path: '/danh-gia/:homestayId', name: 'public-review-details', component: PublicReviewDetails, props: true },
 
 
     { path: '/test-thanh-toan', name: 'testThanhToan', component: TestThanhToan },

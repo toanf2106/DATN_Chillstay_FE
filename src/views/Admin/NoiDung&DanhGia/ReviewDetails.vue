@@ -1,9 +1,14 @@
 <template>
   <div class="review-details-container">
     <div class="page-header">
-      <router-link :to="{ name: 'admin-danh-gia' }" class="back-link"><i class="fas fa-arrow-left"></i> Quay lại</router-link>
-      <h1 v-if="homestay">Đánh giá cho {{ homestay.tenHomestay }}</h1>
-      <h1 v-else>Đang tải...</h1>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <router-link :to="{ name: 'admin-danh-gia' }" class="back-link"><i class="fas fa-arrow-left"></i> Quay lại</router-link>
+        <h1 v-if="homestay">Đánh giá cho {{ homestay.tenHomestay }}</h1>
+        <h1 v-else>Đang tải...</h1>
+      </div>
+      <button @click="openAddReviewModal" class="add-review-btn">
+          <i class="fas fa-plus"></i> Thêm đánh giá
+      </button>
     </div>
 
     <div v-if="!loading && reviews.length > 0" class="average-rating-container">
@@ -81,32 +86,92 @@
               <div class="review-content">
                 {{ review.noiDung }}
               </div>
+                 <!-- Phần hiển thị ảnh đánh giá -->
+                 <div v-if="review.anhDanhGias && review.anhDanhGias.length > 0" class="review-images">
+                <div v-for="image in review.anhDanhGias" :key="image.id" class="review-image-item" @click="openImageModal(image.duongDanAnh)">
+                  <img :src="image.duongDanAnh" alt="Ảnh đánh giá" class="review-image">
+                </div>
+              </div>
               <div class="review-actions">
-                <button @click="hideReview(review.id)" class="action-button hide-button">
-                  <i :class="review.isHidden ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
-                  {{ review.isHidden ? 'Hiện' : 'Ẩn' }}
-                </button>
-                <button @click="deleteReview(review.id)" class="action-button delete-button">
-                  <i class="fas fa-trash-alt"></i> Xoá
+                 <button @click="openManageImagesModal(review)" class="action-button manage-photos-button">
+                  <i class="fas fa-images"></i> Quản lý ảnh
                 </button>
               </div>
             </div>
         </div>
     </div>
+      <!-- Image Modal -->
+      <div v-if="isImageModalOpen" class="image-modal-overlay" @click="closeImageModal">
+      <div class="image-modal-content" @click.stop>
+        <span class="close-modal" @click="closeImageModal">&times;</span>
+        <img :src="currentModalImage" alt="Ảnh đánh giá phóng to" class="modal-image">
+      </div>
+    </div>
+     <!-- Admin Anh Danh Gia Modal -->
+    <AdminAnhDanhGiaModal
+      v-if="isManageImagesModalOpen"
+      :danh-gia="selectedReview"
+      @close="closeManageImagesModal"
+      @images-updated="handleImagesUpdated"
+    />
+     <!-- Add Review Modal -->
+    <div v-if="isReviewModalVisible" class="modal-backdrop">
+      <div class="modal-content">
+        <button @click="closeReviewModal" class="close-modal-btn">&times;</button>
+        <h3>Viết đánh giá của bạn</h3>
+         <form @submit.prevent="submitReview" class="review-form">
+          <div class="form-group">
+            <label>Bạn đánh giá bao nhiêu sao?</label>
+            <div class="star-rating">
+              <span v-for="star in 5" :key="star" @click="setRating(star)" :class="{ 'filled': star <= newReview.diemSo }">
+                <i class="fas fa-star"></i>
+              </span>
+            </div>
+             <div v-if="formErrors.diemSo" class="error-text">{{ formErrors.diemSo }}</div>
+          </div>
+          <div class="form-group">
+            <label for="review-content-admin">Nội dung đánh giá:</label>
+            <textarea id="review-content-admin" v-model="newReview.noiDung" rows="5" placeholder="Hãy chia sẻ cảm nhận của bạn về homestay này..."></textarea>
+            <div v-if="formErrors.noiDung" class="error-text">{{ formErrors.noiDung }}</div>
+          </div>
+          <div class="form-group">
+            <label>Thêm hình ảnh (tối đa 5 ảnh):</label>
+            <input type="file" @change="handleImageUpload" multiple accept="image/*" class="file-input">
+            <div class="image-preview-container">
+              <div v-for="(image, index) in imagePreviews" :key="index" class="image-preview">
+                <img :src="image.src" :alt="image.file.name">
+                <button @click="removeImage(index)" class="remove-image-btn">&times;</button>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="submit-review-btn" :disabled="isSubmitting">
+            <span v-if="isSubmitting"><i class="fas fa-spinner fa-spin"></i> Đang gửi...</span>
+            <span v-else>Gửi đánh giá</span>
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import { getHomeStayById } from '@/Service/HomeStayService';
-import { getAllDanhGia } from '@/Service/DanhGiaService';
+import { getAllDanhGia, getAnhDanhGiaByDanhGiaId, createDanhGia, uploadAnhDanhGia } from '@/Service/DanhGiaService';
 import { getKhachHangById } from '@/Service/khachHangService';
+import AdminAnhDanhGiaModal from '@/views/Admin/components/AdminAnhDanhGiaModal.vue';
+import { useToast } from '@/stores/notificationStore';
+
 
 export default {
   name: 'ReviewDetails',
+  components: {
+    AdminAnhDanhGiaModal
+  },
   setup() {
     const route = useRoute();
+    const toast = useToast();
     const homestay = ref(null);
     const reviews = ref([]);
     const loading = ref(true);
@@ -114,6 +179,151 @@ export default {
     const homestayId = route.params.homestayId;
     const selectedStarFilter = ref(null);
     const visibilityFilter = ref('all'); // 'all', 'visible', 'hidden'
+    const isImageModalOpen = ref(false);
+    const currentModalImage = ref('');
+    const isManageImagesModalOpen = ref(false);
+    const selectedReview = ref(null);
+    const isReviewModalVisible = ref(false);
+    const isSubmitting = ref(false);
+
+    const newReview = reactive({
+        datHomeId: 1, // Placeholder
+        khachHangId: 1, // Placeholder
+        homeStayId: parseInt(route.params.homestayId),
+        diemSo: 0,
+        noiDung: '',
+    });
+
+    const imageFiles = ref([]);
+    const imagePreviews = ref([]);
+    const formErrors = reactive({});
+
+     const setRating = (rating) => {
+        newReview.diemSo = rating;
+        if(formErrors.diemSo) delete formErrors.diemSo;
+    };
+
+    const handleImageUpload = (event) => {
+        const files = Array.from(event.target.files);
+        if (imageFiles.value.length + files.length > 5) {
+            toast.error("Bạn chỉ có thể tải lên tối đa 5 ảnh.");
+            return;
+        }
+
+        files.forEach(file => {
+            imageFiles.value.push(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreviews.value.push({ src: e.target.result, file: file });
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeImage = (index) => {
+        const removedFile = imagePreviews.value[index].file;
+        imagePreviews.value.splice(index, 1);
+        const fileIndex = imageFiles.value.findIndex(f => f === removedFile);
+        if (fileIndex > -1) {
+            imageFiles.value.splice(fileIndex, 1);
+        }
+    };
+
+    const validateForm = () => {
+        const errors = {};
+        if (newReview.diemSo === 0) {
+            errors.diemSo = "Vui lòng chọn số sao đánh giá.";
+        }
+        if (!newReview.noiDung.trim()) {
+            errors.noiDung = "Nội dung đánh giá không được để trống.";
+        }
+        Object.assign(formErrors, errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const submitReview = async () => {
+        if (!validateForm()) return;
+
+        isSubmitting.value = true;
+        try {
+            const response = await createDanhGia(newReview);
+            const createdReviewId = response.data.id;
+
+            if (createdReviewId && imageFiles.value.length > 0) {
+                const uploadPromises = imageFiles.value.map(file => uploadAnhDanhGia(file, createdReviewId));
+                await Promise.all(uploadPromises);
+            }
+
+            toast.success("Đánh giá đã được thêm thành công!");
+            closeReviewModal();
+            await fetchData();
+
+        } catch (error) {
+            console.error("Lỗi khi thêm đánh giá:", error);
+            toast.error("Đã xảy ra lỗi khi thêm đánh giá.");
+        } finally {
+            isSubmitting.value = false;
+        }
+    };
+
+    const resetForm = () => {
+        newReview.diemSo = 0;
+        newReview.noiDung = '';
+        imageFiles.value = [];
+        imagePreviews.value = [];
+        for (const key in formErrors) {
+            delete formErrors[key];
+        }
+    };
+
+    const openAddReviewModal = () => {
+        resetForm();
+        isReviewModalVisible.value = true;
+    };
+
+    const closeReviewModal = () => {
+        isReviewModalVisible.value = false;
+    };
+
+    const openImageModal = (imageUrl) => {
+      currentModalImage.value = imageUrl;
+      isImageModalOpen.value = true;
+    };
+
+    const closeImageModal = () => {
+      isImageModalOpen.value = false;
+      currentModalImage.value = '';
+    };
+
+    const openManageImagesModal = (review) => {
+      selectedReview.value = review;
+      isManageImagesModalOpen.value = true;
+    };
+
+    const closeManageImagesModal = () => {
+      isManageImagesModalOpen.value = false;
+      selectedReview.value = null;
+    };
+
+    const handleImagesUpdated = async () => {
+        if (selectedReview.value) {
+            try {
+                // Fetch only the images for the updated review
+                const response = await getAnhDanhGiaByDanhGiaId(selectedReview.value.id);
+                const newImages = response.data;
+
+                // Find the review in the main list and update its images
+                const reviewInList = reviews.value.find(r => r.id === selectedReview.value.id);
+                if (reviewInList) {
+                    reviewInList.anhDanhGias = newImages;
+                }
+            } catch (error) {
+                console.error("Lỗi khi làm mới ảnh đánh giá:", error);
+                // Fallback to fetching all data if specific fetch fails
+                await fetchData();
+            }
+        }
+    };
 
     const fetchData = async () => {
       try {
@@ -125,13 +335,25 @@ export default {
 
         // Fetch all reviews and filter
         const reviewsRes = await getAllDanhGia();
-        const filteredReviews = reviewsRes.data.filter(r => r.homeStayId == homestayId);
+        const filteredReviewsFromServer = reviewsRes.data.filter(r => r.homeStayId == homestayId);
 
-        // Add state properties to each review
-        reviews.value = filteredReviews.map(r => ({ ...r, isHidden: false, isDeleted: false, likes: 0, isLiked: false }));
+        // Map server data to our component's review model
+        // This preserves client-side state like 'likes' across data refreshes
+        reviews.value = filteredReviewsFromServer.map(serverReview => {
+            const existingReview = reviews.value.find(r => r.id === serverReview.id);
+            return {
+                ...serverReview,
+                // Initialize isHidden based on the server's trangThai field
+                // `trangThai` = true means visible, so isHidden should be false.
+                isHidden: existingReview ? existingReview.isHidden : (serverReview.trangThai === false),
+                isDeleted: existingReview ? existingReview.isDeleted : false, // for client-side filtering only
+                likes: existingReview ? existingReview.likes : 0, // for client-side interaction
+                isLiked: existingReview ? existingReview.isLiked : false,
+            };
+        });
 
         // Fetch customer names for the reviews
-        const customerIds = [...new Set(filteredReviews.map(r => r.khachHangId))];
+        const customerIds = [...new Set(reviews.value.map(r => r.khachHangId))];
         const customerPromises = customerIds.map(id => {
           if (!reviewCustomers.value[id]) {
             return getKhachHangById(id).then(res => {
@@ -155,20 +377,6 @@ export default {
 
     const setStarFilter = (stars) => {
       selectedStarFilter.value = stars;
-    };
-
-    const hideReview = (reviewId) => {
-      const review = reviews.value.find(r => r.id === reviewId);
-      if (review) {
-        review.isHidden = !review.isHidden;
-      }
-    };
-
-    const deleteReview = (reviewId) => {
-      const review = reviews.value.find(r => r.id === reviewId);
-      if (review) {
-        review.isDeleted = true;
-      }
     };
 
     const toggleLike = (reviewId) => {
@@ -205,13 +413,7 @@ export default {
       // 3. Filter by star rating
       if (selectedStarFilter.value !== null) {
         const minRating = selectedStarFilter.value;
-        if (minRating === 5) {
-          return tempReviews.filter(review => review.diemSo === 5);
-        }
-        const maxRating = minRating + 1;
-        return tempReviews.filter(review =>
-          review.diemSo >= minRating && review.diemSo < maxRating
-        );
+        return tempReviews.filter(review => review.diemSo >= minRating);
       }
 
       return tempReviews;
@@ -233,12 +435,30 @@ export default {
       formatDate,
       selectedStarFilter,
       setStarFilter,
-      hideReview,
-      deleteReview,
       toggleLike,
       averageRating,
       visibilityFilter,
-      filteredReviews
+      filteredReviews,
+      isImageModalOpen,
+      currentModalImage,
+      openImageModal,
+      closeImageModal,
+      isManageImagesModalOpen,
+      selectedReview,
+      openManageImagesModal,
+      closeManageImagesModal,
+      handleImagesUpdated,
+      isReviewModalVisible,
+      openAddReviewModal,
+      closeReviewModal,
+      newReview,
+      setRating,
+      submitReview,
+      isSubmitting,
+      handleImageUpload,
+      imagePreviews,
+      removeImage,
+      formErrors,
     };
   }
 }
@@ -255,6 +475,7 @@ export default {
 .page-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 20px;
   margin-bottom: 20px;
 }
@@ -443,12 +664,11 @@ export default {
   border-color: #d43f3a;
 }
 .card-top-actions {
-    position: absolute;
-    top: 20px;
-    right: 20px;
     display: flex;
+    justify-content: flex-end;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 .like-button {
   padding: 6px 12px;
@@ -478,21 +698,374 @@ export default {
   background-color: #357abd;
 }
 .review-status-indicator {
-    font-size: 12px;
-    font-weight: 500;
     padding: 5px 10px;
-    border-radius: 15px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
 }
 .status-visible {
-    color: #27ae60;
-    background-color: #eafaf1;
-    border: 1px solid #a3e9a4;
+    background-color: #48bb78; /* Green */
 }
 .status-hidden {
-    color: #c0392b;
-    background-color: #fdedec;
-    border: 1px solid #f5b7b1;
+    background-color: #f56565; /* Red */
+}
+.review-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+.review-image-item {
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+.review-image-item:hover {
+  transform: scale(1.05);
+}
+.review-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+}
+.image-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.image-modal-content {
+  position: relative;
+  max-width: 80%;
+  max-height: 80%;
+}
+.modal-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.close-modal {
+  position: absolute;
+  top: -25px;
+  right: 0px;
+  color: white;
+  font-size: 30px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.danh-gia-card.shopee-style {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: box-shadow 0.3s, background-color 0.3s ease;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    position: relative;
+}
+.danh-gia-card.shopee-style.is-hidden {
+  background-color: #fff5f5;
+  border-left: 5px solid #e53e3e;
+  opacity: 0.8;
+}
+.review-status-indicator {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+}
+.status-visible {
+    background-color: #48bb78; /* Green */
+}
+.status-hidden {
+    background-color: #f56565; /* Red */
+}
+.review-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.user-avatar img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 15px;
+  border: 2px solid #eee;
+}
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+.username {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+.rating-stars .fas, .rating-stars .far {
+  color: #ffc107;
+  font-size: 16px;
+}
+.review-metadata {
+  color: #757575;
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+.review-content {
+  color: #424242;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 15px;
+}
+.action-button {
+  background: none;
+  border: 1px solid #ccc;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 14px;
+}
+.action-button i {
+  margin-right: 8px;
+}
+.hide-button:hover {
+  background-color: #fefcbf; /* Light yellow */
+  border-color: #f7b731;
+}
+.delete-button:hover {
+  background-color: #fed7d7; /* Light red */
+  border-color: #e53e3e;
+  color: #c53030;
+}
+.like-button {
+  background: none;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.like-button.liked {
+  background-color: #2979ff;
+  color: white;
+  border-color: #2979ff;
+}
+.like-button:hover {
+  background-color: #e3f2fd;
+}
+.card-top-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.manage-photos-button:hover {
+  background-color: #e0e7ff; /* Light blue */
+  border-color: #6366f1;
+}
+
+/* Add Review Button Styles */
+.add-review-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.add-review-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+.add-review-btn i {
+    font-size: 14px;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1051;
+    padding: 20px;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 20px 30px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.close-modal-btn {
+    position: sticky;
+    top: 0;
+    right: -10px;
+    float: right;
+    font-size: 24px;
+    font-weight: bold;
+    color: #888;
+    background: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    z-index: 10;
+}
+.close-modal-btn:hover {
+    color: #333;
+}
+.review-form {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.star-rating {
+    display: flex;
+    gap: 5px;
+    font-size: 24px;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.star-rating .fa-star {
+    transition: color 0.2s;
+}
+
+.star-rating span:hover i,
+.star-rating span.filled i {
+    color: #f59e0b;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.file-input {
+    width: 100%;
+}
+
+.image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.image-preview {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.submit-review-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.submit-review-btn:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.submit-review-btn:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+}
+.error-text {
+    color: #e53e3e;
+    font-size: 13px;
+    margin-top: 5px;
 }
 </style>

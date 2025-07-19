@@ -385,7 +385,7 @@
 </template>
 
 <script>
-import { getAllTinTuc, addTinTuc, updateTinTuc, deleteTinTuc, getTinTucById, prepareTinTucData } from "@/Service/TinTucService";
+import { getAllTinTuc, addTinTuc, updateTinTuc, deleteTinTuc, getTinTucById, prepareTinTucData, testApiConnection } from "@/Service/TinTucService";
 import { useAuthStore } from "@/stores/authStore";
 import { getAnhTinTucByTinTucId, addAnhTinTucWithImage } from '@/Service/AnhTinTucService';
 import api from '@/utils/api';
@@ -531,10 +531,20 @@ export default {
     async loadTinTuc() {
       try {
         this.loading = true;
+        this.apiError = false;
+
+        // Thử kết nối API test trước
+        try {
+          const testRes = await testApiConnection();
+          console.log('API test response:', testRes.data);
+        } catch (testError) {
+          console.warn('API test không hoạt động:', testError);
+        }
+
+        // Tiếp tục với API chính
         const res = await getAllTinTuc();
         this.tinTucs = res.data;
         this.totalPages = Math.ceil(this.tinTucs.length / this.pageSize) || 1;
-        this.apiError = false;
       } catch (error) {
         console.error('Lỗi khi tải danh sách tin tức:', error);
         this.apiError = true;
@@ -950,8 +960,12 @@ export default {
 
         // Lưu hoặc cập nhật dữ liệu
         let response;
+        let tinTucId;
+
         if (this.isEditing) {
           console.log(`Cập nhật tin tức ID ${this.form.id}`);
+          tinTucId = this.form.id; // Lưu ID trước khi cập nhật
+
           // Gửi form data nếu có ảnh mới, nếu không thì gửi JSON
           if (mainFormData) {
             console.log('Cập nhật với ảnh bìa mới');
@@ -962,15 +976,24 @@ export default {
           }
           console.log('Kết quả cập nhật:', response);
 
+          // Kiểm tra response để đảm bảo cập nhật thành công
+          if (!response || !response.data) {
+            throw new Error('Không nhận được dữ liệu phản hồi sau khi cập nhật');
+          }
+
+          // Cập nhật tinTucId từ response để đảm bảo
+          if (response.data) {
+            if (response.data.id) {
+              tinTucId = response.data.id;
+            } else if (response.data.data && response.data.data.id) {
+              tinTucId = response.data.data.id;
+              console.log('Lấy ID tin tức từ cấu trúc lồng ghép trong cập nhật:', tinTucId);
+            }
+          }
+
           // Đóng modal sau khi cập nhật thành công
           this.showModal = false;
           alert('Cập nhật thành công');
-
-          // Sau khi lưu tin tức, thêm các ảnh chi tiết (nếu có)
-          if (response && response.data && this.imageUploads.length > 0) {
-            const tinTucId = response.data.id;
-            await this.uploadContentImages(tinTucId);
-          }
         } else {
           console.log('Thêm mới tin tức');
           if (mainFormData) {
@@ -980,15 +1003,35 @@ export default {
           }
           console.log('Kết quả thêm mới:', response);
 
+          // Kiểm tra response để đảm bảo thêm mới thành công
+          if (!response || !response.data) {
+            throw new Error('Không nhận được dữ liệu phản hồi sau khi thêm mới');
+          }
+
+          // Lấy ID tin tức từ response
+          tinTucId = response.data.id;
+          if (!tinTucId) {
+            // Try to extract ID from nested data structure
+            if (response.data && response.data.data && response.data.data.id) {
+              tinTucId = response.data.data.id;
+              console.log('Lấy ID tin tức từ cấu trúc lồng ghép:', tinTucId);
+            } else {
+              console.error('Không thể trích xuất ID tin tức từ response:', response);
+              throw new Error('Không nhận được ID tin tức từ response. Dữ liệu trả về không hợp lệ.');
+            }
+          }
+
           // Đóng modal sau khi thêm mới thành công
           this.showModal = false;
           alert('Thêm mới thành công');
+        }
 
-          // Sau khi lưu tin tức, thêm các ảnh chi tiết (nếu có)
-          if (response && response.data && this.imageUploads.length > 0) {
-            const tinTucId = response.data.id;
-            await this.uploadContentImages(tinTucId);
-          }
+        // Sau khi lưu tin tức, thêm các ảnh chi tiết (nếu có)
+        if (tinTucId && this.imageUploads.length > 0) {
+          console.log('Bắt đầu upload ảnh với ID tin tức:', tinTucId);
+          await this.uploadContentImages(tinTucId);
+        } else {
+          console.log('Không có ảnh để upload hoặc không có ID tin tức');
         }
 
         // Làm mới dữ liệu
@@ -1006,7 +1049,25 @@ export default {
     async uploadContentImages(tinTucId) {
       try {
         console.log('Bắt đầu upload ảnh nội dung cho tin tức ID:', tinTucId);
+
+        // Convert tinTucId to number for validation if it's a string
+        if (typeof tinTucId === 'string') {
+          tinTucId = parseInt(tinTucId, 10);
+        }
+
+        // Validate tinTucId before proceeding
+        if (!tinTucId || isNaN(tinTucId)) {
+          console.error('ID tin tức không hợp lệ:', tinTucId);
+          throw new Error('ID tin tức không hợp lệ khi upload ảnh');
+        }
+
         console.log('Số lượng ảnh cần upload:', this.imageUploads.length);
+
+        // Nếu không có ảnh nào để upload, thoát sớm
+        if (!this.imageUploads || this.imageUploads.length === 0) {
+          console.log('Không có ảnh nào để upload, bỏ qua');
+          return;
+        }
 
         // Upload từng ảnh và lấy URL
         const uploadPromises = [];
@@ -1014,18 +1075,19 @@ export default {
 
         // Kiểm tra kết nối trước khi upload
         try {
-          await api.get('/api/anh-tintuc/by-tintuc/' + tinTucId);
+          await api.get(`/api/anh-tintuc/by-tintuc/${tinTucId}`);
           console.log('Kết nối tới API thành công');
         } catch (error) {
           console.error('Lỗi kết nối tới API:', error);
+          throw new Error('Không thể kết nối đến API để upload ảnh');
         }
 
         for (const imageUpload of this.imageUploads) {
-          if (imageUpload.file instanceof File) {
+          if (imageUpload && imageUpload.file instanceof File) {
             console.log('Đang xử lý file:', imageUpload.file.name);
             const formData = new FormData();
             formData.append('file', imageUpload.file);
-            formData.append('tinTucId', tinTucId);
+            formData.append('tinTucId', tinTucId.toString()); // Ensure tinTucId is a string
             formData.append('isAnhBia', 'false');
 
             // Tạo promise và theo dõi ID ảnh
@@ -1042,7 +1104,7 @@ export default {
               })
               .catch(error => {
                 console.error('Lỗi khi upload ảnh:', error);
-                throw error;
+                return null; // Continue with other uploads even if one fails
               });
 
             uploadPromises.push(uploadPromise);
@@ -1059,17 +1121,22 @@ export default {
           console.log('Kết quả upload:', results);
 
           // Kiểm tra kết quả upload
-          const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
+          const successfulUploads = results.filter(r => r.status === 'fulfilled' && r.value).length;
           console.log(`Đã upload thành công ${successfulUploads}/${uploadPromises.length} ảnh`);
 
           // Sau khi tất cả ảnh đã được upload, cập nhật nội dung tin tức với các URL ảnh thực tế
-          console.log('Tất cả ảnh đã được upload, cập nhật nội dung tin tức');
-          await this.updateNewsContentWithActualImageUrls(tinTucId, imageMap);
+          if (successfulUploads > 0) {
+            console.log('Có ảnh đã được upload thành công, cập nhật nội dung tin tức');
+            await this.updateNewsContentWithActualImageUrls(tinTucId, imageMap);
+          } else {
+            console.warn('Không có ảnh nào được upload thành công, bỏ qua cập nhật nội dung');
+          }
         }
 
         console.log('Đã upload tất cả ảnh nội dung cho tin tức ID:', tinTucId);
       } catch (error) {
         console.error('Lỗi khi upload ảnh nội dung:', error);
+        // Don't throw the error further to prevent the entire save process from failing
       }
     },
 
@@ -1079,61 +1146,77 @@ export default {
         console.log('Bắt đầu cập nhật URL ảnh trong nội dung tin tức');
         console.log('Image map:', imageMap);
 
-        // Lấy chi tiết tin tức hiện tại
-        const newsResponse = await getTinTucById(tinTucId);
-        if (!newsResponse || !newsResponse.data) {
-          console.error('Không thể lấy thông tin tin tức để cập nhật URL ảnh');
+        // Validate tinTucId
+        if (!tinTucId) {
+          console.error('ID tin tức không hợp lệ hoặc undefined');
           return;
         }
 
-        const news = newsResponse.data;
-        let updatedContent = news.noiDung;
-        let replacedCount = 0;
-
-        // Thay thế các base64 URLs bằng URL thực tế
-        for (const [imageId, imageUrl] of Object.entries(imageMap)) {
-          console.log(`Đang xử lý ảnh ${imageId} với URL: ${imageUrl.substring(0, 50)}...`);
-
-          // Tìm phần tử ảnh theo ID
-          const imageIdPattern = new RegExp(`id="image-${imageId}"[^>]*>[\\s\\S]*?<img[^>]*src="([^"]+)"`, 'g');
-          const matches = [...updatedContent.matchAll(imageIdPattern)];
-          console.log(`Tìm thấy ${matches.length} kết quả cho imageId=${imageId}`);
-
-          if (matches.length > 0) {
-            for (const match of matches) {
-              const fullMatch = match[0];
-              const base64Url = match[1];
-
-              // Chỉ thay thế nếu URL là base64
-              if (base64Url.startsWith('data:image')) {
-                console.log('Tìm thấy ảnh base64, thực hiện thay thế URL');
-                const updatedImageHtml = fullMatch.replace(base64Url, imageUrl);
-                updatedContent = updatedContent.replace(fullMatch, updatedImageHtml);
-                replacedCount++;
-                console.log('Đã thay thế URL base64 bằng URL thực tế');
-              } else {
-                console.log('Bỏ qua ảnh không phải base64:', base64Url.substring(0, 30));
-              }
-            }
-          } else {
-            console.log('Không tìm thấy ảnh phù hợp với ID:', imageId);
-          }
+        // Check if imageMap is empty
+        if (!imageMap || Object.keys(imageMap).length === 0) {
+          console.log('Không có ảnh nào cần cập nhật, bỏ qua');
+          return;
         }
 
-        console.log(`Đã thay thế ${replacedCount} URL ảnh trong nội dung`);
+        // Lấy chi tiết tin tức hiện tại
+        try {
+          const newsResponse = await getTinTucById(tinTucId);
+          if (!newsResponse || !newsResponse.data) {
+            console.error('Không thể lấy thông tin tin tức để cập nhật URL ảnh');
+            return;
+          }
 
-        // Cập nhật lại nội dung tin tức với URLs ảnh thực tế
-        if (replacedCount > 0) {
-          const updateData = {
-            ...news,
-            noiDung: updatedContent
-          };
+          const news = newsResponse.data;
+          let updatedContent = news.noiDung;
+          let replacedCount = 0;
 
-          console.log('Gửi yêu cầu cập nhật nội dung tin tức');
-          await updateTinTuc(tinTucId, updateData);
-          console.log('Đã cập nhật nội dung tin tức với URL ảnh thực tế');
-        } else {
-          console.log('Không có URL ảnh nào được thay thế, bỏ qua cập nhật');
+          // Thay thế các base64 URLs bằng URL thực tế
+          for (const [imageId, imageUrl] of Object.entries(imageMap)) {
+            console.log(`Đang xử lý ảnh ${imageId} với URL: ${imageUrl.substring(0, 50)}...`);
+
+            // Tìm phần tử ảnh theo ID
+            const imageIdPattern = new RegExp(`id="image-${imageId}"[^>]*>[\\s\\S]*?<img[^>]*src="([^"]+)"`, 'g');
+            const matches = [...updatedContent.matchAll(imageIdPattern)];
+            console.log(`Tìm thấy ${matches.length} kết quả cho imageId=${imageId}`);
+
+            if (matches.length > 0) {
+              for (const match of matches) {
+                const fullMatch = match[0];
+                const base64Url = match[1];
+
+                // Chỉ thay thế nếu URL là base64
+                if (base64Url.startsWith('data:image')) {
+                  console.log('Tìm thấy ảnh base64, thực hiện thay thế URL');
+                  const updatedImageHtml = fullMatch.replace(base64Url, imageUrl);
+                  updatedContent = updatedContent.replace(fullMatch, updatedImageHtml);
+                  replacedCount++;
+                  console.log('Đã thay thế URL base64 bằng URL thực tế');
+                } else {
+                  console.log('Bỏ qua ảnh không phải base64:', base64Url.substring(0, 30));
+                }
+              }
+            } else {
+              console.log('Không tìm thấy ảnh phù hợp với ID:', imageId);
+            }
+          }
+
+          console.log(`Đã thay thế ${replacedCount} URL ảnh trong nội dung`);
+
+          // Cập nhật lại nội dung tin tức với URLs ảnh thực tế
+          if (replacedCount > 0) {
+            const updateData = {
+              ...news,
+              noiDung: updatedContent
+            };
+
+            console.log('Gửi yêu cầu cập nhật nội dung tin tức');
+            await updateTinTuc(tinTucId, updateData);
+            console.log('Đã cập nhật nội dung tin tức với URL ảnh thực tế');
+          } else {
+            console.log('Không có URL ảnh nào được thay thế, bỏ qua cập nhật');
+          }
+        } catch (error) {
+          console.error('Lỗi khi tải chi tiết tin tức:', error);
         }
       } catch (error) {
         console.error('Lỗi khi cập nhật URL ảnh trong nội dung tin tức:', error);

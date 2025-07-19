@@ -7,6 +7,9 @@ export const getAllTinTuc = async () => {
 
 // Lấy chi tiết tin tức theo ID
 export const getTinTucById = async (id) => {
+  if (!id || id === 'undefined') {
+    return Promise.reject(new Error('ID tin tức không hợp lệ'));
+  }
   return api.get(`/api/tin-tuc/detail/${id}`);
 };
 
@@ -18,11 +21,51 @@ export const addTinTuc = async (data) => {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
+    }).then(response => {
+      // Check for nested data structure and standardize it
+      if (response.data && typeof response.data === 'object') {
+        console.log("Response structure:", response.data);
+        // If response follows the Map format with success, message, data fields
+        if ('data' in response.data) {
+          // Return the standardized response with data field
+          return response;
+        }
+        // If direct object response, wrap it in a standard format
+        return {
+          ...response,
+          data: {
+            success: true,
+            message: "Thêm tin tức thành công",
+            data: response.data
+          }
+        };
+      }
+      return response;
     });
   }
 
   // Nếu không, gửi dữ liệu dạng JSON
-  return api.post('/api/tin-tuc/add', data);
+  return api.post('/api/tin-tuc/add', data).then(response => {
+    // Check for nested data structure and standardize it
+    if (response.data && typeof response.data === 'object') {
+      console.log("Response structure:", response.data);
+      // If response follows the Map format with success, message, data fields
+      if ('data' in response.data) {
+        // Return the standardized response with data field
+        return response;
+      }
+      // If direct object response, wrap it in a standard format
+      return {
+        ...response,
+        data: {
+          success: true,
+          message: "Thêm tin tức thành công",
+          data: response.data
+        }
+      };
+    }
+    return response;
+  });
 };
 
 // Cập nhật tin tức với hình ảnh
@@ -40,11 +83,49 @@ export const updateTinTuc = async (id, data) => {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
+    }).then(response => {
+      // Standardize response format
+      if (response.data && typeof response.data === 'object') {
+        console.log("Update response structure:", response.data);
+        // If response follows the Map format with success, message, data fields
+        if ('data' in response.data) {
+          return response;
+        }
+        // If direct object response, wrap it in a standard format
+        return {
+          ...response,
+          data: {
+            success: true,
+            message: "Cập nhật tin tức thành công",
+            data: response.data
+          }
+        };
+      }
+      return response;
     });
   }
 
   // Nếu không, gửi dữ liệu dạng JSON
-  return api.put(`/api/tin-tuc/update/${cleanId}`, data);
+  return api.put(`/api/tin-tuc/update/${cleanId}`, data).then(response => {
+    // Standardize response format
+    if (response.data && typeof response.data === 'object') {
+      console.log("Update response structure:", response.data);
+      // If response follows the Map format with success, message, data fields
+      if ('data' in response.data) {
+        return response;
+      }
+      // If direct object response, wrap it in a standard format
+      return {
+        ...response,
+        data: {
+          success: true,
+          message: "Cập nhật tin tức thành công",
+          data: response.data
+        }
+      };
+    }
+    return response;
+  });
 };
 
 // Xóa tin tức
@@ -83,3 +164,14 @@ export function prepareTinTucData(data) {
 
   return preparedData;
 }
+
+// Test API connection
+export const testApiConnection = async () => {
+  try {
+    console.log('Đang thử kết nối với API');
+    return api.get('/api/tin-tuc/hien-thi');
+  } catch (error) {
+    console.error('Lỗi khi test kết nối API:', error);
+    throw error;
+  }
+};

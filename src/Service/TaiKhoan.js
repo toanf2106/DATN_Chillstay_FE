@@ -99,5 +99,15 @@ export const searchTaiKhoan = (query) => {
   return api.get(`/api/taiKhoan/search?query=${query}`);
 };
 
+// kiểm tra mật khẩu cũ
+export const checkOldPassword = (data) => {
+  return api.post('/api/taiKhoan/verifyPassword', data);
+};
+
+//  đổi mật khẩu
+export const changePassword = (data) => {
+  return api.post('/api/taiKhoan/changePassword', data);
+};
+
 
 

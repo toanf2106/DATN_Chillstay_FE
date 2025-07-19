@@ -660,7 +660,8 @@ import { getAllHomeStay, getSoPhongByHomestayId2 } from '@/Service/HomeStayServi
 import {
   getTienNghiByIdHomeStay,
   getDichVuByIdHomeStay,
-  createDatHome,
+  // createDatHome,
+  createDatHomeKHTT,
   // createDatHomeChuyenKhoan,
   getGiamGiaByIdHomeStay,
   getSoLuongKhachHangByTaiKhoanId,
@@ -970,9 +971,9 @@ export default {
             this.currentStep++
           }
         } else {
-          // Nếu là tiền mặt, sử dụng API đặt phòng thông thường với trạng thái "DaXacNhan"
-          response = await createDatHome(bookingData)
-          console.log('Đặt phòng với phương thức tiền mặt:', response.data)
+          // Nếu là tiền mặt, sử dụng API đặt phòng cho khách hàng thân thiết
+          response = await createDatHomeKHTT(bookingData)
+          console.log('Đặt phòng với phương thức tiền mặt cho khách thân thiết:', response.data)
 
           if (response && response.data) {
             this.bookingData = response.data

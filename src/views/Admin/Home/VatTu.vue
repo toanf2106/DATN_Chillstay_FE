@@ -404,7 +404,7 @@ function cancelDelete() {
 async function confirmDelete() {
   processing.value = true
   try {
-    await api.delete(`/api/vattu/delete/${selectedVatTuId.value}`)
+    await apiDeleteVatTu(selectedVatTuId.value)
     notification.success('Đã xóa vật tư thành công!')
     await fetchVatTu()
   } catch (error) {

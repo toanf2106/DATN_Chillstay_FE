@@ -74,8 +74,8 @@
                 <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
                 <img v-else src="https://via.placeholder.com/300x200" :alt="home.tenHomestay" />
                 <div class="homestay-rating">
-                  <span class="stars">★</span> {{ home.danhGiaTrungBinh || '4.8' }} ({{
-                    home.soDanhGia || '100'
+                  <span class="stars">★</span> {{ home.danhGiaTrungBinh || '0' }} ({{
+                    home.soDanhGia || '0'
                   }}
                   đánh giá)
                 </div>
@@ -84,18 +84,18 @@
               <div class="homestay-content">
                 <p class="homestay-location">
                   <i class="fas fa-map-marker-alt"></i>
-                  {{ home.diaChi || 'Trung tâm Mộc Châu, Sơn La' }}
+                  {{ home.diaChi || 'Không có địa chỉ' }}
                 </p>
                 <h3>{{ home.tenHomestay }}</h3>
                 <div class="homestay-details">
                   <span><i class="fas fa-home"></i> Homestay</span>
-                  <span><i class="fas fa-ruler"></i> {{ home.dienTich || '35' }} m²</span>
+                  <span><i class="fas fa-ruler"></i> {{ home.dienTich || '0' }} m²</span>
                   <span><i class="fas fa-bed"></i> {{ roomCounts[home.id] || 0 }} phòng</span>
                 </div>
                 <div class="homestay-price">
                   <span class="price"
                     >{{
-                      home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
+                      home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '0'
                     }}₫</span
                   >
                   <span class="price-unit">/đêm</span>
@@ -142,7 +142,7 @@
                 <h3 class="property-name">{{ getSelectedHomestay().tenHomestay }}</h3>
                 <p class="property-address">
                   <i class="fas fa-map-marker-alt"></i>
-                  {{ getSelectedHomestay().diaChi || 'Trung tâm Mộc Châu, Sơn La' }}
+                  {{ getSelectedHomestay().diaChi || 'Không có địa chỉ' }}
                 </p>
                 <div class="property-image">
                   <img
@@ -166,7 +166,7 @@
                           {{ validationErrors.checkInDate }}
                         </div> -->
                       </div>
-                      <div class="date-time">13:00 - 14:00</div>
+                      <div class="date-time"><strong>13:00 - 14:00</strong></div>
                     </div>
                     <div class="stay-duration">
                       <span>{{ calculateNights() }}</span>
@@ -186,7 +186,7 @@
                           {{ validationErrors.checkOutDate }}
                         </div> -->
                       </div>
-                      <div class="date-time">9:30 - 11:00</div>
+                      <div class="date-time"><strong>9:30 - 11:00</strong></div>
                     </div>
                   </div>
                 </div>
@@ -316,7 +316,7 @@
                           ? (
                               getSelectedHomestay().giaCaHomestay * (calculateNights() || 1)
                             ).toLocaleString('vi-VN')
-                          : '850,000'
+                          : '0'
                       }}₫</span
                     >
                   </div>
@@ -503,7 +503,7 @@
                   <h4>{{ getSelectedHomestay().tenHomestay }}</h4>
                   <p>
                     <i class="fas fa-map-marker-alt"></i>
-                    {{ getSelectedHomestay().diaChi || 'Trung tâm Mộc Châu, Sơn La' }}
+                    {{ getSelectedHomestay().diaChi || 'Không có địa chỉ' }}
                   </p>
                 </div>
               </div>
@@ -674,32 +674,62 @@
                 Cảm ơn bạn đã đặt phòng tại Chillstay. Chúng tôi đã gửi email xác nhận đến địa chỉ
                 email của bạn.
               </p>
+
+              <div class="booking-summary-title">
+                <i class="fas fa-receipt"></i>
+                <span>Chi tiết đặt phòng</span>
+              </div>
             </div>
 
             <div class="booking-info">
               <div class="info-item">
                 <div class="info-label">Mã đặt phòng:</div>
-                <div class="info-value">{{ bookingReference || 'CS-2025-11-0358' }}</div>
+                <div class="info-value">{{ bookingReference || 'Chưa có mã đặt phòng' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Tên khách hàng:</div>
+                <div class="info-value">{{ customerInfo.firstName || 'Chưa có thông tin' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Địa chỉ email:</div>
+                <div class="info-value">{{ customerInfo.email || 'Chưa có thông tin' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Số điện thoại:</div>
+                <div class="info-value">{{ customerInfo.phone || 'Chưa có thông tin' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Ngày nhận phòng:</div>
+                <div class="info-value">{{ formatDisplayDate(checkInDate) }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Ngày trả phòng:</div>
+                <div class="info-value">{{ formatDisplayDate(checkOutDate) }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Số đêm:</div>
+                <div class="info-value">{{ calculateNights() }} đêm</div>
               </div>
 
               <div class="info-item">
                 <div class="info-label">Tổng tiền:</div>
-                <div class="info-value">{{ getTotalPrice() }}₫</div>
+                <div class="info-value highlight-price">{{ getTotalPrice() }}₫</div>
               </div>
 
               <div class="info-item">
-                <div class="info-label">Trạng thái thanh toán:</div>
-                <div class="info-value payment-status">
-                  {{ getPaymentStatusText }}
-                </div>
+                <div class="info-label">Thời gian đặt:</div>
+                <div class="info-value">{{ new Date().toLocaleString('vi-VN') }}</div>
               </div>
             </div>
 
             <div class="action-buttons centered">
               <button class="btn btn-primary" @click="goHome">Quay về trang chủ</button>
-              <button class="btn btn-outline" @click="viewBookingDetails">
-                Xem chi tiết đặt phòng
-              </button>
             </div>
           </div>
         </div>
@@ -807,10 +837,8 @@ import {
   getTienNghiByIdHomeStay,
   getDichVuByIdHomeStay,
   createDatHome,
-  // createDatHomeChuyenKhoan,
   getGiamGiaByIdHomeStay,
 } from '@/Service/DatHomeService'
-import { mapState } from 'pinia'
 import { useAuthStore } from '@/stores/authStore'
 import notification from '@/utils/notification'
 import PaymentService from '@/Service/PaymentService'
@@ -847,7 +875,6 @@ export default {
       selectedHomestayTienNghis: [], // Lưu tiện nghi của homestay đã chọn
       selectedHomestayDichVus: [], // Lưu dịch vụ của homestay đã chọn
       selectedServices: [], // Lưu dịch vụ được chọn
-      bookingData: null,
       isSubmitting: false,
       bookingReference: null,
       isLoadingAmenities: true,
@@ -873,7 +900,9 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAuthStore, ['user']),
+    user() {
+      return useAuthStore().user
+    },
     currentProgressWidth() {
       const stepCount = this.bookingSteps.length - 1
       const progress = (this.currentStep / stepCount) * 100
@@ -1123,7 +1152,12 @@ export default {
             this.bookingData = response.data.datHome
             this.bookingReference =
               response.data.datHome?.maDatHome ||
-              'CS-' + Math.floor(Math.random() * 900000 + 100000)
+              'CS-' +
+                new Date().getFullYear() +
+                '-' +
+                String(new Date().getMonth() + 1).padStart(2, '0') +
+                '-' +
+                String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 
             // Lưu URL hình ảnh QR code
             this.paymentUrl = response.data.qrDataURL
@@ -1154,7 +1188,13 @@ export default {
           if (response && response.data) {
             this.bookingData = response.data
             this.bookingReference =
-              response.data.maDatHome || 'CS-' + Math.floor(Math.random() * 900000 + 100000)
+              response.data.maDatHome ||
+              'CS-' +
+                new Date().getFullYear() +
+                '-' +
+                String(new Date().getMonth() + 1).padStart(2, '0') +
+                '-' +
+                String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 
             // Hiển thị thông báo thành công bằng notification utility
             notification.success('Đặt phòng thành công!')
@@ -1184,8 +1224,6 @@ export default {
 
       return roomPrice - discountAmount + servicePrice
     },
-
-    // Tính tiền cọc (giả sử 30% tổng tiền)
 
     // Lấy tiện nghi cho homestay đã chọn
     async fetchSelectedHomestayTienNghis(homestayId) {
@@ -1290,12 +1328,7 @@ export default {
       }
 
       // Fallback nếu không tìm thấy
-      const roomNames = {
-        1: 'Phòng Đơn',
-        2: 'Phòng Đôi',
-        3: 'Phòng Gia Đình',
-      }
-      return roomNames[roomId] || 'Chưa chọn phòng'
+      return 'Chưa chọn phòng'
     },
     getRoomPrice(roomId) {
       // Nếu có dữ liệu homestay và ID khớp với ID đã chọn
@@ -1305,45 +1338,14 @@ export default {
       }
 
       // Fallback nếu không tìm thấy
-      const prices = {
-        1: '1.600.000',
-        2: '2.400.000',
-        3: '3.600.000',
-      }
-      return prices[roomId] || '0'
+      return '0'
     },
     getTotalPrice() {
-      // Nếu có dữ liệu homestay và ID khớp với ID đã chọn
-      const selectedHome = this.homestays.find((home) => home.id === this.selectedRoom)
-      if (selectedHome && selectedHome.giaCaHomestay) {
-        // Tính số đêm
-        const nights = this.calculateNights() || 1
-        // Giá phòng * số đêm
-        const price = selectedHome.giaCaHomestay * nights
-        // Số tiền giảm giá
-        const discountAmount = this.calculateDiscountAmount()
-        // Tổng giá dịch vụ
-        const servicePrice = this.getTotalServicePrice()
-        return (price - discountAmount + servicePrice).toLocaleString('vi-VN')
-      }
-
-      // Fallback nếu không tìm thấy
-      const prices = {
-        1: '1.800.000',
-        2: '2.600.000',
-        3: '3.800.000',
-      }
-      return prices[this.selectedRoom] || '0'
+      // Sử dụng lại phương thức calculateTotalAmount để tránh trùng lặp logic
+      return this.calculateTotalAmount().toLocaleString('vi-VN')
     },
     goHome() {
       this.$router.push({ name: 'admin-dat-homestay' })
-    },
-    viewBookingDetails() {
-      if (this.bookingData && this.bookingData.id) {
-        this.$router.push({ name: 'admin-dat-homestay', params: { id: this.bookingData.id } })
-      } else {
-        notification.error('Không thể xem chi tiết đặt phòng')
-      }
     },
     // Lấy thông tin homestay đã chọn
     getSelectedHomestay() {
@@ -1745,10 +1747,9 @@ export default {
           console.log('Đã nhận được trạng thái cuối cùng, dừng kiểm tra')
           this.stopAutoStatusCheck()
         }
-      }, 3000) // Mỗi 3 giây theo yêu cầu
+      }, 3000)
     },
 
-    // Dừng tự động kiểm tra trạng thái
     stopAutoStatusCheck() {
       console.log('Đang dừng kiểm tra trạng thái thanh toán...')
 
@@ -1900,7 +1901,6 @@ export default {
             return
           }
 
-          // Chỉ cập nhật nếu chưa ở trạng thái cuối cùng hoặc nhận trạng thái cuối cùng mới
           if (
             (this.paymentStatus !== 'ThatBai' && this.paymentStatus !== 'ThanhCong') ||
             newStatus === 'ThanhCong' ||
@@ -2821,33 +2821,53 @@ textarea {
 }
 
 .booking-info {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 25px;
   margin: 30px 0;
   text-align: left;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #0071c2;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 12px 0;
   border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
 }
 
 .info-item:last-child {
   border-bottom: none;
 }
 
+.info-item:hover {
+  background-color: rgba(0, 113, 194, 0.03);
+  border-radius: 6px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .info-label {
   font-weight: 500;
-  color: #6c757d;
+  color: #495057;
+  font-size: 0.95rem;
 }
 
 .info-value {
   font-weight: 600;
   color: #333;
+  font-size: 0.95rem;
+}
+
+.highlight-price {
+  color: #0071c2;
+  font-size: 1.1rem;
 }
 
 .payment-status {
@@ -4532,5 +4552,24 @@ textarea {
   .quick-buttons {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+.booking-summary-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e9ecef;
+  color: #0071c2;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.booking-summary-title i {
+  color: #0071c2;
+  background-color: rgba(0, 113, 194, 0.1);
+  padding: 8px;
+  border-radius: 50%;
 }
 </style>

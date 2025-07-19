@@ -8,6 +8,10 @@ export function getNhanVienById(id) {
   return api.get(`/api/nhanVien/${id}`);
 }
 
+export const getNhanVienByTaiKhoanId = (taiKhoanId) => {
+  return api.get(`/api/nhanVien/byTaiKhoan/${taiKhoanId}`);
+};
+
 export const deleteNhanVien = (id) => {
   return api.put(`/api/nhanVien/delete/${id}`);
 };

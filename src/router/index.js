@@ -226,11 +226,17 @@ const router = createRouter({
           }
         },
 
-        {
-          path: '',
-          name: 'admin-welcome',
-          component: () => import('../components/Welcome.vue'), // Trang welcome admin
-        },
+          {
+            path: '',
+            name: 'admin-welcome',
+            component: () => import('../components/Welcome.vue'), // Trang welcome admin
+          },
+
+          {
+            path: '/admin/phuphi',
+            name: 'admin-phuphi',
+            component: () => import('../views/Admin/PhuPhi.vue'),
+          },
         // Chuyển hướng mặc định về trang thống kê
       ],
     },

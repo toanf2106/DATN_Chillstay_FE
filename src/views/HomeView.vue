@@ -112,15 +112,20 @@
               </p>
               <h3>{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
-                <span v-if="home.loaiHomeStay"><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span>
-                <span v-if="home.dienTich"><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span>
-                <span v-if="home.sucChua"><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span>
+                <span v-if="home.loaiHomeStay"
+                  ><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span
+                >
+                <span v-if="home.dienTich"
+                  ><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span
+                >
+                <span v-if="home.sucChua"
+                  ><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span
+                >
               </div>
 
               <div class="homestay-owner" v-if="home.hotenChuHomestay">
                 <i class="fas fa-user"></i> Chủ homestay: {{ home.hotenChuHomestay }}
               </div>
-
 
               <div class="homestay-price" v-if="home.giaCaHomestay">
                 <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
@@ -135,7 +140,6 @@
                   <span class="price-unit">/đêm</span>
                 </div> -->
                 <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
-
               </div>
             </div>
           </div>
@@ -169,8 +173,12 @@
           </div>
 
           <div class="review-tabs">
-            <button v-for="(review, index) in reviews" :key="index"
-              :class="['tab-button', { active: activeReviewIndex === index }]" @click="activeReviewIndex = index">
+            <button
+              v-for="(review, index) in reviews"
+              :key="index"
+              :class="['tab-button', { active: activeReviewIndex === index }]"
+              @click="activeReviewIndex = index"
+            >
               {{ review.author }}
             </button>
           </div>
@@ -215,7 +223,9 @@
             </div>
             <h3 class="news-title">{{ article.tieuDe }}</h3>
             <p class="news-excerpt">{{ article.moTaNgan }}</p>
-            <router-link :to="`/tin-tuc/${article.id}`" class="news-read-more">Đọc thêm</router-link>
+            <router-link :to="`/tin-tuc/${article.id}`" class="news-read-more"
+              >Đọc thêm</router-link
+            >
           </div>
         </div>
       </div>
@@ -410,13 +420,17 @@ const fetchHomestayData = async () => {
               const anhResponse = await getAnhHomeStayByHomestayId(homestay.id)
               if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
                 // Tìm ảnh bìa (anhBia = true) hoặc ảnh đầu tiên có trạng thái hoạt động
-                const mainImage = anhResponse.data.find(img => img.anhBia === true) ||
-                  anhResponse.data.find(img => img.trangThai !== false) ||
+                const mainImage =
+                  anhResponse.data.find((img) => img.hinhAnh === true) ||
+                  anhResponse.data.find((img) => img.trangThai !== false) ||
                   anhResponse.data[0]
 
                 if (mainImage) {
                   homestay.hinhAnh = mainImage.duongDanAnh
-                  console.log(`Đã tìm thấy ảnh bìa cho homestay ${homestay.id}:`, mainImage.duongDanAnh)
+                  console.log(
+                    `Đã tìm thấy ảnh bìa cho homestay ${homestay.id}:`,
+                    mainImage.duongDanAnh,
+                  )
                 } else {
                   console.log(`Không tìm thấy ảnh phù hợp cho homestay ${homestay.id}`)
                 }
@@ -475,7 +489,7 @@ const fetchNewsData = async () => {
     if (res.data && Array.isArray(res.data)) {
       // Lấy 3 tin tức mới nhất
       const latestNews = res.data
-        .filter(news => news.trangThai !== false) // Lọc tin tức có trạng thái hoạt động
+        .filter((news) => news.trangThai !== false) // Lọc tin tức có trạng thái hoạt động
         .sort((a, b) => new Date(b.ngayDang) - new Date(a.ngayDang)) // Sắp xếp theo ngày đăng mới nhất
         .slice(0, 3) // Lấy 3 tin tức đầu tiên
 
@@ -486,7 +500,8 @@ const fetchNewsData = async () => {
             const anhResponse = await getAnhTinTucByTinTucId(news.id)
             if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
               // Tìm ảnh bìa hoặc ảnh đầu tiên
-              const coverImage = anhResponse.data.find(img => img.anhBia === true) || anhResponse.data[0]
+              const coverImage =
+                anhResponse.data.find((img) => img.anhBia === true) || anhResponse.data[0]
               if (coverImage) {
                 news.anhBia = coverImage.duongDanAnh
               }
@@ -498,13 +513,14 @@ const fetchNewsData = async () => {
           // Tạo mô tả ngắn nếu không có
           if (!news.moTaNgan && news.noiDung) {
             // Lấy 150 ký tự đầu tiên từ nội dung và loại bỏ các thẻ HTML
-            news.moTaNgan = news.noiDung
-              .replace(/<[^>]*>/g, '') // Loại bỏ các thẻ HTML
-              .slice(0, 150) + '...'
+            news.moTaNgan =
+              news.noiDung
+                .replace(/<[^>]*>/g, '') // Loại bỏ các thẻ HTML
+                .slice(0, 150) + '...'
           }
 
           return news
-        })
+        }),
       )
     } else {
       hasNewsError.value = true
@@ -526,20 +542,20 @@ onMounted(async () => {
 
 // Helper function to fix image URLs if they start with a slash
 const fixImageUrl = (url) => {
-  if (!url) return defaultImage;
+  if (!url) return defaultImage
 
   // If it's already an absolute URL, return it as is
   if (url.startsWith('http')) {
-    return url;
+    return url
   }
 
   // If it's a relative URL
   if (url.startsWith('/')) {
     // Use the API base URL from api.js
-    return api.defaults.baseURL + url;
+    return api.defaults.baseURL + url
   }
 
-  return url;
+  return url
 }
 </script>
 
@@ -571,7 +587,8 @@ const fixImageUrl = (url) => {
 
 /* Phần Hero */
 .hero-section {
-  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center/cover;
+  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
+    no-repeat center/cover;
   color: #fff;
   padding: 100px 0;
   position: relative;

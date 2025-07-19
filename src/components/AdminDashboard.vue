@@ -192,6 +192,13 @@
                 <span>Thanh toán</span>
               </a>
             </div>
+
+            <div class="menu-item" :class="{ active: isRouteActive('admin-phuphi') }">
+              <a href="#" @click.prevent="navigateTo('admin-phuphi')">
+                <i class="fas fa-money-bill"></i>
+                <span>Phụ phí</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>

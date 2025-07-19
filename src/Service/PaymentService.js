@@ -28,6 +28,22 @@ class PaymentService {
     }
   }
 
+  // Tạo link thanh toán cho số tiền còn lại
+  async createPaymentRemaining(amount, idDatHome) {
+    try {
+      const response = await api.post('/api/payment/create-payment-remaining', null, {
+        params: {
+          amount: amount,
+          idDatHome: idDatHome
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Lỗi khi tạo link thanh toán số tiền còn lại:', error)
+      throw error
+    }
+  }
+
   // Lấy thông tin thanh toán dựa trên orderCode
   async getPaymentInfo(orderCode) {
     try {

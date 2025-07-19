@@ -35,7 +35,7 @@
   font-size: 1.8rem;
 }
 
-.admin-search {
+/* .admin-search {
   display: flex;
   align-items: center;
 }
@@ -53,7 +53,7 @@
   padding: 8px 12px;
   border-radius: 0 20px 20px 0;
   cursor: pointer;
-}
+} */
 
 .admin-notifications {
   position: relative;

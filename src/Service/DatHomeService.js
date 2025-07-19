@@ -15,6 +15,11 @@ export function updateStatus(id, newTrangThai, thucHienBoi, ghiChu) {
   return api.put(`/api/datHome/updateStatus/${id}?newTrangThai=${newTrangThai}${thucHienBoi ? `&thucHienBoi=${thucHienBoi}` : ''}${ghiChu ? `&ghiChu=${encodeURIComponent(ghiChu)}` : ''}`)
 }
 
+// Xác nhận đặt phòng và tự động hủy các đơn đặt trùng lặp
+export function confirmAndCancelOverlaps(id, thucHienBoi, ghiChu) {
+  return api.put(`/api/datHome/confirmAndCancel/${id}${thucHienBoi ? `?thucHienBoi=${thucHienBoi}` : '?'}${ghiChu ? `&ghiChu=${encodeURIComponent(ghiChu)}` : ''}`)
+}
+
 // Cập nhật check-in
 export function checkIn(id, nhanVienId, ghiChu) {
   return api.put(`/api/datHome/checkIn/${id}?nhanVienId=${nhanVienId}${ghiChu ? `&ghiChu=${encodeURIComponent(ghiChu)}` : ''}`)
@@ -32,7 +37,7 @@ export function getDatHomeByTrangThai(trangThai) {
 
 // Lấy số lượng khách hàng theo ID tài khoản
 export function getSoLuongKhachHangByTaiKhoanId(taiKhoanId) {
-  return api.get(`/api/datHome/count/${taiKhoanId}`)
+  return api.get(`/api/khach-hang/count/${taiKhoanId}`)
 }
 
 // Lấy dịch vụ theo ID homestay
@@ -93,6 +98,17 @@ export async function createDatHomeChuyenKhoan(datHomeData) {
     return response
   } catch (error) {
     console.error('Lỗi khi đặt homestay với chuyển khoản:', error)
+    throw error
+  }
+}
+
+// Tạo đặt phòng mới cho khách hàng thân thiết
+export async function createDatHomeKHTT(datHomeData) {
+  try {
+    const response = await api.post('/api/datHome/createKHTT', datHomeData)
+    return response
+  } catch (error) {
+    console.error('Lỗi khi đặt homestay cho khách hàng thân thiết:', error)
     throw error
   }
 }

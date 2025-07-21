@@ -447,6 +447,92 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Phần Tiện Nghi Homestay -->
+                <div class="section-divider"></div>
+                <h4 class="section-title">Tiện Nghi Homestay</h4>
+                <div class="feature-list">
+                  <div v-if="loadingTienNghi" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <div v-else-if="homestayTienNghiList.length === 0" class="text-center py-3 text-muted">
+                    <i class="fas fa-info-circle me-1"></i> Chưa có tiện nghi nào
+                  </div>
+                  <div v-else class="row">
+                    <div v-for="item in homestayTienNghiList" :key="item.id || item.tienNghi.id" class="col-md-6 mb-2">
+                      <div class="feature-item">
+                        <i class="fas fa-check-circle me-2 text-success"></i>
+                        <span class="feature-name">{{ item.tienNghi.tenTienNghi }}</span>
+                        <span class="feature-quantity">({{ item.soLuong }} {{ item.tienNghi.donVi }})</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Phần Dịch Vụ Homestay -->
+                <div class="section-divider"></div>
+                <h4 class="section-title">Dịch Vụ Homestay</h4>
+                <div class="feature-list">
+                  <div v-if="loadingDichVu" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <div v-else-if="dichVuList.length === 0" class="text-center py-3 text-muted">
+                    <i class="fas fa-info-circle me-1"></i> Chưa có dịch vụ nào
+                  </div>
+                  <div v-else class="row">
+                    <div v-for="dichVu in dichVuList" :key="dichVu.id" class="col-md-6 mb-2">
+                      <div class="feature-item">
+                        <i class="fas fa-concierge-bell me-2 text-info"></i>
+                        <span class="feature-name">{{ dichVu.tenDichVu }}</span>
+                        <span class="feature-price">{{ formatCurrency(dichVu.gia) }}/{{ dichVu.donVi }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Phần Danh Sách Phòng -->
+                <div class="section-divider"></div>
+                <h4 class="section-title">Danh Sách Phòng</h4>
+                <div class="feature-list">
+                  <div v-if="loadingPhong" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <div v-else-if="phongList.length === 0" class="text-center py-3 text-muted">
+                    <i class="fas fa-info-circle me-1"></i> Chưa có phòng nào
+                  </div>
+                  <div v-else class="table-responsive">
+                    <table class="table table-striped table-hover">
+                      <thead>
+                        <tr>
+                          <th>Tên phòng</th>
+                          <th>Loại phòng</th>
+                          <th>Sức chứa</th>
+                          <th>Tầng</th>
+                          <th>Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="phong in phongList" :key="phong.id">
+                          <td>{{ phong.tenPhong }}</td>
+                          <td>{{ phong.tenLoaiPhong }}</td>
+                          <td>{{ phong.soNguoiToiDa }} người</td>
+                          <td>{{ phong.tangSo }}</td>
+                          <td>
+                            <span :class="`badge ${phong.trangThai ? 'bg-success' : 'bg-danger'}`">
+                              {{ phong.trangThai ? 'Hoạt động' : 'Khóa' }}
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
 
               <div class="modal-footer">
@@ -544,6 +630,18 @@ export default {
       soLuong: 1
     })
 
+    // Hiển thị tiện nghi của homestay
+    const homestayTienNghiList = ref([])
+    const loadingTienNghi = ref(false)
+
+    // Dịch vụ
+    const dichVuList = ref([])
+    const loadingDichVu = ref(false)
+
+    // Phòng
+    const phongList = ref([])
+    const loadingPhong = ref(false)
+
     // Lấy danh sách tiện nghi
     const fetchTienNghi = async () => {
       try {
@@ -569,11 +667,12 @@ export default {
     // Lấy thông tin tiện nghi của homestay
     const fetchHomestayTienNghi = async (homestayId) => {
       try {
+        loadingTienNghi.value = true
         const response = await api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`)
-        const homestayTienNghi = response.data || []
+        homestayTienNghiList.value = response.data || []
 
         // Cập nhật trạng thái đã chọn
-        homestayTienNghi.forEach(item => {
+        homestayTienNghiList.value.forEach(item => {
           if (selectedTienNghi.value[item.tienNghi.id]) {
             selectedTienNghi.value[item.tienNghi.id] = {
               selected: true,
@@ -583,6 +682,36 @@ export default {
         })
       } catch (error) {
         console.error('Lỗi khi lấy thông tin tiện nghi của homestay:', error)
+      } finally {
+        loadingTienNghi.value = false
+      }
+    }
+
+    // Lấy danh sách dịch vụ
+    const fetchDichVu = async (homestayId) => {
+      try {
+        loadingDichVu.value = true
+        const response = await api.get(`/api/dich-vu/by-homeStay2/${homestayId}`)
+        dichVuList.value = response.data || []
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách dịch vụ:', error)
+        notification.error('Không thể tải danh sách dịch vụ')
+      } finally {
+        loadingDichVu.value = false
+      }
+    }
+
+    // Lấy danh sách phòng
+    const fetchPhong = async (homestayId) => {
+      try {
+        loadingPhong.value = true
+        const response = await api.get(`/api/phong/homestay/${homestayId}`)
+        phongList.value = response.data || []
+      } catch (error) {
+        console.error('Lỗi khi lấy danh sách phòng:', error)
+        notification.error('Không thể tải danh sách phòng')
+      } finally {
+        loadingPhong.value = false
       }
     }
 
@@ -824,6 +953,7 @@ export default {
     // Tải danh sách tiện nghi khi component được tạo
     onMounted(() => {
       fetchTienNghi()
+      fetchDichVu()
 
       // Nếu là chỉnh sửa, điền dữ liệu hiện có
       if (props.isEdit && props.homestay) {
@@ -839,6 +969,16 @@ export default {
         // Lấy thông tin tiện nghi của homestay
         if (props.homestay.id) {
           await fetchHomestayTienNghi(props.homestay.id)
+        }
+
+        // Lấy danh sách dịch vụ của homestay
+        if (props.homestay.id) {
+          await fetchDichVu(props.homestay.id)
+        }
+
+        // Lấy danh sách phòng của homestay
+        if (props.homestay.id) {
+          await fetchPhong(props.homestay.id)
         }
       }
     }
@@ -868,6 +1008,15 @@ export default {
       showAddTienNghi,
       newTienNghi,
       addNewTienNghi,
+      // Hiển thị tiện nghi của homestay
+      homestayTienNghiList,
+      loadingTienNghi,
+      // Dịch vụ
+      loadingDichVu,
+      dichVuList,
+      // Phòng
+      loadingPhong,
+      phongList,
     }
   },
 }
@@ -1292,6 +1441,98 @@ export default {
   padding-top: 10px;
   border-top: 1px dashed #e5e7eb;
   animation: fade-in 0.3s ease;
+}
+
+/* New styles for view mode sections */
+.section-divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 20px 0;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  background-color: #f3f4f6;
+  transform: translateX(5px);
+}
+
+.feature-name {
+  flex-grow: 1;
+  font-weight: 500;
+  color: #374151;
+  margin-left: 10px;
+}
+
+.feature-quantity {
+  font-size: 14px;
+  color: #6b7280;
+  margin-left: 10px;
+}
+
+.feature-price {
+  font-size: 14px;
+  color: #3b82f6;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+/* Table styles */
+.table-responsive {
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.table thead th {
+  background-color: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table tbody td {
+  padding: 12px 15px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: #f9fafb;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f3f4f6;
 }
 </style>
 

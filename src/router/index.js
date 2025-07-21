@@ -7,6 +7,7 @@ import TestThanhToan from '../views/testThanhToan.vue'
 
 import ForgotPasswordForm from '../components/Password.vue'
 import EmailConfirmView from '../views/EmailConfirmView.vue'
+import PaymentSuccessView from '../views/PaymentSuccessView.vue'
 
 import DetailHome from '../views/DetailHome.vue'
 import AllHomestaysView from '../views/AllHomestaysView.vue'
@@ -33,6 +34,9 @@ const router = createRouter({
     { path: '/danh-gia', name: 'danh-gia', component: DanhGiaView },
     { path: '/danh-gia/:homestayId', name: 'public-review-details', component: PublicReviewDetails, props: true },
 
+    // Thanh toán
+    { path: '/payment-success', name: 'payment-success', component: PaymentSuccessView },
+    { path: '/payment-failure', name: 'payment-failure', component: () => import('../views/PaymentFailureView.vue') },
 
     { path: '/test-thanh-toan', name: 'testThanhToan', component: TestThanhToan },
 

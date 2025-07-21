@@ -94,6 +94,23 @@ class PaymentService {
       throw error
     }
   }
+
+  /**
+   * Gửi thông tin thanh toán thành công từ bên thứ 3 đến API callback để cập nhật trạng thái
+   * và gửi email xác nhận
+   *
+   * @param {Object} paymentData - Dữ liệu thanh toán từ cổng thanh toán
+   * @returns {Promise} - Kết quả xử lý từ API
+   */
+  async notifyPaymentSuccess(paymentData) {
+    try {
+      const response = await api.post('/api/payment/payment-callback', paymentData)
+      return response.data
+    } catch (error) {
+      console.error('Lỗi khi gửi thông báo thanh toán thành công:', error)
+      throw error
+    }
+  }
 }
 
 export default new PaymentService()

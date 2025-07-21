@@ -184,6 +184,14 @@ const router = createRouter({
           component: () => import('../views/Admin/AccountT.vue'),
         },
 
+        // Chi tiết tài khoản
+        {
+          path: 'taikhoan/:id',
+          name: 'admin-account-detail',
+          component: () => import('../views/Admin/ChiTietTaiKhoanAdm.vue'),
+          props: true
+        },
+
         // Quản lý Đánh giá - Các đánh giá được sử dụng trong homestay
         {
           path: 'content/danhgia',

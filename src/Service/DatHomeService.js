@@ -50,8 +50,8 @@ export function getTienNghiByIdHomeStay(homestayId) {
   return api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`)
 }
 
-export function getGiamGiaByIdHomeStay(homestayId) {
-  return api.get(`/api/giamgia/by-homestay/${homestayId}`)
+export function getGiamGiaByIdHomeStay(homestayId, tongTien = 1000000) {
+  return api.get(`/api/giamgia/by-homestay/${homestayId}?tongTien=${tongTien}`)
     .catch(error => {
       // Return a resolved promise with null data for 500 errors (no discount found)
       if (error.response && error.response.status === 500 &&

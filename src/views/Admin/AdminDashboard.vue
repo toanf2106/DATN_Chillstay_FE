@@ -24,7 +24,7 @@
 
           <!-- Dropdown menu -->
           <div class="user-dropdown" v-show="isUserMenuOpen">
-            <div class="dropdown-item">
+            <div class="dropdown-item" @click="goToAccountDetail">
               <i class="fas fa-user"></i>
               <span>Tài khoản</span>
             </div>
@@ -367,6 +367,20 @@ export default {
       isUserMenuOpen.value = !isUserMenuOpen.value
     }
 
+    const goToAccountDetail = () => {
+      if (authStore.user && authStore.user.id) {
+        // Chuyển đến trang chi tiết tài khoản của người dùng đang đăng nhập
+        router.push({
+          name: 'admin-account-detail',
+          params: { id: authStore.user.id },
+        })
+        // Đóng dropdown menu
+        isUserMenuOpen.value = false
+      } else {
+        notification.warning('Không thể lấy thông tin tài khoản. Vui lòng đăng nhập lại.')
+      }
+    }
+
     const handleLogout = () => {
       authStore.logout()
       router.push('/')
@@ -528,6 +542,7 @@ export default {
       handleLogout,
       isUserMenuOpen,
       toggleUserMenu,
+      goToAccountDetail,
       nhanVienInfo,
       adminProfileRef,
       showChangePasswordForm,

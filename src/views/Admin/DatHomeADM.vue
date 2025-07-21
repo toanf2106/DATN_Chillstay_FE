@@ -1538,7 +1538,12 @@ export default {
       try {
         console.log('Đang gọi API lấy giảm giá cho homestay:', homestayId)
         this.isLoadingGiamGia = true
-        const response = await getGiamGiaByIdHomeStay(homestayId)
+        // Tính tổng tiền của homestay để truyền vào API
+        const selectedHomestay = this.getSelectedHomestay()
+        const nights = this.calculateNights() || 1
+        const tongTien = selectedHomestay ? selectedHomestay.giaCaHomestay * nights : 1000000
+
+        const response = await getGiamGiaByIdHomeStay(homestayId, tongTien)
 
         if (response && response.data && response.data.id) {
           // Chỉ set giamGia khi API trả về dữ liệu hợp lệ có ID
@@ -1990,6 +1995,33 @@ export default {
       // Đóng modal và tiến hành đặt phòng với thông tin tiền mặt
       this.closeCashPaymentModal()
       this.submitBooking(this.cashReceived, this.changeAmount)
+    },
+    async fetchGiamGia(homestayId) {
+      try {
+        this.isLoadingGiamGia = true
+        // Tính tổng tiền của homestay để truyền vào API
+        const selectedHomestay = this.getSelectedHomestay()
+        const nights = this.calculateNights() || 1
+        const tongTien = selectedHomestay ? selectedHomestay.giaCaHomestay * nights : 1000000
+
+        const response = await getGiamGiaByIdHomeStay(homestayId, tongTien)
+
+        if (response && response.data && response.data.id) {
+          // Chỉ set giamGia khi API trả về dữ liệu hợp lệ có ID
+          this.giamGia = response.data
+          console.log('Đã lưu giảm giá của homestay:', this.giamGia)
+        } else {
+          // Không có giảm giá hoặc API trả về null
+          console.log('Homestay không có giảm giá')
+          this.giamGia = null
+        }
+      } catch (error) {
+        // Xử lý các lỗi khác nếu có
+        console.log('Không thể lấy thông tin giảm giá:', error)
+        this.giamGia = null
+      } finally {
+        this.isLoadingGiamGia = false
+      }
     },
   },
   // Gọi API khi component được khởi tạo

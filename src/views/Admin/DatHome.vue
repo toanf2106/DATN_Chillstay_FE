@@ -1463,6 +1463,16 @@ export default {
         return
       }
 
+      // Kiểm tra thời gian hiện tại có phù hợp để check-in không
+      const now = new Date()
+      const checkInTime = 12 // 12h trưa
+      if (now.getHours() < checkInTime) {
+        notification.warning(
+          `Chưa đến thời gian check-in. Vui lòng quay lại sau ${checkInTime}:00.`,
+        )
+        return
+      }
+
       try {
         const userId = this.currentUser.id
         await checkIn(bookingId, userId, this.checkInNote)

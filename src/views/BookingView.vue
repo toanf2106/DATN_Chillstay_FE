@@ -592,19 +592,47 @@
             <div class="booking-info">
               <div class="info-item">
                 <div class="info-label">Mã đặt phòng:</div>
-                <div class="info-value">{{ bookingReference || 'CS-2025-11-0358' }}</div>
+                <div class="info-value">{{ bookingReference || 'Chưa có mã đặt phòng' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Tên khách hàng:</div>
+                <div class="info-value">{{ customerInfo.firstName || 'Chưa có thông tin' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Địa chỉ email:</div>
+                <div class="info-value">{{ customerInfo.email || 'Chưa có thông tin' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Số điện thoại:</div>
+                <div class="info-value">{{ customerInfo.phone || 'Chưa có thông tin' }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Ngày nhận phòng:</div>
+                <div class="info-value">{{ formatDisplayDate(checkInDate) }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Ngày trả phòng:</div>
+                <div class="info-value">{{ formatDisplayDate(checkOutDate) }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Số đêm:</div>
+                <div class="info-value">{{ calculateNights() }} đêm</div>
               </div>
 
               <div class="info-item">
                 <div class="info-label">Tổng tiền:</div>
-                <div class="info-value">{{ getTotalPrice() }}₫</div>
+                <div class="info-value highlight-price">{{ getTotalPrice() }}₫</div>
               </div>
 
               <div class="info-item">
-                <div class="info-label">Trạng thái thanh toán:</div>
-                <div class="info-value payment-status">
-                  {{ getPaymentStatusText }}
-                </div>
+                <div class="info-label">Thời gian đặt:</div>
+                <div class="info-value">{{ new Date().toLocaleString('vi-VN') }}</div>
               </div>
             </div>
 
@@ -1362,7 +1390,12 @@ export default {
       try {
         console.log('Đang gọi API lấy giảm giá cho homestay:', homestayId)
         this.isLoadingGiamGia = true
-        const response = await getGiamGiaByIdHomeStay(homestayId)
+        // Tính tổng tiền của homestay để truyền vào API
+        const selectedHomestay = this.getSelectedHomestay()
+        const nights = this.calculateNights() || 1
+        const tongTien = selectedHomestay ? selectedHomestay.giaCaHomestay * nights : 1000000
+
+        const response = await getGiamGiaByIdHomeStay(homestayId, tongTien)
 
         if (response && response.data && response.data.id) {
           // Chỉ set giamGia khi API trả về dữ liệu hợp lệ có ID
@@ -4375,5 +4408,10 @@ textarea {
   .quick-buttons {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+.highlight-price {
+  color: #28a745;
+  font-weight: 600;
 }
 </style>

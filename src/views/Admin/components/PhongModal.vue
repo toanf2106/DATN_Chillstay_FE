@@ -277,72 +277,135 @@
               </div>
 
               <!-- View mode display -->
-              <div v-else>
-                <div class="view-info-group">
+              <div v-else class="staff-info">
+                <div class="form-group">
                   <label>Tên Phòng</label>
-                  <div class="info-value">{{ formData.tenPhong }}</div>
+                  <input type="text" class="form-control" :value="formData.tenPhong" readonly />
+                </div>
+
+                <div class="form-group">
+                  <label>Loại Phòng</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :value="getLoaiPhongName(formData.loaiPhongId)"
+                    readonly
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Homestay</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    :value="getHomestayName(formData.homeStayId)"
+                    readonly
+                  />
                 </div>
 
                 <div class="row">
                   <div class="col-md-6">
-                    <div class="view-info-group">
-                      <label>Loại Phòng</label>
-                      <div class="info-value">{{ getLoaiPhongName(formData.loaiPhongId) }}</div>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="view-info-group">
-                      <label>Homestay</label>
-                      <div class="info-value">{{ getHomestayName(formData.homeStayId) }}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="view-info-group">
+                    <div class="form-group">
                       <label>Diện Tích</label>
-                      <div class="info-value">{{ formData.dienTich }} m²</div>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="`${formData.dienTich} m²`"
+                        readonly
+                      />
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <div class="view-info-group">
+                    <div class="form-group">
                       <label>Tầng</label>
-                      <div class="info-value">{{ formData.tangSo }}</div>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="formData.tangSo"
+                        readonly
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div class="row">
                   <div class="col-md-4">
-                    <div class="view-info-group">
+                    <div class="form-group">
                       <label>Số Người Lớn</label>
-                      <div class="info-value">{{ formData.soNguoiLon }} người</div>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="`${formData.soNguoiLon} người`"
+                        readonly
+                      />
                     </div>
                   </div>
                   <div class="col-md-4">
-                    <div class="view-info-group">
+                    <div class="form-group">
                       <label>Số Trẻ Nhỏ</label>
-                      <div class="info-value">{{ formData.soNguoiNho }} trẻ</div>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="`${formData.soNguoiNho} trẻ`"
+                        readonly
+                      />
                     </div>
                   </div>
                   <div class="col-md-4">
-                    <div class="view-info-group">
+                    <div class="form-group">
                       <label>Số Người Tối Đa</label>
-                      <div class="info-value">{{ formData.soNguoiToiDa }} người</div>
-                      <small class="text-muted">(Người lớn + Trẻ nhỏ)</small>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="`${formData.soNguoiToiDa} người`"
+                        readonly
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div class="view-info-group">
+                <div class="form-group">
                   <label>Mô Tả</label>
-                  <div class="info-value">{{ formData.moTa || 'Không có mô tả' }}</div>
+                  <textarea
+                    class="form-control"
+                    rows="3"
+                    :value="formData.moTa || 'Không có mô tả'"
+                    readonly
+                  ></textarea>
                 </div>
 
-                <div class="view-info-group">
+                <!-- Phần hiển thị Vật tư phòng -->
+                <div class="form-group">
+                  <label class="fw-bold">Vật Tư Phòng</label>
+                  <div class="vat-tu-container">
+                    <div v-if="loading" class="text-center py-3">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                      </div>
+                    </div>
+                    <div v-else-if="!phongVatTuList || phongVatTuList.length === 0" class="text-center py-3 text-muted">
+                      <i class="fas fa-info-circle me-1"></i> Chưa có vật tư nào
+                    </div>
+                    <div v-else class="vat-tu-list-view">
+                      <div v-for="item in phongVatTuList" :key="item.id" class="vat-tu-item-view">
+                        <div class="vat-tu-name">
+                          <i class="fas fa-box me-2"></i>
+                          <span class="fw-bold">{{ item.vatTu?.tenVatTu || 'Vật tư không xác định' }}</span>
+                        </div>
+                        <div class="vat-tu-details-view">
+                          <div class="vat-tu-info">
+                            <span class="badge bg-info me-2">{{ item.soLuong }} {{ item.vatTu?.donVi || 'cái' }}</span>
+                            <span v-if="item.vatTu?.moTa" class="text-muted small">{{ item.vatTu.moTa }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
                   <label>Trạng Thái</label>
-                  <div class="info-value">
+                  <div class="status-display">
                     <span :class="`badge ${formData.trangThai ? 'bg-success' : 'bg-danger'}`">
                       {{ formData.trangThai ? 'Hoạt động' : 'Khóa' }}
                     </span>
@@ -462,6 +525,7 @@ export default {
     const vatTuList = ref([])
     const selectedVatTu = ref({})
     const showAddVatTu = ref(false)
+    const phongVatTuList = ref([])
     const newVatTu = ref({
       tenVatTu: '',
       donVi: 'cái',
@@ -499,10 +563,14 @@ export default {
     // Lấy thông tin vật tư của phòng
     const fetchPhongVatTu = async (phongId) => {
       try {
-        const response = await api.get(`/api/vat-tu-phong/by-phong/${phongId}`)
-        const phongVatTu = response.data || []
+        loading.value = true;
+        const response = await api.get(`/api/vat-tu-phong/by-phong/${phongId}`);
+        const phongVatTu = response.data || [];
 
-        // Cập nhật trạng thái đã chọn
+        // Lưu danh sách vật tư phòng để hiển thị trong view mode
+        phongVatTuList.value = phongVatTu;
+
+        // Cập nhật trạng thái đã chọn cho chế độ edit
         phongVatTu.forEach(item => {
           if (selectedVatTu.value[item.vatTu.id]) {
             selectedVatTu.value[item.vatTu.id] = {
@@ -510,9 +578,11 @@ export default {
               soLuong: item.soLuong || 1
             }
           }
-        })
+        });
       } catch (error) {
-        console.error('Lỗi khi lấy thông tin vật tư của phòng:', error)
+        console.error('Lỗi khi lấy thông tin vật tư của phòng:', error);
+      } finally {
+        loading.value = false;
       }
     }
 
@@ -565,8 +635,8 @@ export default {
             }
           })
 
-          // If editing, fetch room's VatTu data
-          if (props.isEdit && newVal.id) {
+          // If editing or viewing, fetch room's VatTu data
+          if ((props.isEdit || props.isViewMode) && newVal.id) {
             fetchPhongVatTu(newVal.id)
           }
         } else {
@@ -587,6 +657,7 @@ export default {
           }
           previewImage.value = null
           imageFile.value = null
+          phongVatTuList.value = []
         }
         // Đảm bảo số người tối đa được tính đúng
         updateSoNguoiToiDa()
@@ -781,7 +852,8 @@ export default {
       addNewVatTu,
       fetchVatTu,
       fetchPhongVatTu,
-      selectedVatTuCount
+      selectedVatTuCount,
+      phongVatTuList
     }
   }
 }
@@ -804,14 +876,25 @@ export default {
 }
 
 .phong-details-modal {
+  position: relative;
   background-color: #fff;
-  border-radius: 15px;
+  border-radius: 16px;
   width: 900px;
   max-width: 95%;
   max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: modal-fade-in 0.3s ease;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+.phong-details-modal::before,
+.phong-details-modal::after,
+.phong-details-modal .bottom-left-corner,
+.phong-details-modal .bottom-right-corner {
+  display: none;
 }
 
 @keyframes modal-fade-in {
@@ -866,7 +949,31 @@ export default {
 }
 
 .modal-body {
-  padding: 25px;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 70px); /* Trừ đi chiều cao của header */
+  scrollbar-width: thin;
+  scrollbar-color: #6b7280 #f1f5f9;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background-color: #6b7280;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background-color: #4b5563;
 }
 
 /* Avatar/Image section */
@@ -1047,6 +1154,45 @@ textarea.form-control {
   font-size: 1rem;
 }
 
+/* Staff info styling */
+.staff-info .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.staff-info label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.staff-info .form-control {
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  color: #212529;
+  cursor: default;
+}
+
+.staff-info textarea.form-control {
+  min-height: 100px;
+  resize: none;
+}
+
+.status-display {
+  padding: 0.6rem 0.75rem;
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+}
+
+.status-display .badge {
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+}
+
 /* Responsive fixes */
 @media (max-width: 767px) {
   .phong-details-modal {
@@ -1139,5 +1285,59 @@ textarea.form-control {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* New styles for VatTu in view mode */
+.vat-tu-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vat-tu-item-view {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.vat-tu-name {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #343a40;
+}
+
+.vat-tu-name i {
+  font-size: 1rem;
+  margin-right: 5px;
+  color: #0d6efd;
+}
+
+.vat-tu-details-view {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vat-tu-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.vat-tu-info .badge {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
+
+.vat-tu-info .text-muted {
+  font-size: 0.75rem;
 }
 </style>

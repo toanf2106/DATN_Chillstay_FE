@@ -23,8 +23,9 @@
       </div>
       <h2>Thanh toán thành công!</h2>
       <p>Đơn đặt homestay của bạn đã được xác nhận.</p>
-      <p>Mã đơn hàng: <strong>{{ orderCode }}</strong></p>
-      <p>Mã giao dịch: <strong>{{ transactionId }}</strong></p>
+
+      <p>Mã thanh toán: <strong>{{ transactionId }}</strong></p>
+
       <p class="email-note">Chúng tôi đã gửi email xác nhận đặt phòng đến địa chỉ email của bạn.</p>
 
       <div class="action-buttons">
@@ -36,7 +37,7 @@
 </template>
 
 <script>
-import PaymentService from '@/Service/PaymentService';
+import PaymentService from '@/Service/PaymentService'
 
 export default {
   name: 'PaymentSuccessView',
@@ -47,42 +48,47 @@ export default {
       errorMessage: '',
       orderCode: '',
       transactionId: '',
-      paymentData: null
-    };
+      paymentData: null,
+    }
   },
   async created() {
     try {
       // Lấy thông tin từ URL
-      const urlParams = new URLSearchParams(window.location.search);
-      this.orderCode = urlParams.get('orderCode') || '';
+      const urlParams = new URLSearchParams(window.location.search)
+      this.orderCode = urlParams.get('orderCode') || ''
 
       // Xử lý các trường khác từ URL
-      let status = urlParams.get('status') || '';
-      let amount = urlParams.get('amount') || '';
+      let status = urlParams.get('status') || ''
+      let amount = urlParams.get('amount') || ''
 
       // Tìm mã giao dịch từ nhiều nguồn khác nhau (tùy thuộc vào cổng thanh toán)
       // VNPay
-      let transactionId = urlParams.get('vnp_TransactionNo') || urlParams.get('vnp_TxnRef');
+      let transactionId = urlParams.get('vnp_TransactionNo') || urlParams.get('vnp_TxnRef')
 
       // PayOS hoặc các cổng thanh toán khác
       if (!transactionId) {
-        transactionId = urlParams.get('transactionId') || urlParams.get('transaction_id') ||
-                        urlParams.get('paymentId') || urlParams.get('payment_id');
+        transactionId =
+          urlParams.get('transactionId') ||
+          urlParams.get('transaction_id') ||
+          urlParams.get('paymentId') ||
+          urlParams.get('payment_id')
       }
 
       // Đảm bảo rằng nếu không có mã giao dịch, chúng ta vẫn tạo một mã để hiển thị
       if (!transactionId) {
-        transactionId = 'TX' + Date.now();
+
+        transactionId = Date.now();
+
       }
 
       // Đảm bảo số tiền là số
-      let amountValue = amount;
+      let amountValue = amount
       try {
         if (amount && !isNaN(parseFloat(amount))) {
-          amountValue = parseFloat(amount);
+          amountValue = parseFloat(amount)
         }
       } catch (e) {
-        console.error('Lỗi khi xử lý số tiền:', e);
+        console.error('Lỗi khi xử lý số tiền:', e)
       }
 
       // Tạo đối tượng dữ liệu thanh toán
@@ -92,34 +98,34 @@ export default {
         code: status, // Để tương thích với cả hai kiểu API
         amount: amountValue,
         transactionId: transactionId,
-      };
+      }
 
-      console.log('Payment data:', this.paymentData);
+      console.log('Payment data:', this.paymentData)
 
       // Chỉ gửi thông tin khi có orderCode
       if (this.orderCode) {
         // Gửi thông báo đến backend để cập nhật trạng thái và gửi email
-        const response = await PaymentService.notifyPaymentSuccess(this.paymentData);
-        console.log('Payment notification sent:', response);
+        const response = await PaymentService.notifyPaymentSuccess(this.paymentData)
+        console.log('Payment notification sent:', response)
 
         // Cập nhật thông tin từ response nếu có
         if (response && response.transactionId) {
-          this.transactionId = response.transactionId;
+          this.transactionId = response.transactionId
         } else {
-          this.transactionId = transactionId;
+          this.transactionId = transactionId
         }
       } else {
-        console.warn('No orderCode found in URL params');
+        console.warn('No orderCode found in URL params')
       }
 
-      this.loading = false;
+      this.loading = false
     } catch (error) {
-      console.error('Error processing payment success:', error);
-      this.loading = false;
-      this.error = true;
-      this.errorMessage = 'Không thể xác nhận thanh toán. Vui lòng liên hệ bộ phận hỗ trợ.';
+      console.error('Error processing payment success:', error)
+      this.loading = false
+      this.error = true
+      this.errorMessage = 'Không thể xác nhận thanh toán. Vui lòng liên hệ bộ phận hỗ trợ.'
     }
-  }
+  },
 }
 </script>
 
@@ -135,7 +141,9 @@ export default {
   background-color: #f8f9fa;
 }
 
-.loading-section, .success-section, .error-section {
+.loading-section,
+.success-section,
+.error-section {
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -155,11 +163,16 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.success-icon, .error-icon {
+.success-icon,
+.error-icon {
   font-size: 5rem;
   margin-bottom: 1.5rem;
 }

@@ -20,10 +20,7 @@
             />
             <button
               v-if="searchQuery"
-              @click="
-                searchQuery = ''
-                loadTinTuc()
-              "
+              @click="searchQuery = '', loadTinTuc()"
               class="clear-search-btn"
             >
               <i class="fas fa-times"></i>

@@ -391,7 +391,7 @@
                       <input
                         type="text"
                         class="form-control"
-                        :value="formatCurrency(formData.giaCaHomestay)"
+                        :value="formData.giaCaHomestay ? formatCurrency(formData.giaCaHomestay) : '0 ₫'"
                         readonly
                       />
                     </div>
@@ -433,6 +433,124 @@
                   </div>
                 </div>
 
+                <!-- Tiện Nghi Homestay -->
+                <div class="section-container mt-4">
+                  <h4 class="section-title">
+                    <i class="fas fa-bell-concierge me-2 text-primary"></i> Tiện Nghi Homestay
+                  </h4>
+                  <div v-if="loadingTienNghi" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <div v-else-if="!homestayTienNghiList.length" class="p-3">
+                    <div class="alert alert-warning m-0">
+                      <i class="fas fa-info-circle me-2"></i> Homestay chưa có tiện nghi nào được thêm vào.
+                    </div>
+                  </div>
+                  <div v-else class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>Tên tiện nghi</th>
+                          <th>Số lượng</th>
+                          <th>Đơn vị</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="item in homestayTienNghiList" :key="item.id">
+                          <td>{{ item.tienNghi.tenTienNghi }}</td>
+                          <td>{{ item.soLuong }}</td>
+                          <td>{{ item.tienNghi.donVi }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Dịch Vụ Homestay -->
+                <div class="section-container mt-4">
+                  <h4 class="section-title">
+                    <i class="fas fa-concierge-bell me-2 text-primary"></i> Dịch Vụ Homestay
+                  </h4>
+                  <div v-if="loadingDichVu" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <div v-else-if="!dichVuList.length" class="p-3">
+                    <div class="alert alert-warning m-0">
+                      <i class="fas fa-info-circle me-2"></i> Homestay chưa có dịch vụ nào được thêm vào.
+                  </div>
+                      </div>
+                  <div v-else class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>Tên dịch vụ</th>
+                          <th>Giá</th>
+                          <th>Đơn vị</th>
+                          <th>Mô tả</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="dichVu in dichVuList" :key="dichVu.id">
+                          <td>{{ dichVu.tenDichVu }}</td>
+                          <td>{{ dichVu.gia ? formatCurrency(dichVu.gia) : '0 ₫' }}</td>
+                          <td>{{ dichVu.donVi }}</td>
+                          <td>{{ dichVu.moTa }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Danh Sách Phòng -->
+                <div class="section-container mt-4">
+                  <h4 class="section-title">
+                    <i class="fas fa-door-closed me-2 text-primary"></i> Danh Sách Phòng
+                  </h4>
+                  <div v-if="loadingPhong" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                  </div>
+                  <div v-else-if="!phongList.length" class="p-3">
+                    <div class="alert alert-warning m-0">
+                      <i class="fas fa-info-circle me-2"></i> Homestay chưa có phòng nào được thêm vào.
+                  </div>
+                      </div>
+                  <div v-else>
+                    <div v-for="phong in phongList" :key="phong.id" class="room-item mb-3">
+                      <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                          <h5 class="mb-0">
+                            <i class="fas fa-bed me-2"></i> {{ phong.tenPhong }}
+                            <span class="badge bg-secondary ms-2">{{ phong.trangThai ? 'Đang hoạt động' : 'Khóa' }}</span>
+                          </h5>
+                          <button class="btn btn-sm btn-outline-primary" @click="viewVatTuPhong(phong.id)">
+                            Xem vật tư
+                          </button>
+                    </div>
+                        <div class="card-body">
+                          <div class="row">
+                            <div class="col-md-4">
+                              <p><strong>Mã phòng:</strong> {{ phong.maPhong }}</p>
+                            </div>
+                            <div class="col-md-4">
+                              <p><strong>Diện tích:</strong> {{ phong.dienTich }} m²</p>
+                            </div>
+                            <div class="col-md-4">
+                              <p><strong>Số người tối đa:</strong> {{ phong.soNguoiToiDa }}</p>
+                            </div>
+                          </div>
+                          <p><strong>Mô tả:</strong> {{ phong.moTa }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="row" v-if="formData.ngayTao">
                   <div class="col-md-6">
                     <div class="form-group">
@@ -454,7 +572,7 @@
                         :value="formatDate(formData.ngayUpdate)"
                         readonly
                       />
-                    </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -519,7 +637,7 @@ export default {
       default: false,
     },
   },
-  emits: ['save', 'close', 'edit', 'view-images'],
+  emits: ['save', 'close', 'edit', 'view-images', 'view-vattu-phong'],
   setup(props, { emit }) {
     const formData = ref({
       tenHomestay: '',
@@ -554,6 +672,18 @@ export default {
       soLuong: 1,
     })
 
+    // Danh sách phòng
+    const phongList = ref([])
+    const loadingPhong = ref(false)
+
+    // Danh sách dịch vụ
+    const dichVuList = ref([])
+    const loadingDichVu = ref(false)
+
+    // Danh sách tiện nghi của homestay
+    const homestayTienNghiList = ref([])
+    const loadingTienNghi = ref(false)
+
     // Lấy danh sách tiện nghi
     const fetchTienNghi = async () => {
       try {
@@ -579,11 +709,19 @@ export default {
     // Lấy thông tin tiện nghi của homestay
     const fetchHomestayTienNghi = async (homestayId) => {
       try {
+        // Kiểm tra homestayId hợp lệ để tránh gọi API với giá trị undefined
+        if (!homestayId || homestayId === 'undefined') {
+          homestayTienNghiList.value = []
+          loadingTienNghi.value = false
+          return
+        }
+
+        loadingTienNghi.value = true
         const response = await api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`)
-        const homestayTienNghi = response.data || []
+        homestayTienNghiList.value = response.data || []
 
         // Cập nhật trạng thái đã chọn
-        homestayTienNghi.forEach((item) => {
+        homestayTienNghiList.value.forEach((item) => {
           if (selectedTienNghi.value[item.tienNghi.id]) {
             selectedTienNghi.value[item.tienNghi.id] = {
               selected: true,
@@ -591,9 +729,73 @@ export default {
             }
           }
         })
-      } catch (error) {
-        console.error('Lỗi khi lấy thông tin tiện nghi của homestay:', error)
+      } catch {
+        notification.error('Không thể tải thông tin tiện nghi')
+      } finally {
+        loadingTienNghi.value = false
       }
+    }
+
+    // Lấy danh sách phòng
+    const fetchPhong = async (homestayId) => {
+      try {
+        // Kiểm tra homestayId hợp lệ để tránh gọi API với giá trị undefined
+        if (!homestayId || homestayId === 'undefined') {
+          phongList.value = []
+          loadingPhong.value = false
+          return
+        }
+
+        loadingPhong.value = true
+        const response = await api.get(`/api/phong/homestay/${homestayId}`)
+        phongList.value = response.data || []
+      } catch {
+        notification.error('Không thể tải danh sách phòng')
+      } finally {
+        loadingPhong.value = false
+      }
+    }
+
+    // Lấy danh sách dịch vụ
+    const fetchDichVu = async (homestayId) => {
+      try {
+        // Kiểm tra homestayId hợp lệ để tránh gọi API với giá trị undefined
+        if (!homestayId || homestayId === 'undefined') {
+          dichVuList.value = []
+          loadingDichVu.value = false
+          return
+        }
+
+        loadingDichVu.value = true
+        const response = await api.get(`/api/dich-vu/by-homeStay2/${homestayId}`)
+        dichVuList.value = response.data || []
+
+        // Kiểm tra và đảm bảo tất cả các dịch vụ có trường giá hợp lệ
+        dichVuList.value = dichVuList.value.map(dichVu => {
+          // Nếu trường gia không tồn tại nhưng giaDichVu tồn tại, thì chuyển giá trị
+          if (!dichVu.gia && dichVu.giaDichVu) {
+            dichVu.gia = dichVu.giaDichVu;
+          }
+
+          // Chuyển đổi giá thành số nếu là chuỗi
+          if (dichVu.gia && typeof dichVu.gia === 'string') {
+            dichVu.gia = parseFloat(dichVu.gia);
+          }
+
+          return dichVu;
+        });
+      } catch {
+        notification.error('Không thể tải danh sách dịch vụ')
+      } finally {
+        loadingDichVu.value = false
+      }
+    }
+
+    // Xem vật tư phòng
+    const viewVatTuPhong = (phongId) => {
+      if (!phongId) return
+      // Hiển thị modal xem vật tư phòng (có thể thêm emit để hiển thị modal từ component cha)
+      emit('view-vattu-phong', phongId)
     }
 
     // Thêm tiện nghi mới
@@ -627,8 +829,7 @@ export default {
 
         showAddTienNghi.value = false
         notification.success('Thêm tiện nghi thành công')
-      } catch (error) {
-        console.error('Lỗi khi thêm tiện nghi mới:', error)
+      } catch {
         notification.error('Không thể thêm tiện nghi mới')
       }
     }
@@ -693,6 +894,7 @@ export default {
     }
 
     const formatCurrency = (value) => {
+      if (!value || isNaN(value)) return '0 ₫';
       return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
     }
 
@@ -710,7 +912,7 @@ export default {
     const handleFileUpload = (event) => {
       const file = event.target.files[0]
       if (file) {
-        selectedFile.value = file
+          selectedFile.value = file
 
         // Tạo URL cho preview
         if (previewImage.value) {
@@ -803,6 +1005,20 @@ export default {
           // Copy dữ liệu từ props vào form
           formData.value = { ...newVal }
 
+          // Đảm bảo giaCaHomestay là một số
+          if (formData.value.giaCaHomestay) {
+            formData.value.giaCaHomestay = parseFloat(formData.value.giaCaHomestay);
+          }
+
+          // Nếu đang ở chế độ xem, tải dữ liệu liên quan
+          if (props.isViewMode && newVal.id) {
+            Promise.all([
+              fetchHomestayTienNghi(newVal.id),
+              fetchPhong(newVal.id),
+              fetchDichVu(newVal.id)
+            ])
+          }
+
           // Chỉ reset preview image khi mở một homestay mới hoặc thêm mới
           if (!props.isEdit || selectedFile.value === null) {
             previewImage.value = null
@@ -831,27 +1047,39 @@ export default {
       { immediate: true },
     )
 
-    // Tải danh sách tiện nghi khi component được tạo
-    onMounted(() => {
-      fetchTienNghi()
-
-      // Nếu là chỉnh sửa, điền dữ liệu hiện có
-      if (props.isEdit && props.homestay) {
-        fillExistingData()
-      }
-    })
-
-    // Nếu là chỉnh sửa, điền dữ liệu hiện có
+    // Nếu là chỉnh sửa hoặc xem chi tiết, điền dữ liệu hiện có
     const fillExistingData = async () => {
-      if (props.isEdit && props.homestay) {
+      if ((props.isEdit || props.isViewMode) && props.homestay) {
         formData.value = { ...props.homestay }
 
-        // Lấy thông tin tiện nghi của homestay
+        // Đảm bảo giaCaHomestay là một số
+        if (formData.value.giaCaHomestay) {
+          formData.value.giaCaHomestay = parseFloat(formData.value.giaCaHomestay);
+        }
+
+        // Lấy thông tin tiện nghi, phòng và dịch vụ của homestay
         if (props.homestay.id) {
-          await fetchHomestayTienNghi(props.homestay.id)
+          await Promise.all([
+            fetchHomestayTienNghi(props.homestay.id),
+            fetchPhong(props.homestay.id),
+            fetchDichVu(props.homestay.id)
+          ])
         }
       }
-    }
+        }
+
+    // Tải danh sách tiện nghi khi component được tạo
+        onMounted(() => {
+      // Luôn tải danh sách tiện nghi
+      fetchTienNghi()
+
+      // Nếu là chỉnh sửa hoặc xem chi tiết, điền dữ liệu hiện có
+      if ((props.isEdit || props.isViewMode) && props.homestay) {
+        fillExistingData()
+        }
+    })
+
+
 
     return {
       formData,
@@ -878,6 +1106,17 @@ export default {
       showAddTienNghi,
       newTienNghi,
       addNewTienNghi,
+      // Danh sách phòng
+      phongList,
+      loadingPhong,
+      // Danh sách dịch vụ
+      dichVuList,
+      loadingDichVu,
+      // Danh sách tiện nghi của homestay
+      homestayTienNghiList,
+      loadingTienNghi,
+      // Xem vật tư phòng
+      viewVatTuPhong,
     }
   },
 }
@@ -1181,7 +1420,7 @@ export default {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
+}
 }
 
 /* Tiện nghi container */
@@ -1224,11 +1463,11 @@ export default {
   from {
     opacity: 0;
     transform: translateY(-5px);
-  }
+}
   to {
     opacity: 1;
     transform: translateY(0);
-  }
+}
 }
 
 .form-check-input {
@@ -1306,5 +1545,78 @@ export default {
   padding-top: 10px;
   border-top: 1px dashed #e5e7eb;
   animation: fade-in 0.3s ease;
+}
+
+/* Styles for sections */
+.section-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}
+
+.section-title {
+  background-color: #f8f9fa;
+  padding: 15px;
+  margin: 0;
+  font-size: 18px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+}
+
+/* Icon styling is now handled with text-primary class */
+
+.alert-warning {
+  margin: 0;
+  padding: 15px;
+  background-color: #fff7ed;
+  color: #9a3412;
+  border-color: #ffedd5;
+  display: flex;
+  align-items: center;
+  border-radius: 0;
+  border: none;
+  border-left: 4px solid #f97316;
+}
+
+.room-item .card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.room-item .card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.room-item .card-header {
+  background-color: #f8f9fa;
+  padding: 12px 15px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.room-item .card-body {
+  padding: 15px;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+}
+
+.table th, .table td {
+  padding: 12px 15px;
+  vertical-align: middle;
 }
 </style>

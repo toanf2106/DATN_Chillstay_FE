@@ -87,6 +87,7 @@
               </a>
               <div class="submenu">
                 <a
+                  v-if="isAdmin"
                   href="#"
                   @click.prevent="navigateTo('admin-nhan-vien')"
                   :class="{ active: isRouteActive('admin-nhan-vien') }"
@@ -106,6 +107,7 @@
             </div>
 
             <div
+              v-if="isAdmin"
               class="menu-item"
               :class="{ open: isSubmenuOpen.Homestay, active: isBookingMenuActive }"
             >
@@ -157,14 +159,22 @@
               </div>
             </div>
 
-            <div class="menu-item" :class="{ active: isRouteActive('admin-voucher') }">
+            <div
+              v-if="isAdmin"
+              class="menu-item"
+              :class="{ active: isRouteActive('admin-voucher') }"
+            >
               <a href="#" @click.prevent="navigateTo('admin-voucher')">
                 <i class="fas fa-ticket-alt"></i>
                 <span>Voucher</span>
               </a>
             </div>
 
-            <div class="menu-item" :class="{ active: isRouteActive('admin-tai-khoan') }">
+            <div
+              v-if="isAdmin"
+              class="menu-item"
+              :class="{ active: isRouteActive('admin-tai-khoan') }"
+            >
               <a href="#" @click.prevent="navigateTo('admin-tai-khoan')">
                 <i class="fas fa-user-circle"></i>
                 <span>Tài khoản</span>
@@ -202,14 +212,22 @@
               </div>
             </div>
 
-            <div class="menu-item" :class="{ active: isRouteActive('admin-thanh-toan') }">
+            <div
+              v-if="isAdmin"
+              class="menu-item"
+              :class="{ active: isRouteActive('admin-thanh-toan') }"
+            >
               <a href="#" @click.prevent="navigateTo('admin-thanh-toan')">
                 <i class="fas fa-credit-card"></i>
                 <span>Thanh toán</span>
               </a>
             </div>
 
-            <div class="menu-item" :class="{ active: isRouteActive('admin-phuphi') }">
+            <div
+              v-if="isAdmin"
+              class="menu-item"
+              :class="{ active: isRouteActive('admin-phuphi') }"
+            >
               <a href="#" @click.prevent="navigateTo('admin-phuphi')">
                 <i class="fas fa-money-bill"></i>
                 <span>Phụ phí</span>
@@ -318,7 +336,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import { useAdminDashboard } from '../../Styles/JS/Admin.js'
 import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { getNhanVienByTaiKhoanId } from '@/Service/NhanVienService'
 import { checkOldPassword, changePassword as changePasswordService } from '@/Service/TaiKhoan'
 // import { useNotificationStore } from '@/stores/notificationStore'
@@ -348,6 +366,22 @@ export default {
     const showOldPassword = ref(false)
     const showNewPassword = ref(false)
     const showConfirmPassword = ref(false)
+
+    // Kiểm tra quyền admin dựa trên loại tài khoản
+    const isAdmin = computed(() => {
+      console.log('Thông tin user:', authStore.user)
+
+      // Kiểm tra quyền ADMIN từ cấu trúc dữ liệu của backend
+      return (
+        authStore.user &&
+        // ID 2 cho Admin từ cơ sở dữ liệu
+        (authStore.user.accountTypeId === 2 ||
+          // Kiểm tra tên loại tài khoản nếu có (không phân biệt hoa thường)
+          authStore.user.accountTypeName?.toUpperCase() === 'ADMIN' ||
+          // Kiểm tra thêm tên loại là 'Admin'
+          authStore.user.accountTypeName === 'Admin')
+      )
+    })
 
     const passwordForm = ref({
       oldPassword: '',
@@ -522,7 +556,45 @@ export default {
       // Thêm event listener để lắng nghe click toàn cục
       document.addEventListener('click', handleClickOutside)
       document.addEventListener('keydown', handleKeyDown)
+
+      // Kiểm tra quyền truy cập sau khi đăng nhập
+      checkAccessPermission()
+
+      // Hiển thị trang Welcome nếu đang ở trang chính admin
+      if (router.currentRoute.value.path === '/admin') {
+        router.push({ name: 'admin-welcome' })
+      }
     })
+
+    // Kiểm tra quyền truy cập và chuyển hướng
+    const checkAccessPermission = () => {
+      if (!authStore.user) {
+        router.push('/')
+        return
+      }
+
+      // Cập nhật lại giá trị isAdmin từ store
+      authStore.checkAdminAccess()
+
+      // Nếu người dùng là nhân viên và đang cố truy cập trang không được phép
+      if (!isAdmin.value) {
+        const allowedRoutes = [
+          'admin-thong-ke',
+          'admin-dat-homestay',
+          'admin-khach-hang',
+          'admin-tin-tuc',
+          'admin-danh-gia',
+          'admin-welcome', // Thêm welcome vào danh sách được phép
+        ]
+
+        const currentRouteName = router.currentRoute.value.name
+
+        if (!allowedRoutes.includes(currentRouteName)) {
+          router.push({ name: 'admin-welcome' })
+          // notification.warning('Bạn không có quyền truy cập trang này')
+        }
+      }
+    }
 
     onUnmounted(() => {
       // Xóa event listener khi component bị hủy
@@ -554,6 +626,7 @@ export default {
       toggleOldPassword,
       toggleNewPassword,
       toggleConfirmPassword,
+      isAdmin,
     }
   },
 }

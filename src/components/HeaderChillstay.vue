@@ -1,6 +1,6 @@
 <script setup>
 import '@/Styles/CSS/Header.css'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import notification from '@/utils/notification'
 import { useAuthStore } from '@/stores/authStore'
@@ -26,6 +26,7 @@ const authStore = useAuthStore()
 // Computed properties để lấy dữ liệu từ store
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const currentUser = computed(() => authStore.user)
+const dropdownVisible = ref(false)
 
 // Trạng thái hiển thị mật khẩu
 const passwordVisible = ref(false)
@@ -257,6 +258,16 @@ onMounted(() => {
     }
   })
 })
+
+watch(isLoggedIn, (newValue) => {
+  if (newValue && currentUser.value && !currentUser.value.Anh) {
+    authStore.fetchUserAvatar()
+  }
+})
+
+function toggleDropdown() {
+  dropdownVisible.value = !dropdownVisible.value
+}
 
 function resetLoginForm() {
   loginUsername.value = ''
@@ -762,9 +773,17 @@ function resetVerificationForm() {
       </div>
 
       <!-- Hiển thị tên người dùng và nút đăng xuất khi đã đăng nhập -->
-      <div class="user-menu" v-else>
+      <div class="user-menu" v-else @click="toggleDropdown">
+        <img
+          :src="currentUser.Anh || '/images/default-avatar.png'"
+          alt="Avatar"
+          class="user-avatar"
+        />
         <span class="username">Xin chào, {{ currentUser?.username }}</span>
-        <button class="btn logout-btn" @click="handleLogout">Đăng Xuất</button>
+        <div v-if="dropdownVisible" class="dropdown-menu">
+          <router-link to="/tai-khoan" class="dropdown-item">Tài khoản</router-link>
+          <a href="#" @click.prevent="handleLogout" class="dropdown-item">Đăng xuất</a>
+        </div>
       </div>
     </nav>
   </header>
@@ -1076,16 +1095,53 @@ function resetVerificationForm() {
   color: #666;
 }
 
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 10px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 /* Thêm CSS cho user menu */
 .user-menu {
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
+  cursor: pointer;
 }
 
 .username {
   font-weight: 500;
   color: #333;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+  z-index: 1000;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  color: #333;
+  text-decoration: none;
+  display: block;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
 }
 
 .logout-btn {

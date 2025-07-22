@@ -24,6 +24,12 @@ import PublicReviewDetails from '../views/Admin/NoiDung&DanhGia/ReviewDetails.vu
 
 import { useAuthStore } from '../stores/authStore'
 
+const TaiKhoanView = () => import('../views/TaiKhoanView.vue');
+const ThongTinTaiKhoan = () => import('../views/TaiKhoan/ThongTinTaiKhoan.vue');
+const CaiDatBaoMat = () => import('../views/TaiKhoan/CaiDatBaoMat.vue');
+const LichSuDatPhong = () => import('../views/TaiKhoan/LichSuDatPhong.vue');
+const DanhGiaCuaBan = () => import('../views/TaiKhoan/DanhGiaCuaBan.vue');
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -54,6 +60,19 @@ const router = createRouter({
 
     // Route cho xác nhận email
     { path: '/xac-nhan-tai-khoan', name: 'email-confirm', component: EmailConfirmView },
+
+    {
+      path: '/tai-khoan',
+      component: TaiKhoanView,
+      meta: { requiresAuth: true },
+      children: [
+        { path: '', redirect: '/tai-khoan/thong-tin' },
+        { path: 'thong-tin', name: 'tai-khoan-thong-tin', component: ThongTinTaiKhoan },
+        { path: 'bao-mat', name: 'tai-khoan-bao-mat', component: CaiDatBaoMat },
+        { path: 'lich-su-dat-phong', name: 'tai-khoan-lich-su', component: LichSuDatPhong },
+        { path: 'danh-gia', name: 'tai-khoan-danh-gia', component: DanhGiaCuaBan },
+      ],
+    },
 
     // Các route cho Admin
     {

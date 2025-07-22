@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { login as apiLogin } from '@/Service/authService'
+import { login as apiLogin, getAccountInfo } from '@/Service/authService'
 
 // Tạo hoặc lấy ID phiên duy nhất cho mỗi tab
 const getOrCreateSessionId = () => {
@@ -65,6 +65,27 @@ export const useAuthStore = defineStore('auth', {
         return { success: false, error }
       }
     },
+    async fetchUserAvatar() {
+      if (this.user && this.user.username && !this.user.Anh) {
+        try {
+          const response = await getAccountInfo(this.user.username)
+          const accountInfo = response.data
+          if (accountInfo && accountInfo.Anh) {
+            this.user.Anh = accountInfo.Anh
+
+            // Cập nhật lại user trong localStorage
+            const userStr = localStorage.getItem(`user_${SESSION_ID}`)
+            if (userStr) {
+              const user = JSON.parse(userStr)
+              user.Anh = accountInfo.Anh
+              localStorage.setItem(`user_${SESSION_ID}`, JSON.stringify(user))
+            }
+          }
+        } catch (error) {
+          console.error('Lỗi khi lấy thông tin ảnh đại diện:', error)
+        }
+      }
+    },
 
     // Đăng xuất
     logout() {
@@ -115,6 +136,12 @@ export const useAuthStore = defineStore('auth', {
             this.token = token
             this.isLoggedIn = true
             this.isAdmin = user.accountTypeId === 1 || user.accountTypeId === 2
+
+            // Sau khi khôi phục, gọi API để lấy ảnh đại diện
+            if (!user.Anh) {
+              this.fetchUserAvatar()
+            }
+
             console.log('Đã khôi phục trạng thái đăng nhập từ localStorage cho phiên hiện tại')
             console.log('Trạng thái đăng nhập:', {
               isLoggedIn: this.isLoggedIn,

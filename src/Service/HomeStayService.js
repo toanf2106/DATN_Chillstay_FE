@@ -13,25 +13,25 @@ export function getHomeStayById(id) {
 // Thêm homestay mới
 export function createHomestay(formData) {
   return api.post('/api/homestay/add', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-  }
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+}
 
 // Cập nhật homestay
 export function updateHomestay(id, formData) {
   return api.put(`/api/homestay/update/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 }
 
 // Xóa homestay
 export function deleteHomestayAPI(id) {
   return api.delete(`/api/homestay/delete/${id}`);
-  }
+}
 
 // Lấy danh sách loại homestay
 export function getLoaiHomeStay() {

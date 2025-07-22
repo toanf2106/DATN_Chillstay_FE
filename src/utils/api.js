@@ -128,7 +128,7 @@ api.interceptors.response.use(
         console.log(`Server error (${error.response.status}) detected, attempting retry...`);
 
         // Đánh dấu request này đang được retry để tránh lặp vô hạn
-        const newConfig = {...error.config, __isRetry: true};
+        const newConfig = { ...error.config, __isRetry: true };
         return retryRequest(newConfig);
       }
     } else if (error.request) {
@@ -137,7 +137,7 @@ api.interceptors.response.use(
       // Retry cho lỗi không nhận được response
       if (!error.config.__isRetry) {
         console.log('No response received, attempting retry...');
-        const newConfig = {...error.config, __isRetry: true};
+        const newConfig = { ...error.config, __isRetry: true };
         return retryRequest(newConfig);
       }
     }
@@ -167,6 +167,13 @@ api.interceptors.response.use(
             localStorage.removeItem(`token_${sessionId}`)
             localStorage.removeItem(`user_${sessionId}`)
             localStorage.removeItem(`isAdmin_${sessionId}`)
+
+            // Thêm thông báo về việc phiên đăng nhập hết hạn
+            if (window.dispatchEvent) {
+              window.dispatchEvent(new CustomEvent('session-expired', {
+                detail: { message: 'Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.' }
+              }));
+            }
           }
 
           // Chỉ redirect nếu không ở trang chủ, trang login hoặc trang tất cả homestay
@@ -175,7 +182,7 @@ api.interceptors.response.use(
 
             // Tăng thời gian chờ để tránh reload quá nhanh
             setTimeout(() => {
-              window.location.href = '/'
+              window.location.href = '/login?expired=true'
               // Reset biến cờ sau khi đã redirect
               setTimeout(() => {
                 api.isRedirecting = false

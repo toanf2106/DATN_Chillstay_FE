@@ -20,6 +20,18 @@
           </div>
         </div>
       </div>
+
+      <div class="right-controls">
+        <select
+          class="form-select status-filter"
+          v-model="selectedStatus"
+          @change="handleStatusChange"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Ngừng hoạt động</option>
+        </select>
+      </div>
     </div>
 
     <!-- API Error Alert -->
@@ -62,7 +74,7 @@
             <td class="text-center">{{ item.donVi }}</td>
             <td class="text-center">{{ item.moTa }}</td>
             <td class="text-center">
-              <span :class="`badge ${item.trangThai ? 'bg-success' : 'bg-danger'}`">
+              <span :class="`badge ${item.trangThai ? 'bg-success' : 'bg-danger'} status-badge`">
                 {{ item.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
               </span>
             </td>
@@ -130,6 +142,7 @@ export default {
     const apiError = ref(false)
     const apiErrorMessage = ref('')
     const loading = ref(false)
+    const selectedStatus = ref('all')
 
     // Pagination
     const currentPage = ref(0)
@@ -208,6 +221,12 @@ export default {
         )
       }
 
+      // Lọc theo trạng thái
+      if (selectedStatus.value !== 'all') {
+        const isActive = selectedStatus.value === 'active'
+        filtered = filtered.filter((item) => item.trangThai === isActive)
+      }
+
       return filtered
     })
 
@@ -246,6 +265,11 @@ export default {
       currentPage.value = 0 // Reset về trang đầu tiên khi tìm kiếm
     }
 
+    // Status filter method
+    const handleStatusChange = () => {
+      currentPage.value = 0 // Reset về trang đầu tiên khi lọc trạng thái
+    }
+
     // Fetch data on component mount
     onMounted(() => {
       fetchData()
@@ -268,7 +292,9 @@ export default {
       filteredItems,
       changePage,
       handleSearch,
-      formatCurrency
+      formatCurrency,
+      selectedStatus,
+      handleStatusChange
     }
   },
 }
@@ -276,17 +302,23 @@ export default {
 
 <style scoped>
 .homestay-dichvu-container {
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: #f8f9fa;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #333;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 25px;
+  color: #343a40;
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .controls-container {
@@ -294,174 +326,289 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  background-color: #ffffff;
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .search-box {
-  flex-grow: 1;
-  max-width: 500px;
+  position: relative;
+  width: 450px;
 }
 
 .search-control-group {
   display: flex;
+  align-items: center;
   gap: 10px;
 }
 
 .search-input-wrapper {
   position: relative;
-  width: 100%;
+  flex-grow: 1;
 }
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6b7280;
+  color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon,
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 35px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 16px;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.25s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.search-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
 }
 
 .clear-search-btn {
   position: absolute;
-  right: 12px;
+  right: 15px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #6b7280;
+  color: #6c757d;
   cursor: pointer;
+  padding: 5px;
+  font-size: 1.1rem;
 }
 
-.alert {
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  border-radius: 8px;
+.clear-search-btn:hover {
+  color: #343a40;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.status-filter {
+  min-width: 180px;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
+}
+
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
 }
 
 .alert-warning {
+  border-radius: 12px;
   background-color: #fff3cd;
-  border: 1px solid #ffecb5;
-  color: #664d03;
+  border-color: #ffeeba;
+  color: #856404;
+  font-weight: 500;
+}
+
+.table-responsive {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 2px solid #e9ecef;
+  padding: 15px 10px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.table tbody td {
+  padding: 15px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-info-light {
+  background-color: rgba(13, 202, 240, 0.15);
+  color: #0dcaf0;
+}
+
+.btn-info-light:hover {
+  background-color: rgba(13, 202, 240, 0.3);
+  color: #0aa2c0;
 }
 
 .loading-indicator {
   display: flex;
   justify-content: center;
-  padding: 30px 0;
+  align-items: center;
+  height: 300px;
 }
 
 .empty-state {
   text-align: center;
-  padding: 40px 0;
-  color: #6b7280;
+  padding: 50px 0;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  color: #6c757d;
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
+  font-size: 3rem;
+  margin-bottom: 15px;
 }
 
 .pagination-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
 }
 
 .pagination-info {
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.pagination {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.page-item {
-  margin: 0 2px;
-}
-
-.page-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background-color: #f9fafb;
-  border: 1px solid #d1d5db;
-  color: #4b5563;
-  text-decoration: none;
-}
-
-.page-item.active .page-link {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
-}
-
-.page-item.disabled .page-link {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.table th {
-  background-color: #f9fafb;
-  color: #4b5563;
-  font-weight: 600;
-  padding: 12px 16px;
-  text-align: center;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
-}
-
-.empty-row td {
-  border-bottom: 1px solid #e5e7eb;
-  height: 53px; /* Match the height of regular rows */
-}
-
-.table-hover tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 14px;
+  color: #6c757d;
   font-weight: 500;
 }
 
-.bg-success {
-  background-color: #10b981;
-  color: white;
+.pagination {
+  margin-bottom: 0;
 }
 
-.bg-danger {
-  background-color: #ef4444;
-  color: white;
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  border: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-item:not(.active) .page-link:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
+.empty-row td {
+  padding: 24.5px !important;
+  border-bottom: 1px solid #e9ecef !important;
+}
+
+.empty-row:last-child td {
+  border-bottom: none !important;
 }
 </style>

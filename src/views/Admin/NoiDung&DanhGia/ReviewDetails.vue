@@ -6,9 +6,7 @@
         <h1 v-if="homestay">Đánh giá cho {{ homestay.tenHomestay }}</h1>
         <h1 v-else>Đang tải...</h1>
       </div>
-      <button @click="openAddReviewModal" class="add-review-btn">
-          <i class="fas fa-plus"></i> Thêm đánh giá
-      </button>
+      <!-- Removed Add Review Button -->
     </div>
 
     <div v-if="!loading && reviews.length > 0" class="average-rating-container">
@@ -92,86 +90,36 @@
                   <img :src="image.duongDanAnh" alt="Ảnh đánh giá" class="review-image">
                 </div>
               </div>
-              <div class="review-actions">
-                 <button @click="openManageImagesModal(review)" class="action-button manage-photos-button">
-                  <i class="fas fa-images"></i> Quản lý ảnh
-                </button>
-              </div>
+              <!-- Removed Review Actions (Manage Photos button) -->
             </div>
         </div>
     </div>
       <!-- Image Modal -->
       <div v-if="isImageModalOpen" class="image-modal-overlay" @click="closeImageModal">
-      <div class="image-modal-content" @click.stop>
-        <span class="close-modal" @click="closeImageModal">&times;</span>
-        <img :src="currentModalImage" alt="Ảnh đánh giá phóng to" class="modal-image">
+        <div class="image-modal-content" @click.stop>
+          <span class="close-modal" @click="closeImageModal">&times;</span>
+          <img :src="currentModalImage" alt="Ảnh đánh giá phóng to" class="modal-image">
+        </div>
       </div>
-    </div>
-     <!-- Admin Anh Danh Gia Modal -->
-    <AdminAnhDanhGiaModal
-      v-if="isManageImagesModalOpen"
-      :danh-gia="selectedReview"
-      @close="closeManageImagesModal"
-      @images-updated="handleImagesUpdated"
-    />
-     <!-- Add Review Modal -->
-    <div v-if="isReviewModalVisible" class="modal-backdrop">
-      <div class="modal-content">
-        <button @click="closeReviewModal" class="close-modal-btn">&times;</button>
-        <h3>Viết đánh giá của bạn</h3>
-         <form @submit.prevent="submitReview" class="review-form">
-          <div class="form-group">
-            <label>Bạn đánh giá bao nhiêu sao?</label>
-            <div class="star-rating">
-              <span v-for="star in 5" :key="star" @click="setRating(star)" :class="{ 'filled': star <= newReview.diemSo }">
-                <i class="fas fa-star"></i>
-              </span>
-            </div>
-             <div v-if="formErrors.diemSo" class="error-text">{{ formErrors.diemSo }}</div>
-          </div>
-          <div class="form-group">
-            <label for="review-content-admin">Nội dung đánh giá:</label>
-            <textarea id="review-content-admin" v-model="newReview.noiDung" rows="5" placeholder="Hãy chia sẻ cảm nhận của bạn về homestay này..."></textarea>
-            <div v-if="formErrors.noiDung" class="error-text">{{ formErrors.noiDung }}</div>
-          </div>
-          <div class="form-group">
-            <label>Thêm hình ảnh (tối đa 5 ảnh):</label>
-            <input type="file" @change="handleImageUpload" multiple accept="image/*" class="file-input">
-            <div class="image-preview-container">
-              <div v-for="(image, index) in imagePreviews" :key="index" class="image-preview">
-                <img :src="image.src" :alt="image.file.name">
-                <button @click="removeImage(index)" class="remove-image-btn">&times;</button>
-              </div>
-            </div>
-          </div>
-          <button type="submit" class="submit-review-btn" :disabled="isSubmitting">
-            <span v-if="isSubmitting"><i class="fas fa-spinner fa-spin"></i> Đang gửi...</span>
-            <span v-else>Gửi đánh giá</span>
-          </button>
-        </form>
-      </div>
-    </div>
+     <!-- Removed Admin Anh Danh Gia Modal -->
+     <!-- Removed Add Review Modal -->
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed, reactive } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { getHomeStayById } from '@/Service/HomeStayService';
-import { getAllDanhGia, getAnhDanhGiaByDanhGiaId, createDanhGia, uploadAnhDanhGia } from '@/Service/DanhGiaService';
+import { getAllDanhGia } from '@/Service/DanhGiaService';
 import { getKhachHangById } from '@/Service/khachHangService';
-import AdminAnhDanhGiaModal from '@/views/Admin/components/AdminAnhDanhGiaModal.vue';
-import { useToast } from '@/stores/notificationStore';
-
 
 export default {
   name: 'ReviewDetails',
   components: {
-    AdminAnhDanhGiaModal
+    // AdminAnhDanhGiaModal removed
   },
   setup() {
     const route = useRoute();
-    const toast = useToast();
     const homestay = ref(null);
     const reviews = ref([]);
     const loading = ref(true);
@@ -181,109 +129,6 @@ export default {
     const visibilityFilter = ref('all'); // 'all', 'visible', 'hidden'
     const isImageModalOpen = ref(false);
     const currentModalImage = ref('');
-    const isManageImagesModalOpen = ref(false);
-    const selectedReview = ref(null);
-    const isReviewModalVisible = ref(false);
-    const isSubmitting = ref(false);
-
-    const newReview = reactive({
-        datHomeId: 1, // Placeholder
-        khachHangId: 1, // Placeholder
-        homeStayId: parseInt(route.params.homestayId),
-        diemSo: 0,
-        noiDung: '',
-    });
-
-    const imageFiles = ref([]);
-    const imagePreviews = ref([]);
-    const formErrors = reactive({});
-
-     const setRating = (rating) => {
-        newReview.diemSo = rating;
-        if(formErrors.diemSo) delete formErrors.diemSo;
-    };
-
-    const handleImageUpload = (event) => {
-        const files = Array.from(event.target.files);
-        if (imageFiles.value.length + files.length > 5) {
-            toast.error("Bạn chỉ có thể tải lên tối đa 5 ảnh.");
-            return;
-        }
-
-        files.forEach(file => {
-            imageFiles.value.push(file);
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imagePreviews.value.push({ src: e.target.result, file: file });
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
-    const removeImage = (index) => {
-        const removedFile = imagePreviews.value[index].file;
-        imagePreviews.value.splice(index, 1);
-        const fileIndex = imageFiles.value.findIndex(f => f === removedFile);
-        if (fileIndex > -1) {
-            imageFiles.value.splice(fileIndex, 1);
-        }
-    };
-
-    const validateForm = () => {
-        const errors = {};
-        if (newReview.diemSo === 0) {
-            errors.diemSo = "Vui lòng chọn số sao đánh giá.";
-        }
-        if (!newReview.noiDung.trim()) {
-            errors.noiDung = "Nội dung đánh giá không được để trống.";
-        }
-        Object.assign(formErrors, errors);
-        return Object.keys(errors).length === 0;
-    };
-
-    const submitReview = async () => {
-        if (!validateForm()) return;
-
-        isSubmitting.value = true;
-        try {
-            const response = await createDanhGia(newReview);
-            const createdReviewId = response.data.id;
-
-            if (createdReviewId && imageFiles.value.length > 0) {
-                const uploadPromises = imageFiles.value.map(file => uploadAnhDanhGia(file, createdReviewId));
-                await Promise.all(uploadPromises);
-            }
-
-            toast.success("Đánh giá đã được thêm thành công!");
-            closeReviewModal();
-            await fetchData();
-
-        } catch (error) {
-            console.error("Lỗi khi thêm đánh giá:", error);
-            toast.error("Đã xảy ra lỗi khi thêm đánh giá.");
-        } finally {
-            isSubmitting.value = false;
-        }
-    };
-
-    const resetForm = () => {
-        newReview.diemSo = 0;
-        newReview.noiDung = '';
-        imageFiles.value = [];
-        imagePreviews.value = [];
-        for (const key in formErrors) {
-            delete formErrors[key];
-        }
-    };
-
-    const openAddReviewModal = () => {
-        resetForm();
-        isReviewModalVisible.value = true;
-    };
-
-    const closeReviewModal = () => {
-        isReviewModalVisible.value = false;
-    };
 
     const openImageModal = (imageUrl) => {
       currentModalImage.value = imageUrl;
@@ -293,36 +138,6 @@ export default {
     const closeImageModal = () => {
       isImageModalOpen.value = false;
       currentModalImage.value = '';
-    };
-
-    const openManageImagesModal = (review) => {
-      selectedReview.value = review;
-      isManageImagesModalOpen.value = true;
-    };
-
-    const closeManageImagesModal = () => {
-      isManageImagesModalOpen.value = false;
-      selectedReview.value = null;
-    };
-
-    const handleImagesUpdated = async () => {
-        if (selectedReview.value) {
-            try {
-                // Fetch only the images for the updated review
-                const response = await getAnhDanhGiaByDanhGiaId(selectedReview.value.id);
-                const newImages = response.data;
-
-                // Find the review in the main list and update its images
-                const reviewInList = reviews.value.find(r => r.id === selectedReview.value.id);
-                if (reviewInList) {
-                    reviewInList.anhDanhGias = newImages;
-                }
-            } catch (error) {
-                console.error("Lỗi khi làm mới ảnh đánh giá:", error);
-                // Fallback to fetching all data if specific fetch fails
-                await fetchData();
-            }
-        }
     };
 
     const fetchData = async () => {
@@ -338,16 +153,13 @@ export default {
         const filteredReviewsFromServer = reviewsRes.data.filter(r => r.homeStayId == homestayId);
 
         // Map server data to our component's review model
-        // This preserves client-side state like 'likes' across data refreshes
         reviews.value = filteredReviewsFromServer.map(serverReview => {
             const existingReview = reviews.value.find(r => r.id === serverReview.id);
             return {
                 ...serverReview,
-                // Initialize isHidden based on the server's trangThai field
-                // `trangThai` = true means visible, so isHidden should be false.
                 isHidden: existingReview ? existingReview.isHidden : (serverReview.trangThai === false),
-                isDeleted: existingReview ? existingReview.isDeleted : false, // for client-side filtering only
-                likes: existingReview ? existingReview.likes : 0, // for client-side interaction
+                isDeleted: existingReview ? existingReview.isDeleted : false,
+                likes: existingReview ? existingReview.likes : 0,
                 isLiked: existingReview ? existingReview.isLiked : false,
             };
         });
@@ -400,17 +212,14 @@ export default {
     });
 
     const filteredReviews = computed(() => {
-      // 1. Filter by deletion status
       let tempReviews = reviews.value.filter(r => !r.isDeleted);
 
-      // 2. Filter by visibility status
       if (visibilityFilter.value === 'visible') {
         tempReviews = tempReviews.filter(r => !r.isHidden);
       } else if (visibilityFilter.value === 'hidden') {
         tempReviews = tempReviews.filter(r => r.isHidden);
       }
 
-      // 3. Filter by star rating
       if (selectedStarFilter.value !== null) {
         const minRating = selectedStarFilter.value;
         return tempReviews.filter(review => review.diemSo >= minRating);
@@ -443,22 +252,6 @@ export default {
       currentModalImage,
       openImageModal,
       closeImageModal,
-      isManageImagesModalOpen,
-      selectedReview,
-      openManageImagesModal,
-      closeManageImagesModal,
-      handleImagesUpdated,
-      isReviewModalVisible,
-      openAddReviewModal,
-      closeReviewModal,
-      newReview,
-      setRating,
-      submitReview,
-      isSubmitting,
-      handleImageUpload,
-      imagePreviews,
-      removeImage,
-      formErrors,
     };
   }
 }

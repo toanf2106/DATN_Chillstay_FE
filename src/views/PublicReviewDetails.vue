@@ -6,7 +6,7 @@
         <h1 v-if="homestay">Đánh giá cho {{ homestay.tenHomestay }}</h1>
         <h1 v-else>Đang tải...</h1>
       </div>
-      <button @click="openAddReviewModal" class="add-review-btn">
+      <button @click="openAddReviewModal" class="add-review-btn" :disabled="!canReview">
           <i class="fas fa-plus"></i> Thêm đánh giá
       </button>
     </div>
@@ -106,6 +106,9 @@ import { getHomeStayById } from '@/Service/HomeStayService';
 import { getAllDanhGia, createDanhGia, uploadAnhDanhGia } from '@/Service/DanhGiaService';
 import { getKhachHangById } from '@/Service/khachHangService';
 import { useToast } from '@/stores/notificationStore';
+import { useAuthStore } from '@/stores/authStore';
+import { getAllDatHome } from '@/Service/DatHomeService';
+import { getThongTinNguoiDungByTaiKhoanId } from '@/Service/ThongTinNguoiDungService';
 
 
 export default {
@@ -113,18 +116,22 @@ export default {
   setup() {
     const route = useRoute();
     const toast = useToast();
+    const authStore = useAuthStore();
     const homestay = ref(null);
     const reviews = ref([]);
     const loading = ref(true);
     const reviewCustomers = ref({});
-    const homestayId = route.params.homestayId;
+    const homestayId = parseInt(route.params.homestayId, 10);
     const isReviewModalVisible = ref(false);
     const isSubmitting = ref(false);
+    const canReview = ref(false);
+    const userKhachHangId = ref(null);
+    const canReviewLoading = ref(true);
 
     const newReview = reactive({
-        datHomeId: 1, // Placeholder, will need to be dynamically set
-        khachHangId: 1, // Placeholder, will need to be dynamically set
-        homeStayId: parseInt(homestayId),
+        datHomeId: null,
+        khachHangId: null,
+        homeStayId: homestayId,
         diemSo: 0,
         noiDung: '',
     });
@@ -181,8 +188,12 @@ export default {
 
         isSubmitting.value = true;
         try {
+            const reviewPayload = {
+              ...newReview,
+              khachHangId: userKhachHangId.value,
+            };
             // Step 1: Create the review text content
-            const response = await createDanhGia(newReview);
+            const response = await createDanhGia(reviewPayload);
             const createdReviewId = response.data.id;
 
             // Step 2: If review creation is successful and there are images, upload them
@@ -211,6 +222,54 @@ export default {
         for (const key in formErrors) {
             delete formErrors[key];
         }
+    };
+
+    const checkCanReview = async () => {
+      if (!authStore.isLoggedIn) {
+        canReview.value = false;
+        canReviewLoading.value = false;
+        return;
+      }
+
+      try {
+        const userInfoResponse = await getThongTinNguoiDungByTaiKhoanId(authStore.user.id);
+        if (userInfoResponse.data) {
+          userKhachHangId.value = userInfoResponse.data.id;
+          newReview.khachHangId = userInfoResponse.data.id;
+
+          const allBookingsRes = await getAllDatHome();
+          const userBookings = allBookingsRes.data.filter(
+            booking => booking.khachHangId === userKhachHangId.value &&
+                       booking.homestayId === homestayId &&
+                       (booking.trangThai === 'HoanThanh' || booking.trangThai === 'DaCheckOut')
+          );
+
+          if (userBookings.length > 0) {
+            // Check if the user has already reviewed this homestay
+            const reviewsRes = await getAllDanhGia();
+            const existingReview = reviewsRes.data.find(review =>
+              review.khachHangId === userKhachHangId.value && review.homeStayId === homestayId
+            );
+
+            if (existingReview) {
+              canReview.value = false;
+              toast.info("Bạn đã đánh giá homestay này rồi.");
+            } else {
+              canReview.value = true;
+              newReview.datHomeId = userBookings[0].id; // Use the first completed/checked-out booking
+            }
+          } else {
+            canReview.value = false;
+          }
+        } else {
+          canReview.value = false;
+        }
+      } catch (error) {
+        console.error("Lỗi khi kiểm tra quyền đánh giá:", error);
+        canReview.value = false;
+      } finally {
+        canReviewLoading.value = false;
+      }
     };
 
     const fetchData = async () => {
@@ -256,6 +315,10 @@ export default {
     };
 
     const openAddReviewModal = () => {
+        if (!canReview.value) {
+          toast.warning("Bạn cần hoàn thành một kỳ nghỉ tại đây để có thể đánh giá.");
+          return;
+        }
         resetForm();
         isReviewModalVisible.value = true;
     };
@@ -270,7 +333,10 @@ export default {
       return new Date(dateString).toLocaleDateString('vi-VN', options);
     };
 
-    onMounted(fetchData);
+    onMounted(async () => {
+      await checkCanReview();
+      await fetchData();
+    });
 
     return {
       homestay,
@@ -289,6 +355,8 @@ export default {
       imagePreviews,
       removeImage,
       formErrors,
+      canReview,
+      canReviewLoading,
     };
   }
 }
@@ -481,6 +549,13 @@ export default {
 .add-review-btn:hover {
     background-color: #0056b3;
     transform: translateY(-2px);
+}
+
+.add-review-btn:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .add-review-btn i {

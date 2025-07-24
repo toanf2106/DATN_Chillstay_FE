@@ -70,6 +70,7 @@ const router = createRouter({
         { path: 'thong-tin', name: 'tai-khoan-thong-tin', component: ThongTinTaiKhoan },
         { path: 'bao-mat', name: 'tai-khoan-bao-mat', component: CaiDatBaoMat },
         { path: 'lich-su-dat-phong', name: 'tai-khoan-lich-su', component: LichSuDatPhong },
+        { path: 'lich-su-dat-phong/:id', name: 'booking-detail', component: () => import('../views/BookingDetailView.vue'), props: true },
         { path: 'danh-gia', name: 'tai-khoan-danh-gia', component: DanhGiaCuaBan },
       ],
     },

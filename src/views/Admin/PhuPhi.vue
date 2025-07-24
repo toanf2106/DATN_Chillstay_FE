@@ -289,8 +289,9 @@
                     required
                   >
                     <option value="" disabled selected>Chọn loại phụ phí</option>
-                    <option value="Dịch Vụ">Dịch Vụ</option>
-                    <option value="Phụ Thu">Phụ Thu</option>
+                    <option value="Đến/Đi">Đến/Đi</option>
+                    <option value="Ngày Lễ">Ngày Lễ</option>
+                    <option value="Cuối Tuần">Cuối Tuần</option>
                     <option value="Phát Sinh">Phát Sinh</option>
                   </select>
                   <div class="select-icon">

@@ -14,9 +14,6 @@ export function getThongTinNguoiDungById(id) {
 export function getThongTinNguoiDungByTaiKhoanId(taiKhoanId) {
   return api.get(`/api/thongTinNguoiDung/taiKhoan/${taiKhoanId}`);
 }
-export function updateThongTinNguoiDung(id, ThongTinNguoiDungDto) {
-  return api.put(`/api/thongTinNguoiDung/update/${id}`, ThongTinNguoiDungDto);
-}
 
 export function updateThongTinNguoiDung1(id, thongTinNguoiDung) {
   return api.put(`/api/thongTinNguoiDung/update1/${id}`, thongTinNguoiDung);

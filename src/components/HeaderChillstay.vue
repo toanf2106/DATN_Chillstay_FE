@@ -26,7 +26,22 @@ const authStore = useAuthStore()
 // Computed properties để lấy dữ liệu từ store
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const currentUser = computed(() => authStore.user)
+// Khai báo thêm biến cho avatar sau biến dropdownVisible
 const dropdownVisible = ref(false)
+const avatarError = ref(false)
+const defaultAvatarUrl = '/images/default-avatar.png'
+
+// Computed property cho URL avatar
+const avatarUrl = computed(() => {
+  if (avatarError.value || !currentUser.value?.anh) {
+    return defaultAvatarUrl;
+  }
+
+  // Thêm timestamp để tránh cache
+  const timestamp = new Date().getTime();
+  const baseUrl = currentUser.value.anh;
+  return baseUrl.includes('?') ? `${baseUrl}&t=${timestamp}` : `${baseUrl}?t=${timestamp}`;
+})
 
 // Trạng thái hiển thị mật khẩu
 const passwordVisible = ref(false)
@@ -746,6 +761,12 @@ function resetVerificationForm() {
   verificationEmailError.value = ''
   verificationEmailSuccess.value = ''
 }
+
+// Hàm xử lý khi ảnh bị lỗi
+function handleAvatarError() {
+  console.log('Không thể tải ảnh đại diện, sử dụng ảnh mặc định')
+  avatarError.value = true
+}
 </script>
 
 <template>
@@ -772,11 +793,7 @@ function resetVerificationForm() {
 
       <!-- Hiển thị tên người dùng và nút đăng xuất khi đã đăng nhập -->
       <div class="user-menu" v-else @click="toggleDropdown">
-        <img
-          :src="currentUser.Anh || '/images/default-avatar.png'"
-          alt="Avatar"
-          class="user-avatar"
-        />
+        <img :src="avatarUrl" @error="handleAvatarError" alt="Avatar" class="user-avatar" />
         <span class="username">Xin chào, {{ currentUser?.username }}</span>
         <div v-if="dropdownVisible" class="dropdown-menu">
           <router-link to="/tai-khoan" class="dropdown-item">Tài khoản</router-link>
@@ -802,16 +819,10 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="loginPassword">Mật khẩu</label>
               <div class="password-input-container">
-                <input
-                  :type="passwordVisible ? 'text' : 'password'"
-                  id="loginPassword"
-                  v-model="loginPassword"
-                  required
-                />
+                <input :type="passwordVisible ? 'text' : 'password'" id="loginPassword" v-model="loginPassword"
+                  required />
                 <span class="password-toggle" @click="togglePasswordVisibility">
-                  <font-awesome-icon
-                    :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
-                  />
+                  <font-awesome-icon :icon="passwordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
               </div>
             </div>
@@ -862,16 +873,9 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="matKhau">Mật khẩu</label>
               <div class="password-input-container">
-                <input
-                  :type="signupPasswordVisible ? 'text' : 'password'"
-                  id="matKhau"
-                  v-model="matKhau"
-                  required
-                />
+                <input :type="signupPasswordVisible ? 'text' : 'password'" id="matKhau" v-model="matKhau" required />
                 <span class="password-toggle" @click="toggleSignupPasswordVisibility">
-                  <font-awesome-icon
-                    :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
-                  />
+                  <font-awesome-icon :icon="signupPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
               </div>
             </div>
@@ -879,16 +883,10 @@ function resetVerificationForm() {
             <div class="input-group">
               <label for="xacNhanMatKhau">Xác nhận mật khẩu</label>
               <div class="password-input-container">
-                <input
-                  :type="confirmPasswordVisible ? 'text' : 'password'"
-                  id="xacNhanMatKhau"
-                  v-model="xacNhanMatKhau"
-                  required
-                />
+                <input :type="confirmPasswordVisible ? 'text' : 'password'" id="xacNhanMatKhau" v-model="xacNhanMatKhau"
+                  required />
                 <span class="password-toggle" @click="toggleConfirmPasswordVisibility">
-                  <font-awesome-icon
-                    :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'"
-                  />
+                  <font-awesome-icon :icon="confirmPasswordVisible ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash'" />
                 </span>
               </div>
             </div>
@@ -908,14 +906,8 @@ function resetVerificationForm() {
           <form @submit.prevent="handleForgotPassword">
             <div class="input-group">
               <label for="forgotEmail">Email</label>
-              <input
-                type="email"
-                id="forgotEmail"
-                v-model="forgotEmail"
-                class="form-control"
-                placeholder="Nhập email của bạn"
-                :disabled="isEmailProcessing"
-              />
+              <input type="email" id="forgotEmail" v-model="forgotEmail" class="form-control"
+                placeholder="Nhập email của bạn" :disabled="isEmailProcessing" />
             </div>
 
             <div v-if="forgotEmailError" class="form-error">
@@ -942,14 +934,8 @@ function resetVerificationForm() {
           <form @submit.prevent="resendVerificationEmail">
             <div class="input-group">
               <label for="verificationEmail">Email</label>
-              <input
-                type="email"
-                id="verificationEmail"
-                v-model="verificationEmail"
-                class="form-control"
-                placeholder="Nhập email của bạn"
-                :disabled="isVerificationEmailProcessing"
-              />
+              <input type="email" id="verificationEmail" v-model="verificationEmail" class="form-control"
+                placeholder="Nhập email của bạn" :disabled="isVerificationEmailProcessing" />
             </div>
 
             <div v-if="verificationEmailError" class="form-error">
@@ -975,6 +961,7 @@ function resetVerificationForm() {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
 /* Cập nhật CSS để giống với thiết kế trong ảnh */
 .modal-content {
   background-color: white;
@@ -1102,6 +1089,7 @@ function resetVerificationForm() {
   border: 2px solid #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
 /* Thêm CSS cho user menu */
 .user-menu {
   display: flex;

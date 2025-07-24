@@ -165,6 +165,26 @@ export function prepareTinTucData(data) {
   return preparedData;
 }
 
+// Thêm ảnh từ trình soạn thảo
+export const uploadImageFromEditor = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const response = await api.post('/api/anh-tintuc/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    // Trả về URL của ảnh đã được tải lên
+    return response.data.imageUrl;
+  } catch (error) {
+    console.error('Lỗi khi tải ảnh từ trình soạn thảo:', error);
+    // Trả về null hoặc throw lỗi để component có thể xử lý
+    throw new Error('Tải ảnh thất bại. Vui lòng thử lại.');
+  }
+};
+
 // Test API connection
 export const testApiConnection = async () => {
   try {

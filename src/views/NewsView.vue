@@ -1,5 +1,5 @@
 <template>
-  <div class="news-container">
+  <div class="news-view-container">
     <!-- Breadcrumb -->
     <div class="breadcrumb-container">
       <div class="container">
@@ -11,19 +11,16 @@
       </div>
     </div>
 
-    <!-- Banner Section -->
-    <section class="news-banner">
+    <!-- Page Header -->
+    <section class="page-header">
       <div class="container">
-        <h1 class="page-title">Mộc Châu: Khám phá Sự đặc sắc và </h1>
-        <h1 class="page-title"> Cập nhật tin tức mới nhất</h1>
-        <p class="page-description">Mộc Châu: Sắc Màu Cao Nguyên – Khám phá và Cập nhật</p>
-        <p class="page-description"> những điều thú vị từ vùng đất mộng mơ giữa đại ngàn.</p>
-        <div class="banner-divider"></div>
+        <h1 class="page-title">Tin Tức & Sự Kiện</h1>
+        <p class="page-subtitle">Cập nhật những thông tin mới nhất về du lịch và các sự kiện tại ChillStay.</p>
       </div>
     </section>
 
     <!-- News Content Section -->
-    <section class="news-content">
+    <section class="news-content-section">
       <div class="container">
         <!-- Loading indicator -->
         <div v-if="loading" class="loading-indicator">
@@ -39,47 +36,35 @@
           <button @click="fetchNews" class="retry-btn">Thử lại</button>
         </div>
 
-        <div v-else>
-          <!-- Hàng tin tức 1 -->
-          <div class="news-section">
-            <div class="news-grid">
-              <div v-for="news in displayedNews" :key="news.id" class="news-card" @click="navigateToNews(news.id)">
-                <div class="news-image">
-                  <img :src="news.anhBia || 'https://placehold.co/400x250/e9ecef/0d6efd?text=ChillStay+News'"
-                    :alt="news.tieuDe" />
-                  <div class="image-overlay">
-                    <button class="view-btn">
-                      <i class="fas fa-eye"></i> Xem chi tiết
-                    </button>
-                  </div>
-                </div>
-                <div class="news-body">
-                  <h3 class="news-title">{{ news.tieuDe }}</h3>
-                  <p class="news-excerpt">{{ truncateText(news.noiDung, 100) }}</p>
-                  <div class="news-meta">
-                    <span class="news-date"><i class="fas fa-calendar-alt"></i> {{ formatDate(news.ngayDang) }}</span>
-                    <span class="news-author"><i class="fas fa-user"></i> {{ news.tenTaiKhoan || 'ChillStay' }}</span>
-                  </div>
-                </div>
+        <!-- News Grid -->
+        <div v-else class="news-grid">
+          <div v-for="news in displayedNews" :key="news.id" class="news-card" @click="navigateToNews(news.id)">
+            <div class="card-image-container">
+              <img :src="news.anhBia || 'https://placehold.co/400x250/e9ecef/cccccc?text=ChillStay'" :alt="news.tieuDe"
+                class="card-image" />
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{{ news.tieuDe }}</h3>
+              <p class="card-excerpt">{{ truncateText(news.noiDung, 80) }}</p>
+              <div class="card-meta">
+                <span class="card-date">{{ formatDate(news.ngayDang) }}</span>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Phân trang -->
-          <div class="pagination-container">
-            <button class="pagination-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-
-            <button v-for="page in totalPages" :key="page" class="pagination-btn"
-              :class="{ active: currentPage === page }" @click="changePage(page)">
-              {{ page }}
-            </button>
-
-            <button class="pagination-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
+        <!-- Pagination -->
+        <div v-if="!loading && !error && totalPages > 1" class="pagination-container">
+          <button class="pagination-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button v-for="page in totalPages" :key="page" class="pagination-btn"
+            :class="{ active: currentPage === page }" @click="changePage(page)">
+            {{ page }}
+          </button>
+          <button class="pagination-btn" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </section>
@@ -91,74 +76,62 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { getAllTinTuc } from '@/Service/TinTucService';
 import { useRouter } from 'vue-router';
 
-// State variables
 const allNews = ref([]);
 const loading = ref(true);
 const error = ref(false);
 const errorMessage = ref('');
 const router = useRouter();
 
-// Phân trang
 const currentPage = ref(1);
-const itemsPerPage = 9; // Hiển thị 9 tin tức mỗi trang (3 hàng x 3 cột)
+const itemsPerPage = 9; // 3x3 grid
 
-// Fetch news data
 const fetchNews = async () => {
   loading.value = true;
   error.value = false;
-
   try {
     const response = await getAllTinTuc();
     if (response && response.data) {
-      // Filter only active news
-      allNews.value = response.data.filter(item => item.trangThai === true);
+      allNews.value = response.data
+        .filter(item => item.trangThai === true)
+        .sort((a, b) => new Date(b.ngayDang) - new Date(a.ngayDang));
     } else {
       throw new Error('Không có dữ liệu tin tức');
     }
   } catch (err) {
-    error.value = true;
     errorMessage.value = err.message || 'Đã xảy ra lỗi khi tải tin tức';
+    error.value = true;
     console.error('Error fetching news:', err);
   } finally {
     loading.value = false;
   }
 };
 
-// Tính tổng số trang
-const totalPages = computed(() => {
-  return Math.ceil(allNews.value.length / itemsPerPage);
-});
+const totalPages = computed(() => Math.ceil(allNews.value.length / itemsPerPage));
 
-// Lấy tin tức hiển thị cho trang hiện tại
 const displayedNews = computed(() => {
   const startIndex = (currentPage.value - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   return allNews.value.slice(startIndex, endIndex);
 });
 
-// Thay đổi trang
 const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return;
   currentPage.value = page;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// Reset về trang 1 khi dữ liệu thay đổi
 watch(allNews, () => {
   currentPage.value = 1;
 });
 
-// Navigate to news detail
 const navigateToNews = (id) => {
   router.push(`/tin-tuc/${id}`);
 };
 
-// Format date
 const formatDate = (dateString) => {
-  if (!dateString) return 'Không xác định';
-
+  if (!dateString) return '';
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Không xác định';
-
+  if (isNaN(date.getTime())) return '';
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
@@ -166,26 +139,41 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
-// Truncate text
-const truncateText = (text, maxLength) => {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-
-  return text.substring(0, maxLength) + '...';
+const truncateText = (html, maxLength) => {
+  if (!html) return '';
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  const imageWrappers = tempDiv.querySelectorAll('.article-image, .image-container-editable');
+  imageWrappers.forEach(wrapper => wrapper.remove());
+  let text = tempDiv.textContent || tempDiv.innerText || '';
+  text = text.replace(/\s+/g, ' ').trim();
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + '...';
+  }
+  return text;
 };
 
-// Fetch data on component mount
 onMounted(() => {
   fetchNews();
 });
 </script>
 
 <style scoped>
+.news-view-container {
+  background-color: #ffffff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
 /* Breadcrumb */
 .breadcrumb-container {
-  background-color: #f5f5f5;
-  padding: 10px 0;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .breadcrumb {
@@ -195,13 +183,13 @@ onMounted(() => {
 }
 
 .breadcrumb a {
-  color: #0066cc;
+  color: #555;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .breadcrumb a:hover {
-  color: #ff6200;
+  color: #007bff;
 }
 
 .breadcrumb .separator {
@@ -210,234 +198,163 @@ onMounted(() => {
 }
 
 .breadcrumb .current {
-  color: #666;
+  color: #333;
   font-weight: 500;
 }
 
-/* Banner Section */
-.news-banner {
-  background: white;
-  color: rgb(14, 13, 13);
-  padding: 40px 0;
-  text-align: left;
-}
-
-.page-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin: 0 0 15px;
-  line-height: 1.3;
-  text-align: left;
-}
-
-.page-description {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  max-width: 800px;
-  margin: 0 0 15px;
-  text-align: left;
-}
-
-.banner-divider {
-  height: 3px;
-  width: 60px;
-  background-color: #4ddbff;
-  margin: 20px 0;
-}
-
-/* Container */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 15px;
-}
-
-/* News Content */
-.news-content {
-  padding: 40px 0 60px;
+/* Page Header */
+.page-header {
+  text-align: center;
+  padding: 40px 20px;
   background-color: #f8f9fa;
 }
 
-/* News Section */
-.news-section {
-  margin-bottom: 30px;
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #6c757d;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* News Content Section */
+.news-content-section {
+  padding: 50px 0;
 }
 
 /* News Grid */
 .news-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 25px;
-  padding: 0;
+  gap: 30px;
 }
 
+/* News Card */
 .news-card {
-  background: white;
-  border-radius: 10px;
+  background-color: #fff;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  border: 1px solid #f1f1f1;
 }
 
 .news-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
 }
 
-.news-image {
-  position: relative;
+.card-image-container {
   width: 100%;
-  height: 200px;
+  padding-top: 65%;
+  /* Aspect ratio for the image */
+  position: relative;
   overflow: hidden;
 }
 
-.news-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s;
-}
-
-.news-card:hover .news-image img {
-  transform: scale(1.05);
-}
-
-.image-overlay {
+.card-image {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
 }
 
-.news-card:hover .image-overlay {
-  opacity: 1;
+.news-card:hover .card-image {
+  transform: scale(1.05);
 }
 
-.view-btn {
-  background: #ff6200;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 30px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.view-btn:hover {
-  background: #4ddbff;
-  transform: translateY(-2px);
-}
-
-.news-body {
+.card-body {
   padding: 20px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
 }
 
-.news-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin: 0 0 12px;
-  color: #2c3e50;
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #343a40;
+  margin: 0 0 10px;
   line-height: 1.4;
-  transition: color 0.3s;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.news-card:hover .news-title {
-  color: #ff6200;
-}
-
-.news-excerpt {
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 20px;
-  flex-grow: 1;
-  font-size: 0.95rem;
+  height: 5.25rem;
+  /* Fallback for older browsers */
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  /* Limit to 3 lines */
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.news-meta {
+.card-excerpt {
+  font-size: 0.95rem;
+  color: #6c757d;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  flex-grow: 1;
+}
+
+.card-meta {
   margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+}
+
+.card-date {
   font-size: 0.85rem;
+  color: #888;
 }
 
-.news-date,
-.news-author {
-  color: #777;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.news-date i,
-.news-author i {
-  color: #0096c7;
-}
-
-/* Phân trang */
+/* Pagination */
 .pagination-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 40px;
-  gap: 8px;
+  margin-top: 50px;
+  gap: 10px;
 }
 
 .pagination-btn {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  color: #333;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  color: #007bff;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  border-color: #ccc;
+  background-color: #e9ecef;
+  border-color: #ced4da;
 }
 
 .pagination-btn.active {
-  background-color: #ff6200;
-  color: white;
-  border-color: #ff6200;
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
 }
 
 .pagination-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  color: #6c757d;
 }
 
 /* Responsive adjustments */
@@ -447,58 +364,61 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 768px) {
   .news-grid {
     grid-template-columns: 1fr;
   }
 
   .page-title {
-    font-size: 1.8rem;
-  }
-
-  .pagination-btn {
-    min-width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
+    font-size: 2.2rem;
   }
 }
 
 /* Loading and Error States */
 .loading-indicator,
 .error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 50px 0;
+  padding: 60px 0;
+  width: 100%;
 }
 
 .loading-indicator .spinner-border {
-  width: 3rem;
-  height: 3rem;
-  color: #0096c7;
+  width: 3.5rem;
+  height: 3.5rem;
+  color: #007bff;
 }
 
 .error-message {
-  color: #ff6200;
+  color: #dc3545;
 }
 
 .error-message i {
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin-bottom: 15px;
 }
 
+.error-message p {
+  font-size: 1.1rem;
+}
+
 .retry-btn {
-  background: #ff6200;
+  background-color: #007bff;
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 30px;
-  margin-top: 15px;
+  padding: 12px 24px;
+  border-radius: 50px;
+  margin-top: 20px;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s ease;
 }
 
 .retry-btn:hover {
-  background: #4ddbff;
+  background-color: #0056b3;
   transform: translateY(-2px);
 }
 </style>

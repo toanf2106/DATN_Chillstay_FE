@@ -19,7 +19,6 @@
 
       <div class="right-controls">
         <select class="form-select status-filter" v-model="selectedStatus" @change="handleStatusChange(selectedStatus)">
-          <option value="all">Tất cả trạng thái</option>
           <option value="active">Đang hiển thị</option>
           <option value="inactive">Đã ẩn</option>
         </select>
@@ -59,14 +58,16 @@
             <th width="15%" class="text-center">Thao tác</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody v-if="!loading">
           <tr v-for="(item, index) in paginatedTinTucs" :key="item.id" @dblclick="showDetail(item)"
-            style="cursor: pointer;">
+            style="cursor: pointer;" :id="'news-row-' + item.id" :ref="'news-row-' + item.id"
+            :class="{ 'highlight-blue': item.id === highlightedId }">
             <td class="text-center">{{ index + 1 + currentPage * pageSize }}</td>
             <td class="text-center">{{ item.maTinTuc }}</td>
             <td class="text-center">{{ item.tieuDe }}</td>
             <td class="text-center">
-              <div class="content-truncate">{{ item.noiDung }}</div>
+              <div class="content-truncate" :title="stripHtmlAndTruncate(item.noiDung, 0)">{{
+                stripHtmlAndTruncate(item.noiDung, 100) }}</div>
             </td>
             <td class="text-center">{{ item.tenTaiKhoan || 'Không xác định' }}</td>
             <td class="text-center">{{ formatDate(item.ngayDang) }}</td>
@@ -228,7 +229,7 @@
                     style="display: none" />
                 </div>
               </div>
-              <div class="mb-3">
+              <div class="mb-3" v-if="isEditing">
                 <label class="form-label">Trạng thái</label>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" v-model="form.trangThai" id="trangThaiSwitch">
@@ -243,7 +244,7 @@
                 <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
                   <span v-if="isSubmitting" class="spinner-border spinner-border-sm" role="status"
                     aria-hidden="true"></span>
-                  {{ isEditing ? 'Cập nhật' : 'Thêm mới' }}
+                  {{ isEditing ? 'Lưu' : 'Lưu' }}
                 </button>
               </div>
             </div>
@@ -385,10 +386,16 @@
 </template>
 
 <script>
-import { getAllTinTuc, addTinTuc, updateTinTuc, deleteTinTuc, getTinTucById, prepareTinTucData, testApiConnection } from "@/Service/TinTucService";
+import {
+  getAllTinTuc,
+  addTinTuc,
+  updateTinTuc,
+  deleteTinTuc,
+  prepareTinTucData,
+  testApiConnection
+} from "@/Service/TinTucService";
 import { useAuthStore } from "@/stores/authStore";
-import { getAnhTinTucByTinTucId, addAnhTinTucWithImage } from '@/Service/AnhTinTucService';
-import api from '@/utils/api';
+import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService';
 
 export default {
   name: 'TinTucManagement',
@@ -420,18 +427,17 @@ export default {
       loading: false,
       apiError: false,
       apiErrorMessage: '',
-      selectedStatus: 'all',
+      selectedStatus: 'active', // Mặc định là 'active'
 
       // Rich content editor
       showPreview: false,
       uploadingImage: false,
-      imageUploads: [],
-      existingImages: [],
+      contentImages: [], // Khởi tạo mảng để lưu trữ file ảnh trong nội dung
 
       // Pagination
       currentPage: 0,
       pageSize: 10,
-      totalPages: 1
+      highlightedId: null,
     }
   },
   computed: {
@@ -470,9 +476,16 @@ export default {
       return this.filteredTinTucs.length;
     },
 
+    // Tổng số trang sau khi lọc
+    totalPages() {
+      if (this.totalItems === 0) return 1;
+      return Math.ceil(this.totalItems / this.pageSize);
+    },
+
     // Vị trí bắt đầu của trang hiện tại
     startItem() {
-      return this.totalItems === 0 ? 0 : this.currentPage * this.pageSize + 1;
+      if (this.totalItems === 0) return 0;
+      return this.currentPage * this.pageSize + 1;
     },
 
     // Vị trí kết thúc của trang hiện tại
@@ -521,6 +534,35 @@ export default {
     }
   },
   methods: {
+    stripHtmlAndTruncate(html, maxLength) {
+      if (!html) return '';
+
+      // Create a temporary div to parse the HTML string
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+
+      // Find and remove all image containers to exclude their text content
+      const imageWrappers = tempDiv.querySelectorAll('.article-image, .image-container-editable');
+      imageWrappers.forEach(wrapper => wrapper.remove());
+
+      // Get the text content, which now excludes text from image containers
+      let text = tempDiv.textContent || tempDiv.innerText || '';
+
+      // Remove extra whitespace and newlines
+      text = text.replace(/\s+/g, ' ').trim();
+
+      // If maxLength is 0, return the full stripped text for the title attribute
+      if (maxLength === 0) {
+        return text;
+      }
+
+      // Truncate the text if it exceeds maxLength
+      if (text.length > maxLength) {
+        return text.substring(0, maxLength) + '...';
+      }
+
+      return text;
+    },
     // Cập nhật giá trị nội dung từ editor
     updateContentValue() {
       if (this.$refs.contentEditor) {
@@ -544,7 +586,6 @@ export default {
         // Tiếp tục với API chính
         const res = await getAllTinTuc();
         this.tinTucs = res.data;
-        this.totalPages = Math.ceil(this.tinTucs.length / this.pageSize) || 1;
       } catch (error) {
         console.error('Lỗi khi tải danh sách tin tức:', error);
         this.apiError = true;
@@ -607,81 +648,87 @@ export default {
       const file = event.target.files[0];
       if (!file) return;
 
-      try {
-        this.uploadingImage = true;
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chỉ chọn file hình ảnh');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        alert('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          alert('Vui lòng chỉ chọn file hình ảnh');
-          this.uploadingImage = false;
-          return;
-        }
+      const tempId = `temp-id-${Date.now()}`;
+      const blobUrl = URL.createObjectURL(file);
+      const uniqueFileName = `${tempId}-${file.name}`;
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('Kích thước ảnh không được vượt quá 5MB');
-          this.uploadingImage = false;
-          return;
-        }
+      this.contentImages.push({ id: uniqueFileName, file: file });
 
-        // Tạo ID duy nhất cho file
-        const fileId = Date.now().toString();
-        const imageId = `image-${fileId}`;
+      // Create elements manually for more control
+      const wrapper = document.createElement('div');
+      wrapper.className = 'article-image image-container-editable';
+      wrapper.contentEditable = false;
+      wrapper.id = `${tempId}-wrapper`;
 
-        // Tạo preview của ảnh
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          // Chèn ảnh vào editor với style full-width
-          const imageHtml = `
-            <div class="article-image" contenteditable="false" id="${imageId}">
-              <figure>
-                <img src="${e.target.result}" alt="Ảnh tin tức" style="max-width: 100%; width: 100%;" />
-                <figcaption contenteditable="true" class="image-caption">Nhấn vào đây để thêm mô tả ảnh</figcaption>
-              </figure>
-              <button type="button" class="btn btn-sm btn-danger image-delete-btn" data-image-id="${imageId}">
-                <i class="fas fa-trash"></i> Xóa
-              </button>
-            </div>
-          `;
+      const figure = document.createElement('figure');
+      const img = document.createElement('img');
+      img.src = blobUrl;
+      img.dataset.fileId = uniqueFileName;
+      img.alt = 'Ảnh tạm thời';
+      img.style.maxWidth = '100%';
 
-          document.execCommand('insertHTML', false, imageHtml);
+      const figcaption = document.createElement('figcaption');
+      figcaption.contentEditable = true;
+      figcaption.className = 'image-caption';
+      figcaption.textContent = 'Nhập chú thích ảnh';
 
-          // Thêm event listener cho nút xóa
-          this.$nextTick(() => {
-            const deleteBtn = document.querySelector(`button[data-image-id="${imageId}"]`);
-            if (deleteBtn) {
-              deleteBtn.onclick = function () {
-                const imageElement = document.getElementById(imageId);
-                if (imageElement) {
-                  imageElement.remove();
-                  // Cập nhật nội dung sau khi xóa
-                  document.dispatchEvent(new Event('content-changed'));
-                }
-              };
-            }
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'btn btn-sm btn-danger image-delete-btn';
+      deleteBtn.dataset.imageId = uniqueFileName;
+      deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa';
+      deleteBtn.onclick = () => {
+        const fileIndex = this.contentImages.findIndex(i => i.id === uniqueFileName);
+        if (fileIndex > -1) this.contentImages.splice(fileIndex, 1);
+        wrapper.remove();
+        this.updateContentValue();
+      };
 
-            // Cập nhật nội dung sau khi thêm ảnh
-            this.updateContentValue();
-          });
-        };
-        reader.readAsDataURL(file);
+      figure.appendChild(img);
+      figure.appendChild(figcaption);
+      wrapper.appendChild(figure);
+      wrapper.appendChild(deleteBtn);
 
-        // Lưu ảnh vào danh sách ảnh cần upload với ID
-        this.imageUploads.push({
-          id: fileId,
-          file: file,
-          name: file.name,
-          size: file.size
-        });
-      } catch (error) {
-        console.error('Lỗi khi xử lý ảnh:', error);
-        alert('Có lỗi khi xử lý ảnh. Vui lòng thử lại.');
-      } finally {
-        this.uploadingImage = false;
-        // Reset input file để có thể chọn cùng một file nhiều lần
-        if (this.$refs.imageInput) {
-          this.$refs.imageInput.value = '';
-        }
+      // Create a new paragraph to type in after the image
+      const newParagraph = document.createElement('p');
+      newParagraph.innerHTML = '<br>';
+
+      // Insert into the editor at the current cursor position
+      const selection = window.getSelection();
+      if (selection.getRangeAt && selection.rangeCount) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+
+        const fragment = document.createDocumentFragment();
+        fragment.appendChild(wrapper);
+        fragment.appendChild(newParagraph);
+        range.insertNode(fragment);
+
+        // Move cursor to the new paragraph
+        range.setStart(newParagraph, 0);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else {
+        // Fallback for older browsers
+        this.$refs.contentEditor.appendChild(wrapper);
+        this.$refs.contentEditor.appendChild(newParagraph);
+      }
+
+      this.$refs.contentEditor.focus();
+      this.updateContentValue();
+
+      if (this.$refs.imageInput) {
+        this.$refs.imageInput.value = '';
       }
     },
 
@@ -689,6 +736,9 @@ export default {
     clearFormatting() {
       document.execCommand('removeFormat', false, null);
       this.updateContentValue();
+      this.coverImagePreview = null;
+      this.contentImages = [];
+      this.removeEditorClickListener(); // Remove listener on close
     },
 
     // Xử lý khi paste nội dung
@@ -785,7 +835,7 @@ export default {
         const images = response.data || [];
 
         // Dùng để theo dõi ảnh đã được tải
-        this.existingImages = images;
+        this.contentImages = images;
 
         // Cập nhật nội dung trong editor để hiển thị các ảnh đã tải
         if (this.$refs.contentEditor && images.length > 0) {
@@ -816,7 +866,7 @@ export default {
         taiKhoanId: currentUserId
       };
       this.coverImagePreview = null;
-      this.imageUploads = [];
+      this.contentImages = [];
 
       // Hiển thị modal
       this.showModal = true;
@@ -828,6 +878,7 @@ export default {
           this.$refs.contentEditor.contentEditable = "true";
           this.$refs.contentEditor.focus();
         }
+        this.addEditorClickListener();
       });
     },
 
@@ -854,7 +905,7 @@ export default {
         this.coverImagePreview = null;
       }
 
-      this.imageUploads = [];
+      this.contentImages = [];
 
       // Hiển thị modal
       this.showModal = true;
@@ -862,6 +913,7 @@ export default {
       // Cập nhật editor với nội dung từ tin tức
       this.$nextTick(() => {
         this.updateEditor();
+        this.addEditorClickListener();
       });
 
       // Đóng modal chi tiết nếu đang mở
@@ -913,313 +965,99 @@ export default {
 
     // Update the handleSubmit method to handle the embedded images from the content editor
     async handleSubmit() {
+      // Validate ảnh bìa
+      if (!this.isEditing && !this.form.anhBiaFile) {
+        alert('Vui lòng thêm ảnh bìa!');
+        return;
+      }
+      if (this.isEditing && !this.form.anhBia && !this.form.anhBiaFile) {
+        alert('Vui lòng thêm ảnh bìa!');
+        return;
+      }
+
       if (!this.form.tieuDe || !this.form.noiDung) {
         alert('Vui lòng nhập đầy đủ tiêu đề và nội dung!');
         return;
       }
 
       this.isSubmitting = true;
+      let savedItemId = null;
 
       try {
-        console.log('Bắt đầu xử lý form:', this.form);
-
-        // Tạo mã tin tức tự động nếu đang thêm mới
         if (!this.isEditing) {
           const randomCode = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
           this.form.maTinTuc = `TT${randomCode}`;
         }
 
-        // Xử lý nội dung HTML và thay thế ảnh base64 bằng URL thật
-        let processedContent = this.form.noiDung;
-        // Trước tiên upload ảnh bìa nếu có
-        let mainFormData = null;
+        const formData = new FormData();
         if (this.form.anhBiaFile) {
-          mainFormData = new FormData();
-          mainFormData.append('file', this.form.anhBiaFile);
+          formData.append('coverImage', this.form.anhBiaFile);
         }
 
-        // Chuẩn bị dữ liệu để gửi
+        // Thêm các ảnh trong nội dung
+        this.contentImages.forEach(image => {
+          // Chỉ thêm vào FormData nếu nó là một file thực sự, không phải là URL cũ
+          if (image.file instanceof File) {
+            // Đổi tên file để chứa ID tạm thời
+            const renamedFile = new File([image.file], image.id, { type: image.file.type });
+            formData.append('contentImages', renamedFile);
+          }
+        });
+
         const tinTucData = {
           id: this.form.id,
           maTinTuc: this.form.maTinTuc,
           tieuDe: this.form.tieuDe,
-          noiDung: processedContent, // Sẽ cập nhật sau khi upload ảnh nội dung
+          noiDung: this.form.noiDung,
           trangThai: this.form.trangThai,
           taiKhoan: { id: this.form.taiKhoanId }
         };
 
-        // Nếu đang cập nhật và không có ảnh bìa mới, giữ lại ảnh bìa cũ
         if (this.isEditing && !this.form.anhBiaFile && this.form.anhBia) {
           tinTucData.anhBia = this.form.anhBia;
         }
 
-        if (mainFormData) {
-          const jsonData = JSON.stringify(tinTucData);
-          mainFormData.append('tinTuc', jsonData);
-        }
+        formData.append('tinTuc', JSON.stringify(tinTucData));
 
-        // Lưu hoặc cập nhật dữ liệu
         let response;
-        let tinTucId;
-
         if (this.isEditing) {
-          console.log(`Cập nhật tin tức ID ${this.form.id}`);
-          tinTucId = this.form.id; // Lưu ID trước khi cập nhật
-
-          // Gửi form data nếu có ảnh mới, nếu không thì gửi JSON
-          if (mainFormData) {
-            console.log('Cập nhật với ảnh bìa mới');
-            response = await updateTinTuc(this.form.id, mainFormData);
-          } else {
-            console.log('Cập nhật không có ảnh bìa mới, giữ lại ảnh cũ:', tinTucData.anhBia);
-            response = await updateTinTuc(this.form.id, tinTucData);
-          }
-          console.log('Kết quả cập nhật:', response);
-
-          // Kiểm tra response để đảm bảo cập nhật thành công
-          if (!response || !response.data) {
-            throw new Error('Không nhận được dữ liệu phản hồi sau khi cập nhật');
-          }
-
-          // Cập nhật tinTucId từ response để đảm bảo
-          if (response.data) {
-            if (response.data.id) {
-              tinTucId = response.data.id;
-            } else if (response.data.data && response.data.data.id) {
-              tinTucId = response.data.data.id;
-              console.log('Lấy ID tin tức từ cấu trúc lồng ghép trong cập nhật:', tinTucId);
-            }
-          }
-
-          // Đóng modal sau khi cập nhật thành công
-          this.showModal = false;
-          alert('Cập nhật thành công');
+          response = await updateTinTuc(this.form.id, formData);
         } else {
-          console.log('Thêm mới tin tức');
-          if (mainFormData) {
-            response = await addTinTuc(mainFormData);
-          } else {
-            response = await addTinTuc(tinTucData);
-          }
-          console.log('Kết quả thêm mới:', response);
-
-          // Kiểm tra response để đảm bảo thêm mới thành công
-          if (!response || !response.data) {
-            throw new Error('Không nhận được dữ liệu phản hồi sau khi thêm mới');
-          }
-
-          // Lấy ID tin tức từ response
-          tinTucId = response.data.id;
-          if (!tinTucId) {
-            // Try to extract ID from nested data structure
-            if (response.data && response.data.data && response.data.data.id) {
-              tinTucId = response.data.data.id;
-              console.log('Lấy ID tin tức từ cấu trúc lồng ghép:', tinTucId);
-            } else {
-              console.error('Không thể trích xuất ID tin tức từ response:', response);
-              throw new Error('Không nhận được ID tin tức từ response. Dữ liệu trả về không hợp lệ.');
-            }
-          }
-
-          // Đóng modal sau khi thêm mới thành công
-          this.showModal = false;
-          alert('Thêm mới thành công');
+          response = await addTinTuc(formData);
         }
 
-        // Sau khi lưu tin tức, thêm các ảnh chi tiết (nếu có)
-        if (tinTucId && this.imageUploads.length > 0) {
-          console.log('Bắt đầu upload ảnh với ID tin tức:', tinTucId);
-          await this.uploadContentImages(tinTucId);
-        } else {
-          console.log('Không có ảnh để upload hoặc không có ID tin tức');
+        savedItemId = response.data.data.id;
+
+        alert(this.isEditing ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
+        this.closeModal();
+        await this.loadTinTuc();
+
+        // Navigate to the correct page and highlight the item
+        if (savedItemId) {
+          this.$nextTick(() => {
+            const itemIndex = this.filteredTinTucs.findIndex(t => t.id === savedItemId);
+            if (itemIndex > -1) {
+              const page = Math.floor(itemIndex / this.pageSize);
+              this.currentPage = page;
+
+              // Use double requestAnimationFrame to ensure the class is applied after the DOM is painted
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  this.highlightedId = savedItemId;
+                  setTimeout(() => {
+                    this.highlightedId = null;
+                  }, 3000); // Remove the class after animation
+                });
+              });
+            }
+          });
         }
 
-        // Làm mới dữ liệu
-        this.loadTinTuc();
       } catch (error) {
         console.error('Lỗi khi lưu tin tức:', error);
-        console.error('Chi tiết lỗi:', error.response?.data);
-        alert('Lỗi khi lưu tin tức: ' + (error.response?.data?.message || error.message || 'Không xác định'));
+        alert('Lỗi khi lưu tin tức: ' + (error.response?.data?.message || error.message));
       } finally {
         this.isSubmitting = false;
-      }
-    },
-
-    // Phương thức mới để xử lý việc upload ảnh từ nội dung
-    async uploadContentImages(tinTucId) {
-      try {
-        console.log('Bắt đầu upload ảnh nội dung cho tin tức ID:', tinTucId);
-
-        // Convert tinTucId to number for validation if it's a string
-        if (typeof tinTucId === 'string') {
-          tinTucId = parseInt(tinTucId, 10);
-        }
-
-        // Validate tinTucId before proceeding
-        if (!tinTucId || isNaN(tinTucId)) {
-          console.error('ID tin tức không hợp lệ:', tinTucId);
-          throw new Error('ID tin tức không hợp lệ khi upload ảnh');
-        }
-
-        console.log('Số lượng ảnh cần upload:', this.imageUploads.length);
-
-        // Nếu không có ảnh nào để upload, thoát sớm
-        if (!this.imageUploads || this.imageUploads.length === 0) {
-          console.log('Không có ảnh nào để upload, bỏ qua');
-          return;
-        }
-
-        // Upload từng ảnh và lấy URL
-        const uploadPromises = [];
-        const imageMap = {}; // Map để theo dõi ID ảnh và URL của chúng
-
-        // Kiểm tra kết nối trước khi upload
-        try {
-          await api.get(`/api/anh-tintuc/by-tintuc/${tinTucId}`);
-          console.log('Kết nối tới API thành công');
-        } catch (error) {
-          console.error('Lỗi kết nối tới API:', error);
-          throw new Error('Không thể kết nối đến API để upload ảnh');
-        }
-
-        for (const imageUpload of this.imageUploads) {
-          if (imageUpload && imageUpload.file instanceof File) {
-            console.log('Đang xử lý file:', imageUpload.file.name);
-            const formData = new FormData();
-            formData.append('file', imageUpload.file);
-            formData.append('tinTucId', tinTucId.toString()); // Ensure tinTucId is a string
-            formData.append('isAnhBia', 'false');
-
-            // Tạo promise và theo dõi ID ảnh
-            const uploadPromise = addAnhTinTucWithImage(formData)
-              .then(response => {
-                if (response && response.data) {
-                  // Lưu ID và URL ảnh
-                  const responseData = response.data.data || response.data;
-                  imageMap[imageUpload.id] = responseData.duongDanAnh;
-                  console.log('Đã upload ảnh:', responseData);
-                  return responseData;
-                }
-                return response;
-              })
-              .catch(error => {
-                console.error('Lỗi khi upload ảnh:', error);
-                return null; // Continue with other uploads even if one fails
-              });
-
-            uploadPromises.push(uploadPromise);
-          } else {
-            console.log('Bỏ qua ảnh không hợp lệ:', imageUpload);
-          }
-        }
-
-        // Đợi tất cả các ảnh được upload
-        if (uploadPromises.length > 0) {
-          console.log('Chờ tất cả ảnh được upload...');
-          const results = await Promise.allSettled(uploadPromises);
-
-          console.log('Kết quả upload:', results);
-
-          // Kiểm tra kết quả upload
-          const successfulUploads = results.filter(r => r.status === 'fulfilled' && r.value).length;
-          console.log(`Đã upload thành công ${successfulUploads}/${uploadPromises.length} ảnh`);
-
-          // Sau khi tất cả ảnh đã được upload, cập nhật nội dung tin tức với các URL ảnh thực tế
-          if (successfulUploads > 0) {
-            console.log('Có ảnh đã được upload thành công, cập nhật nội dung tin tức');
-            await this.updateNewsContentWithActualImageUrls(tinTucId, imageMap);
-          } else {
-            console.warn('Không có ảnh nào được upload thành công, bỏ qua cập nhật nội dung');
-          }
-        }
-
-        console.log('Đã upload tất cả ảnh nội dung cho tin tức ID:', tinTucId);
-      } catch (error) {
-        console.error('Lỗi khi upload ảnh nội dung:', error);
-        // Don't throw the error further to prevent the entire save process from failing
-      }
-    },
-
-    // Phương thức mới để cập nhật nội dung tin tức với URL ảnh thực tế
-    async updateNewsContentWithActualImageUrls(tinTucId, imageMap) {
-      try {
-        console.log('Bắt đầu cập nhật URL ảnh trong nội dung tin tức');
-        console.log('Image map:', imageMap);
-
-        // Validate tinTucId
-        if (!tinTucId) {
-          console.error('ID tin tức không hợp lệ hoặc undefined');
-          return;
-        }
-
-        // Check if imageMap is empty
-        if (!imageMap || Object.keys(imageMap).length === 0) {
-          console.log('Không có ảnh nào cần cập nhật, bỏ qua');
-          return;
-        }
-
-        // Lấy chi tiết tin tức hiện tại
-        try {
-          const newsResponse = await getTinTucById(tinTucId);
-          if (!newsResponse || !newsResponse.data) {
-            console.error('Không thể lấy thông tin tin tức để cập nhật URL ảnh');
-            return;
-          }
-
-          const news = newsResponse.data;
-          let updatedContent = news.noiDung;
-          let replacedCount = 0;
-
-          // Thay thế các base64 URLs bằng URL thực tế
-          for (const [imageId, imageUrl] of Object.entries(imageMap)) {
-            console.log(`Đang xử lý ảnh ${imageId} với URL: ${imageUrl.substring(0, 50)}...`);
-
-            // Tìm phần tử ảnh theo ID
-            const imageIdPattern = new RegExp(`id="image-${imageId}"[^>]*>[\\s\\S]*?<img[^>]*src="([^"]+)"`, 'g');
-            const matches = [...updatedContent.matchAll(imageIdPattern)];
-            console.log(`Tìm thấy ${matches.length} kết quả cho imageId=${imageId}`);
-
-            if (matches.length > 0) {
-              for (const match of matches) {
-                const fullMatch = match[0];
-                const base64Url = match[1];
-
-                // Chỉ thay thế nếu URL là base64
-                if (base64Url.startsWith('data:image')) {
-                  console.log('Tìm thấy ảnh base64, thực hiện thay thế URL');
-                  const updatedImageHtml = fullMatch.replace(base64Url, imageUrl);
-                  updatedContent = updatedContent.replace(fullMatch, updatedImageHtml);
-                  replacedCount++;
-                  console.log('Đã thay thế URL base64 bằng URL thực tế');
-                } else {
-                  console.log('Bỏ qua ảnh không phải base64:', base64Url.substring(0, 30));
-                }
-              }
-            } else {
-              console.log('Không tìm thấy ảnh phù hợp với ID:', imageId);
-            }
-          }
-
-          console.log(`Đã thay thế ${replacedCount} URL ảnh trong nội dung`);
-
-          // Cập nhật lại nội dung tin tức với URLs ảnh thực tế
-          if (replacedCount > 0) {
-            const updateData = {
-              ...news,
-              noiDung: updatedContent
-            };
-
-            console.log('Gửi yêu cầu cập nhật nội dung tin tức');
-            await updateTinTuc(tinTucId, updateData);
-            console.log('Đã cập nhật nội dung tin tức với URL ảnh thực tế');
-          } else {
-            console.log('Không có URL ảnh nào được thay thế, bỏ qua cập nhật');
-          }
-        } catch (error) {
-          console.error('Lỗi khi tải chi tiết tin tức:', error);
-        }
-      } catch (error) {
-        console.error('Lỗi khi cập nhật URL ảnh trong nội dung tin tức:', error);
       }
     },
 
@@ -1298,7 +1136,7 @@ export default {
         taiKhoanId: null
       };
       this.coverImagePreview = null;
-      this.imageUploads = [];
+      this.contentImages = [];
     },
 
     // Các phương thức quản lý ảnh đã được xóa
@@ -1371,6 +1209,37 @@ export default {
       if (this.detailItem && event.target) {
         this.detailItem.noiDung = event.target.innerHTML;
         this.contentChanged = false;
+      }
+    },
+
+    // Xử lý sự kiện click trong trình soạn thảo
+    handleEditorClick(event) {
+      const editor = this.$refs.contentEditor;
+      if (!editor) return;
+
+      // Xóa class 'focused' khỏi tất cả các ảnh
+      editor.querySelectorAll('.image-container-editable.focused').forEach(el => {
+        el.classList.remove('focused');
+      });
+
+      // Nếu click vào một ảnh, thêm class 'focused'
+      const imageWrapper = event.target.closest('.image-container-editable');
+      if (imageWrapper) {
+        imageWrapper.classList.add('focused');
+      }
+    },
+
+    // Gắn và gỡ bỏ event listener
+    addEditorClickListener() {
+      this.$nextTick(() => {
+        if (this.$refs.contentEditor) {
+          this.$refs.contentEditor.addEventListener('click', this.handleEditorClick);
+        }
+      });
+    },
+    removeEditorClickListener() {
+      if (this.$refs.contentEditor) {
+        this.$refs.contentEditor.removeEventListener('click', this.handleEditorClick);
       }
     },
   }
@@ -2163,7 +2032,9 @@ export default {
 }
 
 .content-editor {
-  min-height: 400px;
+  min-height: 250px;
+  max-height: 400px;
+  /* Thêm chiều cao tối đa */
   padding: 15px;
   background-color: white;
   border: none;
@@ -2192,17 +2063,17 @@ export default {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.8);
   color: white;
   border: none;
   border-radius: 4px;
   padding: 5px 10px;
   cursor: pointer !important;
-  opacity: 0.9;
-  z-index: 1000;
+  z-index: 10;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   font-weight: 500;
-  display: flex;
+  display: none;
+  /* Hide by default */
   align-items: center;
   gap: 5px;
   transition: all 0.2s ease;
@@ -2211,6 +2082,11 @@ export default {
   min-width: 80px;
   justify-content: center;
   pointer-events: auto !important;
+}
+
+/* Show delete button when container is focused */
+.image-container-editable.focused .image-delete-btn {
+  display: flex !important;
 }
 
 .image-delete-btn:hover {
@@ -2237,6 +2113,8 @@ export default {
   border-radius: 5px;
   padding-bottom: 5px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  /* Thêm con trỏ để cho biết có thể click */
 }
 
 /* Đảm bảo nút xóa luôn hiển thị */
@@ -2752,4 +2630,51 @@ body.gallery-open {
   padding: 10px;
   background-color: #f8f9fa;
 }
+
+/* Thêm style cho highlight */
+.highlight {
+  animation: highlight-animation 2s ease-out;
+}
+
+@keyframes highlight-animation {
+  0% {
+    background-color: rgba(13, 110, 253, 0.3);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.highlight-blue {
+  animation: highlight-blue-fade 10s ease-out forwards;
+}
+
+.table tr {
+  transition: background-color 0.5s ease;
+}
+
+@keyframes highlight-blue-fade {
+  0% {
+    background-color: #2815f1;
+    /* Light Blue */
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.content-editor .article-image img {
+  width: 100%;
+  max-width: 95%;
+  /* Adjust this to make the image larger */
+  display: block;
+  margin: 15px auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Fullscreen mode styles */
+/* ... existing code ... */
 </style>

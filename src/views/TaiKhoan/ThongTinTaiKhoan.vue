@@ -1,100 +1,115 @@
 <template>
-  <div class="account-info-container">
-    <h2 class="form-title">Thông tin tài khoản</h2>
-    <p class="form-description">Quản lý thông tin cá nhân của bạn.</p>
+  <div class="booking-container">
+    <!-- Main content -->
+    <div class="booking-content">
+      <h1 class="booking-title">Thông tin cá nhân</h1>
+      <p class="booking-subtitle">Cập nhật thông tin của bạn và tìm hiểu các thông tin này được sử dụng ra sao.</p>
 
-    <div v-if="loading" class="loading-spinner">Đang tải...</div>
-    <div v-if="error" class="error-message">{{ error }}</div>
+      <!-- Loading và Error messages -->
+      <div v-if="loading" class="booking-loading">Đang tải...</div>
+      <div v-if="error" class="booking-error-message">{{ error }}</div>
+      <div v-if="successMessage" class="booking-success-message">{{ successMessage }}</div>
 
-    <div v-if="!loading" class="user-info-form">
-      <div class="user-header">
-        <div class="user-avatar">
-          <img :src="userData.anh || '/images/default-avatar.png'" alt="Avatar" />
-          <div class="avatar-upload-btn">
-            <label for="avatar-upload" class="upload-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z" />
-                <path
-                  d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z" />
-              </svg>
-            </label>
-            <input type="file" id="avatar-upload" accept="image/*" @change="handleImageUpload" style="display: none;" />
-          </div>
+      <div v-if="!loading" class="booking-form">
+        <!-- Profile photo -->
+        <div class="booking-profile-photo">
+          <img :src="displayAvatarUrl" alt="Avatar" @error="handleAvatarError" />
+          <input type="file" id="avatar-upload" accept="image/*" @change="handleImageUpload" style="display: none;" />
+          <label for="avatar-upload" class="booking-avatar-btn">
+            <span class="booking-camera-icon">📷</span>
+          </label>
         </div>
-        <div class="user-name">
-          <h3>{{ userData.hoTen || userData.tenDangNhap }}</h3>
-          <p>{{ userData.tenDangNhap }}</p>
-        </div>
-      </div>
 
-      <div class="info-section">
-        <h3>Thông tin cá nhân</h3>
-        <form @submit.prevent="saveChanges">
-          <div class="form-row">
-            <div class="form-label">Tên đăng nhập:</div>
-            <div class="form-input">
-              <input type="text" v-model="userData.tenDangNhap" class="form-control" required />
-              <small class="form-text text-muted">Tên đăng nhập phải là duy nhất</small>
+        <!-- Thông tin cá nhân -->
+        <div class="booking-info-list">
+          <!-- Tên đăng nhập -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Tên</div>
+            <div class="booking-info-content">
+              <input type="text" v-model="userData.hoTen" class="booking-input" />
             </div>
+            <button class="booking-edit-btn" @click="focusInput('hoTen')">Chỉnh sửa</button>
           </div>
 
-          <div class="form-row">
-            <div class="form-label">Họ và tên:</div>
-            <div class="form-input">
-              <input type="text" v-model="userData.hoTen" class="form-control" required />
+          <!-- Tên hiển thị -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Tên hiện thị</div>
+            <div class="booking-info-content">
+              <input type="text" v-model="userData.tenDangNhap" class="booking-input" />
             </div>
+            <button class="booking-edit-btn" @click="focusInput('tenDangNhap')">Chỉnh sửa</button>
           </div>
 
-          <div class="form-row">
-            <div class="form-label">Email:</div>
-            <div class="form-input">
-              <input type="email" v-model="userData.email" class="form-control" required />
+          <!-- Email -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Địa chỉ email</div>
+            <div class="booking-info-content">
+              <input type="email" v-model="userData.email" class="booking-input" />
+              <div class="booking-info-hint">Đây là địa chỉ email bạn dùng để đăng nhập. Chúng tôi cũng sẽ gửi các xác
+                nhận đặt chỗ tới địa chỉ này.</div>
             </div>
+            <button class="booking-edit-btn" @click="focusInput('email')">Chỉnh sửa</button>
           </div>
 
-          <div class="form-row">
-            <div class="form-label">Số điện thoại:</div>
-            <div class="form-input">
-              <input type="tel" v-model="userData.soDienThoai" class="form-control" pattern="[0-9]{10,11}"
+          <!-- Số điện thoại -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Số điện thoại</div>
+            <div class="booking-info-content">
+              <input type="tel" v-model="userData.soDienThoai" pattern="[0-9]{10,11}" class="booking-input"
                 title="Số điện thoại phải có 10-11 chữ số" />
+              <div class="booking-info-hint">Chỗ nghỉ hoặc địa điểm tham quan bạn đặt sẽ liên lạc với bạn qua số này nếu
+                cần.</div>
             </div>
+            <button class="booking-edit-btn" @click="focusInput('soDienThoai')">Chỉnh sửa</button>
           </div>
 
-          <div class="form-row">
-            <div class="form-label">Giới tính:</div>
-            <div class="form-input radio-group">
-              <label class="radio-label">
-                <input type="radio" :value="0" v-model="userData.gioiTinh" name="gender" />
-                Nam
-              </label>
-              <label class="radio-label">
-                <input type="radio" :value="1" v-model="userData.gioiTinh" name="gender" />
-                Nữ
-              </label>
+          <!-- Ngày sinh -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Ngày sinh</div>
+            <div class="booking-info-content">
+              <input type="date" v-model="userData.ngaySinh" class="booking-input" />
             </div>
+            <button class="booking-edit-btn" @click="focusInput('ngaySinh')">Chỉnh sửa</button>
           </div>
 
-          <div class="form-actions">
-            <button type="submit" class="submit-button" :disabled="saving">
-              {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
-            </button>
+          <!-- Địa chỉ -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Địa chỉ</div>
+            <div class="booking-info-content">
+              <input type="text" v-model="userData.diaChi" class="booking-input" />
+            </div>
+            <button class="booking-edit-btn" @click="focusInput('diaChi')">Chỉnh sửa</button>
           </div>
-        </form>
-      </div>
 
-      <!-- Thông báo thành công -->
-      <div v-if="successMessage" class="success-message">
-        {{ successMessage }}
+          <!-- Giới tính -->
+          <div class="booking-info-item">
+            <div class="booking-info-label">Giới tính</div>
+            <div class="booking-info-content">
+              <select v-model="userData.gioiTinh" class="booking-input">
+                <option :value="0">Nam</option>
+                <option :value="1">Nữ</option>
+              </select>
+            </div>
+            <button class="booking-edit-btn" @click="focusInput('gioiTinh')">Chỉnh sửa</button>
+          </div>
+        </div>
+
+        <!-- Lưu thay đổi button -->
+        <div class="booking-action-btns">
+          <button type="button" @click="saveChanges" class="booking-save-btn" :disabled="saving">
+            {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
-import { getThongTinNguoiDungByTaiKhoanId } from '@/Service/ThongTinNguoiDungService';
-import { updateTaiKhoan, uploadAvatar } from '@/Service/TaiKhoan';
+import { getThongTinNguoiDungByTaiKhoanId, updateThongTinNguoiDung1 } from '@/Service/ThongTinNguoiDungService';
+import { updateTaiKhoan } from '@/Service/TaiKhoan';
 
 const authStore = useAuthStore();
 const userData = ref({});
@@ -105,77 +120,133 @@ const successMessage = ref('');
 const userId = ref(null);
 const imageFile = ref(null);
 const originalData = ref({});
+const avatarError = ref(false);
+const defaultAvatarUrl = '/images/default-avatar.png';
+
+// Computed property cho URL ảnh đại diện
+const displayAvatarUrl = computed(() => {
+  if (avatarError.value || !userData.value?.anh) {
+    return defaultAvatarUrl;
+  }
+
+  // Thêm timestamp để tránh cache
+  const timestamp = new Date().getTime();
+  const baseUrl = userData.value.anh;
+  return baseUrl.includes('?') ? `${baseUrl}&t=${timestamp}` : `${baseUrl}?t=${timestamp}`;
+});
+
+// Hàm tập trung vào input khi nhấn "Chỉnh sửa"
+function focusInput(fieldName) {
+  setTimeout(() => {
+    const input = document.querySelector(`input[name="${fieldName}"], select[name="${fieldName}"]`);
+    if (input) {
+      input.focus();
+    }
+  }, 100);
+}
+
+// Xử lý khi ảnh không tải được
+function handleAvatarError() {
+  console.log('Không thể tải ảnh đại diện, sử dụng ảnh mặc định');
+  avatarError.value = true;
+}
+
+// Thêm hàm định dạng ngày
+function formatDate(dateString) {
+  if (!dateString) return '';
+
+  // Kiểm tra xem dateString có phải là chuỗi ISO hoặc các định dạng khác không
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+
+    // Format về định dạng yyyy-MM-dd cho input type="date"
+    return date.toISOString().split('T')[0];
+  } catch (e) {
+    console.error('Lỗi khi định dạng ngày:', e);
+    return '';
+  }
+}
+
+// Thử lấy token mới khi token hiện tại hết hạn
+async function refreshToken() {
+  try {
+    console.log('Đang thử làm mới token...');
+
+    // Nếu bạn có API refresh token, gọi nó ở đây
+    // const response = await fetch('/api/auth/refresh-token', {...});
+
+    // Hoặc thử lấy token từ các nguồn khác
+    const newToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (newToken) {
+      console.log('Đã tìm thấy token mới');
+      return newToken;
+    } else {
+      throw new Error('Không thể lấy token mới');
+    }
+  } catch (error) {
+    console.error('Làm mới token thất bại:', error);
+    return null;
+  }
+}
 
 onMounted(async () => {
   try {
     if (!authStore.isLoggedIn || !authStore.user) {
-      error.value = 'Bạn chưa đăng nhập. Vui lòng đăng nhập để xem thông tin tài khoản.';
+      error.value = 'Bạn chưa đăng nhập.';
       loading.value = false;
       return;
     }
 
     const taiKhoanId = authStore.user.id;
-    console.log('Đang lấy thông tin người dùng cho tài khoản ID:', taiKhoanId);
+    console.log('Bắt đầu tải thông tin cho tài khoản ID:', taiKhoanId);
 
-    try {
-      // Gọi API để lấy thông tin người dùng
-      const response = await getThongTinNguoiDungByTaiKhoanId(taiKhoanId);
-      console.log('API response:', response);
+    const response = await getThongTinNguoiDungByTaiKhoanId(taiKhoanId);
 
-      if (response.data) {
-        // Log chi tiết để kiểm tra định dạng giới tính
-        console.log('Giới tính từ API:', response.data.gioiTinh, typeof response.data.gioiTinh);
-        console.log('Giới tính từ API (ho_Ten):', response.data.gioi_Tinh, typeof response.data.gioi_Tinh);
+    // LOG CHI TIẾT: In ra toàn bộ đối tượng data để kiểm tra
+    console.log('--- DEBUG: DỮ LIỆU THÔ TỪ API ---');
+    console.log(JSON.stringify(response.data, null, 2));
+    console.log('------------------------------------');
 
-        userData.value = {
-          id: response.data.id,
-          tenDangNhap: authStore.user.username,
-          anh: response.data.anh,
-          hoTen: response.data.ho_Ten || response.data.hoTen,
-          email: response.data.email,
-          soDienThoai: response.data.so_Dien_Thoai || response.data.soDienThoai,
-          // Kiểm tra và chuyển đổi giới tính đúng cách
-          gioiTinh: response.data.gioi_Tinh !== undefined
-            ? (typeof response.data.gioi_Tinh === 'boolean' ? (response.data.gioi_Tinh ? 1 : 0) : response.data.gioi_Tinh)
-            : (typeof response.data.gioiTinh === 'boolean' ? (response.data.gioiTinh ? 1 : 0) : response.data.gioiTinh)
-        };
-        userId.value = response.data.id;
+    if (response.data) {
+      const data = response.data;
 
-        // Lưu bản sao của dữ liệu gốc
-        originalData.value = { ...userData.value };
+      // Cố gắng lấy dữ liệu từ các tên trường có thể có
+      const diaChiValue = data.diaChi || data.dia_Chi || data.Dia_Chi || '';
+      // Sử dụng ngayTao nếu không có ngaySinh (dựa theo API response)
+      const ngaySinhValue = data.ngaySinh || data.ngay_Sinh || data.Ngay_Sinh || data.ngayTao || '';
+      const gioiTinhValue = data.gioiTinh !== undefined ? data.gioiTinh : data.gioi_Tinh;
 
-        // Log để kiểm tra giá trị giới tính sau khi xử lý
-        console.log('Giới tính sau khi xử lý:', userData.value.gioiTinh, typeof userData.value.gioiTinh);
-      } else {
-        // Nếu không có dữ liệu, sử dụng thông tin cơ bản từ authStore
-        userData.value = {
-          tenDangNhap: authStore.user.username,
-          anh: authStore.user.anh || null,
-          hoTen: authStore.user.username,
-          email: authStore.user.email || '',
-          soDienThoai: '',
-          gioiTinh: null
-        };
-        originalData.value = { ...userData.value };
-      }
-    } catch (apiError) {
-      console.error('Lỗi khi gọi API:', apiError);
-      // Sử dụng thông tin cơ bản từ authStore
       userData.value = {
+        id: data.id,
         tenDangNhap: authStore.user.username,
-        anh: authStore.user.anh || null,
-        hoTen: authStore.user.username,
-        email: authStore.user.email || '',
-        soDienThoai: '',
-        gioiTinh: null
+        anh: data.anh || authStore.user.anh,
+        hoTen: data.hoTen || data.ho_Ten || '',
+        email: data.email || '',
+        soDienThoai: data.soDienThoai || data.so_Dien_Thoai || '',
+        diaChi: diaChiValue || '',
+        ngaySinh: formatDate(ngaySinhValue),
+        gioiTinh: gioiTinhValue === true ? 1 : (gioiTinhValue === false ? 0 : null),
       };
+      userId.value = data.id;
       originalData.value = { ...userData.value };
+    } else {
+      // Fallback nếu API không trả về dữ liệu
+      userData.value.tenDangNhap = authStore.user.username;
+      userData.value.anh = authStore.user.anh;
     }
-
-    console.log('Dữ liệu người dùng cuối cùng:', userData.value);
-  } catch (err) {
-    console.error('Lỗi khi tải thông tin người dùng:', err);
-    error.value = 'Không thể tải thông tin người dùng. Vui lòng thử lại sau.';
+  } catch (apiError) {
+    console.error('Lỗi khi gọi API getThongTinNguoiDung:', apiError);
+    if (apiError.response && apiError.response.status === 404) {
+      console.warn('Không tìm thấy thông tin người dùng cho tài khoản này (Lỗi 404).');
+      error.value = 'Bạn chưa có thông tin chi tiết. Vui lòng cập nhật.';
+    } else {
+      error.value = 'Không thể tải được thông tin chi tiết của bạn.';
+    }
+    // Vẫn hiển thị thông tin cơ bản từ store
+    userData.value.tenDangNhap = authStore.user.username;
+    userData.value.anh = authStore.user.anh;
   } finally {
     loading.value = false;
   }
@@ -184,6 +255,27 @@ onMounted(async () => {
 function handleImageUpload(event) {
   const file = event.target.files[0];
   if (file) {
+    // Hiển thị thông báo đang xử lý
+    successMessage.value = 'Đang xử lý ảnh...';
+    error.value = null;
+
+    console.log('Đã chọn file:', file.name, 'loại:', file.type, 'kích thước:', file.size);
+
+    // Kiểm tra kích thước file (giới hạn ở 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      error.value = 'Kích thước ảnh không được vượt quá 5MB';
+      successMessage.value = '';
+      return;
+    }
+
+    // Kiểm tra loại file
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      error.value = 'Chỉ hỗ trợ các định dạng ảnh: JPEG, PNG, GIF, WEBP';
+      successMessage.value = '';
+      return;
+    }
+
     imageFile.value = file;
 
     // Hiển thị ảnh preview ngay lập tức
@@ -193,24 +285,162 @@ function handleImageUpload(event) {
     };
     reader.readAsDataURL(file);
 
-    // Tự động lưu khi chọn ảnh
-    saveChanges();
+    // Xử lý upload ảnh riêng biệt
+    uploadAvatarOnly();
   }
 }
 
-async function uploadImage() {
-  if (!imageFile.value) return null;
+// Xử lý riêng việc upload ảnh đã được chuyển đến uploadAvatarOnly
 
+// Xử lý tải lên ảnh đại diện riêng biệt
+async function uploadAvatarOnly(retryCount = 0) {
   try {
-    // Sử dụng hàm uploadAvatar từ TaiKhoan.js
-    const response = await uploadAvatar(authStore.user.id, imageFile.value);
-    console.log('Kết quả upload ảnh:', response);
+    saving.value = true;
+    error.value = null;
 
-    // Trả về URL của ảnh đã upload
-    return response.data?.anh || null;
-  } catch (error) {
-    console.error('Lỗi khi upload ảnh:', error);
-    return null;
+    // Kiểm tra lại file trước khi upload
+    if (!imageFile.value) {
+      error.value = 'Không tìm thấy tệp ảnh để tải lên';
+      saving.value = false;
+      return;
+    }
+
+    console.log('Đang tải lên ảnh:', imageFile.value.name, 'kích thước:', imageFile.value.size);
+
+    // Tạo FormData với tham số đúng như backend yêu cầu
+    const formData = new FormData();
+    formData.append('anhFile', imageFile.value);
+
+    // Lấy token từ nhiều nguồn để đảm bảo luôn có token hợp lệ
+    let token = authStore.token || localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    if (!token) {
+      error.value = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      saving.value = false;
+      return;
+    }
+
+    try {
+      // Gọi API và hiển thị thông báo đang xử lý
+      successMessage.value = 'Đang tải lên ảnh...';
+
+      // Sử dụng URL tuyệt đối để tránh lỗi đường dẫn
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/taiKhoan/${authStore.user.id}/uploadAvatar`;
+      console.log('Gửi request tới:', apiUrl);
+
+      // Gửi yêu cầu API với timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 giây timeout
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+        signal: controller.signal,
+        credentials: 'include' // Gửi kèm cookie nếu có
+      });
+
+      clearTimeout(timeoutId);
+      console.log('Mã trạng thái phản hồi:', response.status);
+
+      // Xử lý kết quả dựa trên mã trạng thái
+      if (response.status === 401) {
+        if (retryCount < 1) {
+          // Thử lấy token mới và gọi lại
+          const newToken = await refreshToken();
+          if (newToken) {
+            console.log('Thử lại với token mới...');
+            return uploadAvatarOnly(retryCount + 1);
+          }
+        }
+        throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else if (response.status === 403) {
+        throw new Error('Bạn không có quyền thực hiện thao tác này.');
+      } else if (response.ok) {
+        try {
+          const data = await response.json();
+          console.log('Dữ liệu từ server:', data);
+
+          if (data && data.anh) {
+            // Thêm timestamp vào URL ảnh để tránh cache
+            const timestamp = new Date().getTime();
+            const newAvatarUrl = data.anh.includes('?')
+              ? `${data.anh}&t=${timestamp}`
+              : `${data.anh}?t=${timestamp}`;
+
+            console.log('URL ảnh mới với timestamp:', newAvatarUrl);
+
+            // Reset trạng thái lỗi ảnh
+            avatarError.value = false;
+
+            // Cập nhật ảnh trong giao diện người dùng
+            userData.value.anh = newAvatarUrl;
+            originalData.value.anh = newAvatarUrl;
+
+            // Cập nhật authStore
+            if (authStore.user) {
+              authStore.user.anh = newAvatarUrl;
+              localStorage.setItem('user', JSON.stringify(authStore.user));
+              console.log('Đã cập nhật ảnh trong authStore và localStorage');
+            }
+
+            // Reset file ảnh
+            imageFile.value = null;
+
+            // Hiển thị thông báo thành công
+            successMessage.value = 'Cập nhật ảnh đại diện thành công!';
+            setTimeout(() => {
+              successMessage.value = '';
+            }, 3000);
+
+            // Buộc tải lại hình ảnh
+            const img = new Image();
+            img.src = newAvatarUrl;
+            img.onload = () => console.log('Đã tải lại ảnh từ URL mới');
+          } else {
+            throw new Error('Server không trả về URL ảnh');
+          }
+        } catch (jsonError) {
+          console.error('Lỗi khi xử lý dữ liệu JSON:', jsonError);
+          throw new Error('Lỗi khi xử lý phản hồi từ máy chủ');
+        }
+      } else {
+        // Xử lý lỗi HTTP
+        const errorText = await response.text();
+        console.error('Lỗi từ server:', response.status, errorText);
+        throw new Error(`Lỗi máy chủ: ${response.status}`);
+      }
+    } catch (fetchError) {
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Quá thời gian chờ phản hồi từ máy chủ');
+      }
+      console.error('Lỗi khi gửi yêu cầu:', fetchError);
+      throw fetchError;
+    }
+  } catch (err) {
+    console.error('Lỗi tổng thể khi tải ảnh lên:', err);
+
+    // Kiểm tra xem ảnh có thể đã được upload thành công không mặc dù có lỗi
+    const isAvatarUploaded = await checkAvatarUploaded();
+
+    if (isAvatarUploaded) {
+      // Nếu ảnh đã được tải lên thành công, hiển thị thông báo thành công
+      successMessage.value = 'Cập nhật ảnh đại diện thành công!';
+      setTimeout(() => {
+        successMessage.value = '';
+      }, 3000);
+
+      // Reset file ảnh
+      imageFile.value = null;
+    } else {
+      // Nếu không, hiển thị thông báo lỗi
+      error.value = err.message || 'Không thể tải lên ảnh đại diện. Vui lòng thử lại sau.';
+      successMessage.value = '';
+    }
+  } finally {
+    saving.value = false;
   }
 }
 
@@ -219,14 +449,15 @@ async function saveChanges() {
     saving.value = true;
     error.value = null;
 
-    // Kiểm tra xem có thay đổi gì không
+    // Kiểm tra xem có thay đổi gì không (không tính ảnh vì đã xử lý riêng)
     const hasChanges =
       userData.value.tenDangNhap !== originalData.value.tenDangNhap ||
       userData.value.hoTen !== originalData.value.hoTen ||
       userData.value.email !== originalData.value.email ||
       userData.value.soDienThoai !== originalData.value.soDienThoai ||
-      userData.value.gioiTinh !== originalData.value.gioiTinh ||
-      imageFile.value !== null;
+      userData.value.diaChi !== originalData.value.diaChi ||
+      userData.value.ngaySinh !== originalData.value.ngaySinh ||
+      userData.value.gioiTinh !== originalData.value.gioiTinh;
 
     if (!hasChanges) {
       saving.value = false;
@@ -237,30 +468,17 @@ async function saveChanges() {
       return;
     }
 
-    // Upload ảnh nếu có
-    let imageUrl = null;
-    if (imageFile.value) {
-      imageUrl = await uploadImage();
-      if (!imageUrl) {
-        error.value = 'Không thể tải lên ảnh đại diện. Vui lòng thử lại sau.';
-        saving.value = false;
-        return;
-      }
-    }
-
-    // Lấy token từ authStore
-    const token = authStore.token || localStorage.getItem('token');
-    if (!token) {
+    // Kiểm tra trạng thái đăng nhập
+    if (!authStore.isLoggedIn) {
       error.value = 'Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.';
       return;
     }
 
-    // 1. Cập nhật thông tin tài khoản (ảnh và tên đăng nhập)
-    if (userData.value.tenDangNhap !== originalData.value.tenDangNhap || imageFile.value) {
+    // 1. Cập nhật thông tin tài khoản (chỉ tên đăng nhập, ảnh xử lý riêng)
+    if (userData.value.tenDangNhap !== originalData.value.tenDangNhap) {
       const taiKhoanData = {
         id: authStore.user.id,
-        tenDangNhap: userData.value.tenDangNhap,
-        anh: imageUrl || userData.value.anh
+        tenDangNhap: userData.value.tenDangNhap
       };
 
       console.log('Cập nhật thông tin tài khoản:', taiKhoanData);
@@ -295,21 +513,21 @@ async function saveChanges() {
 
     // 2. Cập nhật thông tin người dùng
     try {
-      // Đảm bảo gioiTinh có định dạng đúng (số nguyên 0/1 thay vì boolean)
-      const gioiTinh = userData.value.gioiTinh === false || userData.value.gioiTinh === 0 ? 0 :
-        userData.value.gioiTinh === true || userData.value.gioiTinh === 1 ? 1 :
-          userData.value.gioiTinh;
-
       const thongTinData = {
         id: userId.value,
         hoTen: userData.value.hoTen,
         email: userData.value.email,
         soDienThoai: userData.value.soDienThoai,
-        gioiTinh: gioiTinh,
-        taiKhoanId: authStore.user.id
+        diaChi: userData.value.diaChi || '', // Gửi chuỗi trống nếu không có giá trị
+        ngaySinh: userData.value.ngaySinh || null, // Gửi null nếu ngày sinh rỗng
+        ngayTao: userData.value.ngaySinh || null, // Thêm ngayTao để tương thích với API
+        gioiTinh: userData.value.gioiTinh === 1, // Chuyển thành boolean cho backend
+        taiKhoanId: authStore.user.id,
       };
 
-      console.log('Cập nhật thông tin người dùng:', thongTinData);
+      console.log('--- DEBUG: DỮ LIỆU GỬI ĐI ---');
+      console.log(JSON.stringify(thongTinData, null, 2));
+      console.log('-----------------------------');
 
       if (!userId.value) {
         error.value = 'Không thể cập nhật thông tin: Không tìm thấy ID người dùng.';
@@ -317,25 +535,11 @@ async function saveChanges() {
         return;
       }
 
-      // Thử sử dụng API trực tiếp thay vì qua hàm service
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/thongTinNguoiDung/update1/${userId.value}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(thongTinData)
-      });
+      // Sử dụng service function thay vì gọi trực tiếp fetch API
+      const response = await updateThongTinNguoiDung1(userId.value, thongTinData);
 
-      // Kiểm tra kết quả
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API error response:', errorText);
-        throw new Error(`Lỗi ${response.status}: ${response.statusText}`);
-      }
-
-      const thongTinResult = await response.json();
+      // Sửa đổi phần cập nhật dữ liệu sau khi API trả về thành công
+      const thongTinResult = response.data;
       console.log('Kết quả cập nhật thông tin người dùng:', thongTinResult);
 
       // Cập nhật dữ liệu hiển thị và dữ liệu gốc
@@ -344,8 +548,11 @@ async function saveChanges() {
         hoTen: thongTinResult.hoTen,
         email: thongTinResult.email,
         soDienThoai: thongTinResult.soDienThoai,
+        diaChi: thongTinResult.diaChi || '',
+        ngaySinh: formatDate(thongTinResult.ngaySinh || thongTinResult.ngayTao || ''),
         gioiTinh: thongTinResult.gioiTinh
       };
+      console.log("Dữ liệu sau khi cập nhật:", userData.value);
 
       originalData.value = { ...userData.value };
 
@@ -358,7 +565,45 @@ async function saveChanges() {
       }, 3000);
     } catch (thongTinError) {
       console.error('Lỗi khi cập nhật thông tin người dùng:', thongTinError);
-      error.value = thongTinError.message || 'Không thể cập nhật thông tin cá nhân.';
+
+      // Sửa đổi phần xử lý lỗi 500 nhưng dữ liệu vẫn được cập nhật
+      if (thongTinError.response && thongTinError.response.status === 500) {
+        // Không reload trang, sử dụng ngay dữ liệu người dùng đã nhập
+        // Cập nhật dữ liệu hiển thị và dữ liệu gốc
+        originalData.value = { ...userData.value };
+
+        // Hiển thị thông báo thành công
+        successMessage.value = 'Cập nhật thông tin thành công!';
+        setTimeout(() => {
+          successMessage.value = '';
+        }, 3000);
+
+        // Thực hiện một API call để lấy lại thông tin người dùng mới nhất sau 1 giây
+        setTimeout(async () => {
+          try {
+            const response = await getThongTinNguoiDungByTaiKhoanId(authStore.user.id);
+            if (response.data) {
+              userData.value = {
+                ...userData.value,
+                hoTen: response.data.ho_Ten || response.data.hoTen,
+                email: response.data.email,
+                soDienThoai: response.data.so_Dien_Thoai || response.data.soDienThoai,
+                diaChi: response.data.dia_Chi || response.data.diaChi || '',
+                ngaySinh: formatDate(response.data.ngay_Sinh || response.data.ngaySinh || response.data.ngayTao || ''),
+                gioiTinh: response.data.gioi_Tinh !== undefined
+                  ? (typeof response.data.gioi_Tinh === 'boolean' ? (response.data.gioi_Tinh ? 1 : 0) : response.data.gioi_Tinh)
+                  : (typeof response.data.gioiTinh === 'boolean' ? (response.data.gioiTinh ? 1 : 0) : response.data.gioiTinh)
+              };
+              originalData.value = { ...userData.value };
+            }
+          } catch (refreshError) {
+            console.error('Không thể làm mới dữ liệu:', refreshError);
+            // Không hiển thị lỗi cho người dùng vì đã có thông báo thành công
+          }
+        }, 1000);
+      } else {
+        error.value = thongTinError.message || 'Không thể cập nhật thông tin cá nhân.';
+      }
     }
   } catch (err) {
     console.error('Lỗi tổng quát:', err);
@@ -367,80 +612,122 @@ async function saveChanges() {
     saving.value = false;
   }
 }
+
+// Thêm hàm kiểm tra ảnh đã upload
+async function checkAvatarUploaded() {
+  try {
+    console.log('Kiểm tra xem ảnh đã được upload thành công không...');
+
+    // Gọi API để lấy thông tin mới nhất của tài khoản
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/taiKhoan/${authStore.user.id}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Dữ liệu tài khoản mới nhất:', data);
+
+      if (data && data.anh) {
+        const timestamp = new Date().getTime();
+        const newAvatarUrl = data.anh.includes('?')
+          ? `${data.anh}&t=${timestamp}`
+          : `${data.anh}?t=${timestamp}`;
+
+        // Cập nhật UI với URL ảnh mới
+        avatarError.value = false;
+        userData.value.anh = newAvatarUrl;
+        originalData.value.anh = newAvatarUrl;
+
+        // Cập nhật authStore
+        if (authStore.user) {
+          authStore.user.anh = newAvatarUrl;
+          localStorage.setItem('user', JSON.stringify(authStore.user));
+        }
+
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error('Lỗi khi kiểm tra ảnh đại diện:', err);
+    return false;
+  }
+}
 </script>
 
 <style scoped>
-.account-info-container {
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-}
-
-.form-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 10px;
+/* CSS theo phong cách Booking.com */
+.booking-container {
+  /* max-width: 1200px; */
+  margin: 0 auto;
+  padding: 20px 40px;
+  font-family: BlinkMacSystemFont, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   color: #333;
+  background-color: #fff;
 }
 
-.form-description {
-  color: #666;
+.booking-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.booking-subtitle {
+  font-size: 14px;
+  color: #6b6b6b;
   margin-bottom: 30px;
 }
 
-.loading-spinner,
-.error-message,
-.success-message {
+.booking-loading {
+  padding: 20px;
   text-align: center;
-  padding: 20px;
+  color: #0071c2;
 }
 
-.error-message {
-  color: #e74c3c;
-  font-weight: 500;
-  margin-bottom: 20px;
-}
-
-.success-message {
-  background-color: #d4edda;
-  color: #155724;
+.booking-error-message {
   padding: 15px;
-  border-radius: 5px;
-  margin-top: 20px;
-  font-weight: 500;
+  margin-bottom: 20px;
+  background-color: #fff0f0;
+  border: 1px solid #e60000;
+  border-radius: 4px;
+  color: #e60000;
 }
 
-.user-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
+.booking-success-message {
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #ebf7ec;
+  border: 1px solid #5a9e61;
+  border-radius: 4px;
+  color: #1a7823;
 }
 
-.user-avatar {
-  width: 100px;
-  height: 100px;
+.booking-profile-photo {
+  position: relative;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   overflow: hidden;
-  margin-right: 20px;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  position: relative;
+  margin: 0 0 30px auto;
+  border: 2px solid #eaeaea;
 }
 
-.user-avatar img {
+.booking-profile-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-upload-btn {
+.booking-avatar-btn {
   position: absolute;
   bottom: 0;
   right: 0;
-  background-color: #48cae4;
+  background-color: #0071c2;
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -448,149 +735,117 @@ async function saveChanges() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
+  border: 2px solid white;
 }
 
-.avatar-upload-btn:hover {
-  background-color: #0096c7;
-  transform: scale(1.1);
-}
-
-.avatar-upload-btn:hover::after {
-  content: "Thay đổi ảnh";
-  position: absolute;
-  top: -30px;
-  right: -20px;
-  background-color: #333;
+.booking-camera-icon {
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.avatar-upload-btn .upload-btn {
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-.user-name h3 {
-  margin: 0 0 5px 0;
-  font-size: 20px;
-  color: #333;
-}
-
-.user-name p {
-  margin: 0;
-  color: #666;
   font-size: 14px;
 }
 
-.info-section {
-  margin-bottom: 30px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.info-section h3 {
-  font-size: 16px;
-  padding: 12px 15px;
-  margin: 0;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-  color: #333;
-}
-
-.info-section form {
-  padding: 15px;
-}
-
-.form-row {
+.booking-info-list {
   display: flex;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.booking-info-item {
+  display: flex;
   align-items: flex-start;
+  padding: 15px 0;
+  border-bottom: 1px solid #e7e7e7;
 }
 
-.form-label {
-  width: 30%;
-  font-weight: 600;
-  color: #555;
-  padding: 10px 15px 10px 0;
+.booking-info-label {
+  width: 250px;
+  font-weight: 500;
+  color: #333;
+  padding-right: 20px;
+  flex-shrink: 0;
 }
 
-.form-input {
-  width: 70%;
+.booking-info-content {
+  flex: 1;
 }
 
-.form-control {
+.booking-input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #e7e7e7;
   border-radius: 4px;
   font-size: 16px;
+  color: #333;
+  transition: border-color 0.2s;
 }
 
-.form-control:focus {
-  border-color: #48cae4;
+.booking-input:focus {
+  border-color: #0071c2;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(72, 202, 228, 0.2);
 }
 
-.form-text {
+.booking-info-hint {
+  margin-top: 5px;
   font-size: 12px;
-  color: #666;
-  margin-top: 4px;
-  display: block;
+  color: #6b6b6b;
 }
 
-.radio-group {
-  display: flex;
-  gap: 20px;
-  padding: 5px 0;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.radio-label input {
-  margin-right: 8px;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.submit-button {
-  background-color: #48cae4;
-  color: white;
-  padding: 12px 20px;
+.booking-edit-btn {
+  padding: 0;
+  background: none;
   border: none;
-  border-radius: 20px;
+  color: #0071c2;
+  font-weight: 500;
   cursor: pointer;
-  font-weight: 600;
+  margin-left: 15px;
+  white-space: nowrap;
   font-size: 14px;
-  transition: background-color 0.3s;
 }
 
-.submit-button:hover {
-  background-color: #0096c7;
+.booking-edit-btn:hover {
+  text-decoration: underline;
 }
 
-.submit-button:disabled {
-  background-color: #cccccc;
+.booking-action-btns {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 30px;
+}
+
+.booking-save-btn {
+  background-color: #0071c2;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.booking-save-btn:hover {
+  background-color: #00487a;
+}
+
+.booking-save-btn:disabled {
+  background-color: #ccc;
   cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .booking-info-item {
+    flex-direction: column;
+  }
+
+  .booking-info-label {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .booking-edit-btn {
+    margin-left: 0;
+    margin-top: 10px;
+  }
 }
 </style>

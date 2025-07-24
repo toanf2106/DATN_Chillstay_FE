@@ -2,11 +2,10 @@
   <div class="all-homestays-container">
     <section class="hero-section">
       <div class="hero-content">
-        <h1 class="hero-title">
-          Tất Cả <span class="highlight">Homestay tại ChillStay</span>
-        </h1>
+        <h1 class="hero-title">Tất Cả <span class="highlight">Homestay tại ChillStay</span></h1>
         <p class="hero-subtitle">
-          Khám phá những homestay độc đáo, retreat yên bình tại trung tâm Mộc Châu với tầm nhìn núi non hùng vĩ.
+          Khám phá những homestay độc đáo, retreat yên bình tại trung tâm Mộc Châu với tầm nhìn núi
+          non hùng vĩ.
         </p>
         <div class="hero-search">
           <div class="search-box">
@@ -33,9 +32,7 @@
                 <option>Trên 1.5 triệu</option>
               </select>
             </div>
-            <button class="search-btn" @click="handleSearch">
-              Tìm kiếm
-            </button>
+            <button class="search-btn" @click="handleSearch">Tìm kiếm</button>
           </div>
         </div>
       </div>
@@ -56,7 +53,6 @@
               <option value="newest">Mới nhất</option>
             </select>
           </div>
-
         </div>
 
         <!-- Trạng thái đang tải -->
@@ -77,25 +73,47 @@
           <div class="homestay-card" v-for="home in paginatedHomestays" :key="home.id">
             <div class="homestay-image">
               <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
-              <span class="rating-badge">★ {{ home.danhGiaTrungBinh || '4.7' }} ({{ home.soDanhGia || '95' }} đánh
-                giá)</span>
-              <span class="homestay-status">Hoạt động</span>
+
+
+              <img v-else
+                :src="'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80'"
+                :alt="home.tenHomestay" />
+              <div class="rating-badge" v-if="home.danhGiaTrungBinh !== undefined">
+                <span>★ {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }} đánh giá)</span>
+              </div>
+              <span class="homestay-status" v-if="home.trangThai">
+                {{ home.trangThai === true ? 'Hoạt động' : home.trangThai }}
+              </span>
+
             </div>
             <div class="homestay-content">
-              <div class="location">
-                <i class="fas fa-map-marker-alt"></i> {{ home.diaChi || 'Bản Áng, Mộc Châu' }}
+              <div class="location" v-if="home.diaChi">
+                <i class="fas fa-map-marker-alt"></i> {{ home.diaChi }}
+              </div>
+              <div class="location" v-else>
+                <i class="fas fa-map-marker-alt"></i> Chưa cập nhật địa chỉ
               </div>
               <h3 class="homestay-title">{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
-                <span><i class="fas fa-home"></i> Homestay</span>
+
+                <span v-if="home.tenLoaiHomestay"><i class="fas fa-home"></i> {{ home.tenLoaiHomestay }}</span>
+                <span v-else-if="home.loaiHomeStay && home.loaiHomeStay.tenLoai"><i class="fas fa-home"></i> {{
+                  home.loaiHomeStay.tenLoai }}</span>
+                <span v-else><i class="fas fa-home"></i> Homestay</span>
                 <span><i class="fas fa-ruler-combined"></i> {{ home.dienTich || '200.75' }} m²</span>
-                <span><i class="fas fa-users"></i> 2-4 người/căn</span>
+                <span><i class="fas fa-users"></i> {{ home.sucChua || '2-4' }} người/căn</span>
+              </div>
+              <div class="homestay-owner" v-if="home.hotenChuHomestay">
+                <i class="fas fa-user"></i> Chủ homestay: {{ home.hotenChuHomestay }}
               </div>
 
-              <div class="homestay-price">
-                <span class="price-value">{{ home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') :
-                  '4.500.000' }}đ</span>
+              <div class="homestay-price" v-if="home.giaCaHomestay">
+                <span class="price-value">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}đ</span>
+
                 <span class="price-unit">/đêm</span>
+              </div>
+              <div class="homestay-price" v-else>
+                <span class="price-value">Giá chưa cập nhật</span>
               </div>
 
               <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
@@ -112,18 +130,31 @@
 
         <!-- Phân trang -->
         <div v-if="totalPages > 1 && !isLoading && !hasError" class="pagination">
-          <button class="pagination-btn" :class="{ disabled: currentPage === 1 }" @click="previousPage"
-            :disabled="currentPage === 1">
+          <button
+            class="pagination-btn"
+            :class="{ disabled: currentPage === 1 }"
+            @click="previousPage"
+            :disabled="currentPage === 1"
+          >
             <i class="fas fa-chevron-left"></i>
           </button>
 
-          <button v-for="page in totalPages" :key="page" class="pagination-btn"
-            :class="{ active: page === currentPage }" @click="goToPage(page)">
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            class="pagination-btn"
+            :class="{ active: page === currentPage }"
+            @click="goToPage(page)"
+          >
             {{ page }}
           </button>
 
-          <button class="pagination-btn" :class="{ disabled: currentPage === totalPages }" @click="nextPage"
-            :disabled="currentPage === totalPages">
+          <button
+            class="pagination-btn"
+            :class="{ disabled: currentPage === totalPages }"
+            @click="nextPage"
+            :disabled="currentPage === totalPages"
+          >
             <i class="fas fa-chevron-right"></i>
           </button>
         </div>
@@ -133,8 +164,9 @@
 </template>
 
 <script setup>
+
 import { ref, computed, onMounted, watch } from 'vue';
-import { getAllHomeStay, getLoaiHomeStay } from '@/Service/HomeStayService';
+import { getAllHomeStay, getLoaiHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
@@ -148,26 +180,26 @@ const roomTypeFilter = ref('');
 const homestayTypes = ref([]); // Array to store unique homestay types
 
 // Thêm biến state cho tìm kiếm
-const searchName = ref('');
-const searchLocation = ref('Tất cả địa điểm');
-const searchPrice = ref('Tất cả mức giá');
+const searchName = ref('')
+const searchLocation = ref('Tất cả địa điểm')
+const searchPrice = ref('Tất cả mức giá')
 
 // Thêm biến state cho phân trang
-const currentPage = ref(1);
-const itemsPerPage = 4;
+const currentPage = ref(1)
+const itemsPerPage = 4
 
 // Phương thức chuyển đến trang Booking
 const navigateToBooking = (homestayId) => {
-  router.push(`/homestay/${homestayId}`);
-};
+  router.push(`/homestay/${homestayId}`)
+}
 
 // Phương thức tìm kiếm
 const handleSearch = () => {
   console.log('Đang tìm kiếm với:', {
     tên: searchName.value,
     địaĐiểm: searchLocation.value,
-    giáCả: searchPrice.value
-  });
+    giáCả: searchPrice.value,
+  })
 
   // Cập nhật query params
   router.push({
@@ -176,246 +208,284 @@ const handleSearch = () => {
       name: searchName.value,
       location: searchLocation.value !== 'Tất cả địa điểm' ? searchLocation.value : null,
       price: searchPrice.value !== 'Tất cả mức giá' ? searchPrice.value : null,
-      sort: sortOption.value
-    }
-  });
-};
+      sort: sortOption.value,
+    },
+  })
+}
 
 // Lọc và sắp xếp homestay
 const filteredHomestays = computed(() => {
   // Lọc homestay theo trạng thái hoạt động
-  let result = homestays.value.filter(home => home.trangThai === true || home.trangThai === 'Hoạt động');
+  let result = homestays.value.filter(
+    (home) => home.trangThai === true || home.trangThai === 'Hoạt động',
+  )
 
   // Lọc theo tên homestay từ tham số tìm kiếm
   if (searchName.value) {
-    result = result.filter(home =>
-      home.tenHomestay && home.tenHomestay.toLowerCase().includes(searchName.value.toLowerCase())
-    );
+    result = result.filter(
+      (home) =>
+        home.tenHomestay && home.tenHomestay.toLowerCase().includes(searchName.value.toLowerCase()),
+    )
   }
 
   // Lọc theo địa điểm từ tham số tìm kiếm
   if (searchLocation.value && searchLocation.value !== 'Tất cả địa điểm') {
-    result = result.filter(home =>
-      home.diaChi && home.diaChi.includes(searchLocation.value)
-    );
+    result = result.filter((home) => home.diaChi && home.diaChi.includes(searchLocation.value))
   }
 
   // Lọc theo giá từ tham số tìm kiếm
   if (searchPrice.value && searchPrice.value !== 'Tất cả mức giá') {
     switch (searchPrice.value) {
       case 'Dưới 500 nghìn':
-        result = result.filter(home => home.giaCaHomestay < 500000);
-        break;
+        result = result.filter((home) => home.giaCaHomestay < 500000)
+        break
       case '500 nghìn - 1 triệu':
-        result = result.filter(home => home.giaCaHomestay >= 500000 && home.giaCaHomestay <= 1000000);
-        break;
+        result = result.filter(
+          (home) => home.giaCaHomestay >= 500000 && home.giaCaHomestay <= 1000000,
+        )
+        break
       case '1 - 1.5 triệu':
-        result = result.filter(home => home.giaCaHomestay > 1000000 && home.giaCaHomestay <= 1500000);
-        break;
+        result = result.filter(
+          (home) => home.giaCaHomestay > 1000000 && home.giaCaHomestay <= 1500000,
+        )
+        break
       case 'Trên 1.5 triệu':
-        result = result.filter(home => home.giaCaHomestay > 1500000);
-        break;
+        result = result.filter((home) => home.giaCaHomestay > 1500000)
+        break
     }
   }
 
   // Lọc theo loại homestay nếu có
   if (roomTypeFilter.value) {
-    result = result.filter(home => {
+    result = result.filter((home) => {
       // Handle both object and string cases
       if (typeof home.loaiHomeStay === 'object') {
-        return home.loaiHomeStay?.id === roomTypeFilter.value;
+        return home.loaiHomeStay?.id === roomTypeFilter.value
       }
-      return home.loaiHomeStay === roomTypeFilter.value;
-    });
+      return home.loaiHomeStay === roomTypeFilter.value
+    })
   }
 
   // Sắp xếp theo tùy chọn
   switch (sortOption.value) {
     case 'price-asc':
-      return result.sort((a, b) => (a.giaCaHomestay || 0) - (b.giaCaHomestay || 0));
+      return result.sort((a, b) => (a.giaCaHomestay || 0) - (b.giaCaHomestay || 0))
     case 'price-desc':
-      return result.sort((a, b) => (b.giaCaHomestay || 0) - (a.giaCaHomestay || 0));
+      return result.sort((a, b) => (b.giaCaHomestay || 0) - (a.giaCaHomestay || 0))
     case 'rating-desc':
-      return result.sort((a, b) => (b.danhGiaTrungBinh || 0) - (a.danhGiaTrungBinh || 0));
+      return result.sort((a, b) => (b.danhGiaTrungBinh || 0) - (a.danhGiaTrungBinh || 0))
     case 'newest':
       // Giả định có trường ngayTao hoặc id lớn hơn = mới hơn
-      return result.sort((a, b) => (b.id || 0) - (a.id || 0));
+      return result.sort((a, b) => (b.id || 0) - (a.id || 0))
     default:
-      return result;
+      return result
   }
-});
+})
 
 // Tính toán tổng số trang
 const totalPages = computed(() => {
-  return Math.ceil(filteredHomestays.value.length / itemsPerPage);
-});
+  return Math.ceil(filteredHomestays.value.length / itemsPerPage)
+})
 
 // Lấy homestays cho trang hiện tại
 const paginatedHomestays = computed(() => {
-  const startIndex = (currentPage.value - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  return filteredHomestays.value.slice(startIndex, endIndex);
-});
+  const startIndex = (currentPage.value - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  return filteredHomestays.value.slice(startIndex, endIndex)
+})
 
 // Chuyển đến trang khác
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page;
-    window.scrollTo(0, 0);
+    currentPage.value = page
+    window.scrollTo(0, 0)
   }
-};
+}
 
 // Đến trang trước
 const previousPage = () => {
   if (currentPage.value > 1) {
-    goToPage(currentPage.value - 1);
+    goToPage(currentPage.value - 1)
   }
-};
+}
 
 // Đến trang sau
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
-    goToPage(currentPage.value + 1);
+    goToPage(currentPage.value + 1)
   }
-};
+}
 
 // Đặt lại bộ lọc
 const resetFilters = () => {
-  searchName.value = '';
-  searchLocation.value = 'Tất cả địa điểm';
-  searchPrice.value = 'Tất cả mức giá';
-  sortOption.value = 'price-asc';
-  roomTypeFilter.value = '';
+  searchName.value = ''
+  searchLocation.value = 'Tất cả địa điểm'
+  searchPrice.value = 'Tất cả mức giá'
+  sortOption.value = 'price-asc'
+  roomTypeFilter.value = ''
 
   // Cập nhật URL
   router.push({
-    path: '/all-homestays'
-  });
-};
+    path: '/all-homestays',
+  })
+}
 
 // Đọc tham số tìm kiếm từ URL khi component được tải
 const readSearchParamsFromURL = () => {
   if (route.query.name) {
-    searchName.value = route.query.name;
+    searchName.value = route.query.name
   }
 
   if (route.query.location) {
-    searchLocation.value = route.query.location;
+    searchLocation.value = route.query.location
   }
 
   if (route.query.price) {
-    searchPrice.value = route.query.price;
+    searchPrice.value = route.query.price
   }
 
   if (route.query.sort) {
-    sortOption.value = route.query.sort;
+    sortOption.value = route.query.sort
   }
 
   if (route.query.page) {
-    const pageNum = parseInt(route.query.page);
+    const pageNum = parseInt(route.query.page)
     if (!isNaN(pageNum) && pageNum > 0) {
-      currentPage.value = pageNum;
+      currentPage.value = pageNum
     }
   }
-};
+}
 
 // Fetch homestay types from API
 const fetchHomestayTypes = async () => {
   try {
-    console.log('Đang tải dữ liệu loại homestay...');
-    const response = await getLoaiHomeStay();
-    console.log('Dữ liệu loại homestay từ API:', response.data);
+    console.log('Đang tải dữ liệu loại homestay...')
+    const response = await getLoaiHomeStay()
+    console.log('Dữ liệu loại homestay từ API:', response.data)
 
     if (response.data && Array.isArray(response.data)) {
-      homestayTypes.value = response.data;
-      console.log('Đã tải loại homestay từ API:', homestayTypes.value);
+      homestayTypes.value = response.data
+      console.log('Đã tải loại homestay từ API:', homestayTypes.value)
     } else {
-      console.warn('API trả về dữ liệu loại homestay không hợp lệ:', response.data);
+      console.warn('API trả về dữ liệu loại homestay không hợp lệ:', response.data)
     }
   } catch (error) {
-    console.error('Lỗi khi tải dữ liệu loại homestay:', error);
+    console.error('Lỗi khi tải dữ liệu loại homestay:', error)
   }
-};
+}
 
 const fetchHomestayData = async () => {
   try {
-    isLoading.value = true;
-    hasError.value = false;
-    errorMessage.value = '';
-    console.log('Đang tải dữ liệu homestay...');
+    isLoading.value = true
+    hasError.value = false
+    errorMessage.value = ''
+    console.log('Đang tải dữ liệu homestay...')
 
     try {
       // Gọi API để lấy dữ liệu homestay
-      const res = await getAllHomeStay();
-      console.log('Dữ liệu homestay từ API:', res.data);
+      const res = await getAllHomeStay()
+      console.log('Dữ liệu homestay từ API:', res.data)
 
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-        homestays.value = res.data.map(room => ({
-          ...room,
-          capacity: room.capacity || 2, // Giả định capacity mặc định nếu không có
+
+
+        // In ra dữ liệu để kiểm tra
+        console.log('Dữ liệu homestay đầu tiên:', {
+          id: res.data[0].id,
+          ten: res.data[0].tenHomestay,
+          chu: res.data[0].hotenChuHomestay,
+          loai: res.data[0].tenLoaiHomestay || (res.data[0].loaiHomeStay ? res.data[0].loaiHomeStay.tenLoai : undefined),
+          allProps: Object.keys(res.data[0])
+        });
+
+        homestays.value = await Promise.all(res.data.map(async (homestay) => {
+          try {
+            // Tìm hình ảnh cho homestay
+            const anhResponse = await getAnhHomeStayByHomestayId(homestay.id);
+            if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
+              const mainImage = anhResponse.data.find(img => img.trangThai !== false);
+              if (mainImage) {
+                homestay.hinhAnh = mainImage.duongDanAnh;
+              }
+            }
+          } catch (imgError) {
+            console.error(`Lỗi khi lấy ảnh cho homestay ${homestay.id}:`, imgError);
+          }
+          return homestay;
         }));
+
 
         // Nếu không có dữ liệu loại homestay từ API riêng, trích xuất từ dữ liệu homestay
         if (homestayTypes.value.length === 0) {
           // Extract unique homestay types
-          homestayTypes.value = [...new Set(homestays.value.map(homestay => homestay.loaiHomeStay))].filter(type => type);
+
+          homestayTypes.value = [...new Set(homestays.value.map(homestay =>
+            homestay.tenLoaiHomestay || (homestay.loaiHomeStay ? homestay.loaiHomeStay.tenLoai : undefined)
+          ))].filter(type => type);
           console.log('Đã trích xuất loại homestay từ dữ liệu homestay:', homestayTypes.value);
+
         }
       } else {
-        hasError.value = true;
-        errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.';
-        console.warn('API trả về dữ liệu không hợp lệ:', res.data);
+        hasError.value = true
+        errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.'
+        console.warn('API trả về dữ liệu không hợp lệ:', res.data)
       }
     } catch (apiError) {
-      hasError.value = true;
+      hasError.value = true
       if (apiError.response && apiError.response.status === 401) {
-        errorMessage.value = 'API yêu cầu xác thực nhưng không có dữ liệu công khai. Vui lòng kiểm tra cấu hình backend.';
-        console.error('Lỗi 401 - API yêu cầu xác thực:', apiError.response.data);
+        errorMessage.value =
+          'API yêu cầu xác thực nhưng không có dữ liệu công khai. Vui lòng kiểm tra cấu hình backend.'
+        console.error('Lỗi 401 - API yêu cầu xác thực:', apiError.response.data)
       } else if (apiError.message.includes('Network Error')) {
-        errorMessage.value = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.';
+        errorMessage.value = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.'
       } else {
-        errorMessage.value = 'Lỗi khi tải dữ liệu homestay: ' + (apiError.response?.data?.message || apiError.message);
+        errorMessage.value =
+          'Lỗi khi tải dữ liệu homestay: ' + (apiError.response?.data?.message || apiError.message)
       }
       console.error('Lỗi API chi tiết:', {
         message: apiError.message,
         status: apiError.response?.status,
         data: apiError.response?.data,
         url: apiError.config?.url,
-      });
+      })
     }
   } catch (err) {
-    console.error('Lỗi không xác định:', err);
-    hasError.value = true;
-    errorMessage.value = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.';
+    console.error('Lỗi không xác định:', err)
+    hasError.value = true
+    errorMessage.value = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.'
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 onMounted(async () => {
-  console.log('Component AllHomestaysView đã được mount');
+  console.log('Component AllHomestaysView đã được mount')
   // Đọc tham số tìm kiếm từ URL
-  readSearchParamsFromURL();
+  readSearchParamsFromURL()
   // Fetch homestay types first
-  await fetchHomestayTypes();
+  await fetchHomestayTypes()
   // Then fetch homestay data
-  await fetchHomestayData();
-});
+  await fetchHomestayData()
+})
 
 // Theo dõi thay đổi trong tham số URL
-watch(() => route.query, () => {
-  readSearchParamsFromURL();
-}, { deep: true });
+watch(
+  () => route.query,
+  () => {
+    readSearchParamsFromURL()
+  },
+  { deep: true },
+)
 
 // Cập nhật URL khi thay đổi trang
 watch(currentPage, (newPage) => {
   router.push({
     query: {
       ...route.query,
-      page: newPage
-    }
-  });
-});
+      page: newPage,
+    },
+  })
+})
 </script>
 
 <style scoped>
@@ -444,7 +514,8 @@ watch(currentPage, (newPage) => {
 
 /* Phần Hero */
 .hero-section {
-  background: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center/cover;
+  background: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
+    no-repeat center/cover;
   color: #fff;
   padding: 80px 0;
   position: relative;
@@ -615,7 +686,9 @@ watch(currentPage, (newPage) => {
   border-radius: 10px;
   background-color: #f9f9f9;
   cursor: pointer;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .filter-group select:focus {
@@ -640,7 +713,9 @@ watch(currentPage, (newPage) => {
   display: flex;
   flex-direction: row;
   border: 1px solid #eaeaea;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .homestay-card:hover {
@@ -659,6 +734,32 @@ watch(currentPage, (newPage) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.rating-badge {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 193, 7, 0.9);
+  color: #fff;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 2;
+}
+
+.homestay-status {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  padding: 6px 12px;
+  background: #28a745;
+  color: #fff;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 2;
 }
 
 .homestay-content {
@@ -698,6 +799,15 @@ watch(currentPage, (newPage) => {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.homestay-owner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: #666;
 }
 
 .homestay-price {

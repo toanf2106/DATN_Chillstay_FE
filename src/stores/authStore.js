@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { login as apiLogin } from '@/Service/authService'
+import { login as apiLogin, getAccountInfo } from '@/Service/authService'
 
 // Tạo hoặc lấy ID phiên duy nhất cho mỗi tab
 const getOrCreateSessionId = () => {
@@ -50,7 +50,8 @@ export const useAuthStore = defineStore('auth', {
         this.user = userData
         this.token = token
         this.isLoggedIn = true
-        this.isAdmin = userData.accountTypeId === 1 || userData.accountTypeId === 2
+        // ID 2 cho Admin từ cơ sở dữ liệu
+        this.isAdmin = userData.accountTypeId === 2 || userData.accountTypeName?.toUpperCase() === 'ADMIN'
 
         // Lưu vào localStorage với ID phiên
         localStorage.setItem(`token_${SESSION_ID}`, token)
@@ -65,6 +66,27 @@ export const useAuthStore = defineStore('auth', {
         return { success: false, error }
       }
     },
+    async fetchUserAvatar() {
+      if (this.user && this.user.username && !this.user.Anh) {
+        try {
+          const response = await getAccountInfo(this.user.username)
+          const accountInfo = response.data
+          if (accountInfo && accountInfo.Anh) {
+            this.user.Anh = accountInfo.Anh
+
+            // Cập nhật lại user trong localStorage
+            const userStr = localStorage.getItem(`user_${SESSION_ID}`)
+            if (userStr) {
+              const user = JSON.parse(userStr)
+              user.Anh = accountInfo.Anh
+              localStorage.setItem(`user_${SESSION_ID}`, JSON.stringify(user))
+            }
+          }
+        } catch (error) {
+          console.error('Lỗi khi lấy thông tin ảnh đại diện:', error)
+        }
+      }
+    },
 
     // Đăng xuất
     logout() {
@@ -77,11 +99,17 @@ export const useAuthStore = defineStore('auth', {
         this.isAdmin = false;
         console.log('Trạng thái sau khi reset:', JSON.stringify(this.$state));
 
-        // Xóa TOÀN BỘ localStorage và sessionStorage để đảm bảo không còn dữ liệu
-        console.log('Xóa toàn bộ localStorage và sessionStorage...');
-        localStorage.clear();
-        sessionStorage.clear();
-        console.log('Đã xóa xong localStorage và sessionStorage.');
+        // Lấy ID phiên hiện tại
+        const sessionId = sessionStorage.getItem('current_tab_id');
+
+        // Chỉ xóa các khóa liên quan đến xác thực
+        if (sessionId) {
+          localStorage.removeItem(`token_${sessionId}`);
+          localStorage.removeItem(`user_${sessionId}`);
+          localStorage.removeItem(`isAdmin_${sessionId}`);
+        }
+
+        console.log('Đã xóa xong dữ liệu xác thực.');
 
         return true;
       } catch (error) {
@@ -111,10 +139,21 @@ export const useAuthStore = defineStore('auth', {
               return
             }
 
+            // Kiểm tra token có phải là JWT hợp lệ không
+            if (!token.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/)) {
+              console.error('Token không có định dạng JWT hợp lệ')
+              this.logout()
+              return
+            }
+
             this.user = user
             this.token = token
             this.isLoggedIn = true
-            this.isAdmin = user.accountTypeId === 1 || user.accountTypeId === 2
+
+            this.isAdmin = user.accountTypeId === 2 ||
+                           user.accountTypeName?.toUpperCase() === 'ADMIN' ||
+                           user.accountTypeName === 'Admin'
+
             console.log('Đã khôi phục trạng thái đăng nhập từ localStorage cho phiên hiện tại')
             console.log('Trạng thái đăng nhập:', {
               isLoggedIn: this.isLoggedIn,
@@ -142,7 +181,16 @@ export const useAuthStore = defineStore('auth', {
 
     // Kiểm tra quyền truy cập admin
     checkAdminAccess() {
-      return this.isLoggedIn && this.isAdmin
+      // Cập nhật điều kiện kiểm tra quyền admin
+      this.isAdmin = this.user && (
+        // ID 2 cho Admin từ cơ sở dữ liệu
+        this.user.accountTypeId === 2 ||
+        // Kiểm tra tên loại tài khoản nếu có (không phân biệt hoa thường)
+        this.user.accountTypeName?.toUpperCase() === 'ADMIN' ||
+        // Kiểm tra thêm tên loại là 'Admin'
+        this.user.accountTypeName === 'Admin'
+      );
+      return this.isLoggedIn && this.isAdmin;
     }
   }
 })

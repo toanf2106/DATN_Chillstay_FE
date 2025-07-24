@@ -1,7 +1,6 @@
 <template>
   <div class="dathome-container">
     <h1 class="section-title">Quản lý đặt Homestay</h1>
-    <!-- Statistics Cards -->
     <div class="stats-cards">
       <div class="stat-card" @mouseenter="createRipple($event)">
         <div class="card-front">
@@ -127,7 +126,6 @@
       </div>
     </div>
 
-    <!-- View Toggle Button -->
     <div class="view-toggle-container">
       <button
         class="view-toggle-btn"
@@ -145,16 +143,17 @@
         <font-awesome-icon icon="fa-solid fa-list" class="btn-icon" />
         Xem chi tiết
       </button>
+      <button class="view-toggle-btn" @click="navigateToDatHomeADM">
+        <font-awesome-icon icon="fa-solid fa-tasks" class="btn-icon" />
+        Đặt Homestay
+      </button>
     </div>
 
-    <!-- Main Content -->
     <div class="content-section">
-      <!-- Calendar View -->
       <div v-show="currentView === 'calendar'" class="calendar-container">
         <div id="calendar" ref="fullCalendar"></div>
       </div>
 
-      <!-- Detailed Bookings View -->
       <div v-show="currentView === 'detail'" class="bookings-detail-view">
         <h2>Danh sách đặt phòng</h2>
         <div class="table-container">
@@ -165,15 +164,16 @@
                 <th>Mã đặt phòng</th>
                 <th>Khách hàng</th>
                 <th>Homestay</th>
-                <th>Thời gian bắt đầu</th>
-                <th>Thời gian kết thúc</th>
+                <th>Ngày tạo</th>
+                <th>Thời gian nhận phòng</th>
+                <th>Thời gian trả phòng</th>
                 <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>Lịch sử thay đổi</th>
               </tr>
             </thead>
             <tbody v-if="isLoading">
               <tr>
-                <td colspan="8" class="text-center">
+                <td colspan="9" class="text-center">
                   <div class="loading">Đang tải dữ liệu...</div>
                 </td>
               </tr>
@@ -181,74 +181,64 @@
             <tbody v-else>
               <tr v-for="(booking, index) in paginatedBookings" :key="booking.id">
                 <td>{{ startItem + index }}</td>
-                <td>#{{ booking.maDatHome }}</td>
+                <td class="text-left">{{ booking.maDatHome }}</td>
                 <td>{{ booking.tenKhachHang }}</td>
                 <td>{{ booking.tenHomestay }}</td>
-                <td>{{ formatDate(booking.ngayNhanPhong) }}</td>
-                <td>{{ formatDate(booking.ngayTraPhong) }}</td>
+                <td>{{ formatDate(booking.ngayDat, 'dateOnly') }}</td>
+                <td>{{ formatDate(booking.ngayNhanPhong, 'dateOnly') }}</td>
+                <td>{{ formatDate(booking.ngayTraPhong, 'dateOnly') }}</td>
                 <td>
                   <span class="status-badge" :class="getStatusClass(booking.trangThai)">
                     {{ getStatusLabel(booking.trangThai) }}
                   </span>
                 </td>
                 <td>
-                  <button class="action-btn view-btn" @click="viewBookingDetails(booking)">
-                    <font-awesome-icon icon="fa-solid fa-eye" />
-                  </button>
-                  <button class="action-btn edit-btn" @click="editBooking(booking)">
-                    <font-awesome-icon icon="fa-solid fa-edit" />
-                  </button>
-                  <button class="action-btn delete-btn" @click="deleteBooking(booking.id)">
-                    <font-awesome-icon icon="fa-solid fa-trash" />
+                  <button class="action-btn history-btn" @click="showBookingLogs(booking.id)">
+                    <font-awesome-icon icon="fa-solid fa-history" />
+                    <span>Xem lịch sử</span>
                   </button>
                 </td>
               </tr>
-              <!-- Empty rows to always show exactly 5 rows -->
               <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
-                <td colspan="8">&nbsp;</td>
+                <td colspan="9"><span class="sr-only">Empty row</span></td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <!-- Fixed Pagination -->
-        <div class="pagination-container">
-          <div class="pagination-info">
-            Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} đặt phòng
-            <span class="pagination-note">(5 đặt phòng mỗi trang)</span>
-          </div>
-          <nav aria-label="Page navigation">
-            <ul class="pagination">
-              <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
-                  <i class="fas fa-chevron-left"></i>
-                </a>
-              </li>
-              <li
-                v-for="page in totalPages"
-                :key="page"
-                class="page-item"
-                :class="{ active: page - 1 === currentPage }"
-              >
-                <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
-              </li>
-              <li
-                class="page-item"
-                :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
-              >
-                <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
-                  <i class="fas fa-chevron-right"></i>
-                </a>
-              </li>
-            </ul>
-          </nav>
+      </div>
+      <div class="pagination-container" v-if="currentView === 'detail'">
+        <div class="pagination-info">
+          Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} đặt phòng
+          <span class="pagination-note">(5 đặt phòng mỗi trang)</span>
         </div>
-
-        <!-- Card View -->
+        <nav aria-label="Page navigation">
+          <ul class="pagination">
+            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+              <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+                <i class="fas fa-chevron-left"></i>
+              </a>
+            </li>
+            <li
+              v-for="page in totalPages"
+              :key="page"
+              class="page-item"
+              :class="{ active: page - 1 === currentPage }"
+            >
+              <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+            </li>
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            >
+              <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+                <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 
-    <!-- Card View Section -->
     <div class="booking-cards-section" v-show="currentView === 'detail'">
       <h2 class="section-title">Xem đặt phòng dạng thẻ</h2>
       <div v-if="isLoading" class="loading">Đang tải dữ liệu...</div>
@@ -260,7 +250,7 @@
           @click="viewBookingDetails(booking)"
         >
           <div class="card-header">
-            <div class="card-booking-code">#</div>
+            <div class="card-booking-code">{{ booking.maDatHome }}</div>
             <div class="card-status">
               <span class="status-badge-card" :class="getStatusClass(booking.trangThai)">
                 {{ getStatusLabel(booking.trangThai) }}
@@ -280,14 +270,14 @@
               <div class="date-range">
                 <div class="date-item">
                   <i class="fas fa-calendar-check"></i>
-                  <span>{{ formatDateDay(booking.ngayNhanPhong) }}</span>
+                  <span>{{ formatDate(booking.ngayNhanPhong, 'dayOnly') }}</span>
                 </div>
                 <div class="date-arrow">
                   <i class="fas fa-arrow-right"></i>
                 </div>
                 <div class="date-item">
                   <i class="fas fa-calendar-times"></i>
-                  <span>{{ formatDateDay(booking.ngayTraPhong) }}</span>
+                  <span>{{ formatDate(booking.ngayTraPhong, 'dayOnly') }}</span>
                 </div>
               </div>
             </div>
@@ -306,7 +296,6 @@
       </div>
     </div>
 
-    <!-- Booking Details Modal (Hidden by default) -->
     <div class="booking-modal" v-if="showModal">
       <div class="modal-content">
         <div class="modal-header">
@@ -356,12 +345,7 @@
                         formatCurrency(selectedBooking.tongTienDichVu)
                       }}</span>
                     </div>
-                    <div class="payment-item">
-                      <span class="payment-label">Số tiền cọc:</span>
-                      <span class="payment-value deposit">{{
-                        formatCurrency(selectedBooking.soTienCoc)
-                      }}</span>
-                    </div>
+
                     <div class="payment-divider"></div>
                     <div class="payment-item total">
                       <span class="payment-label">Tổng tiền:</span>
@@ -369,11 +353,24 @@
                         formatCurrency(selectedBooking.tongTien)
                       }}</span>
                     </div>
+
+                    <!-- Thêm hiển thị số tiền đã thanh toán -->
+                    <div class="payment-item">
+                      <span class="payment-label">Đã thanh toán:</span>
+                      <span class="payment-value paid">{{
+                        formatCurrency(soTienDaThanhToan)
+                      }}</span>
+                    </div>
+                    <div class="payment-item" v-if="soTienConLai > 0">
+                      <span class="payment-label">Còn lại phải thanh toán:</span>
+                      <span class="payment-value remaining">{{
+                        formatCurrency(soTienConLai)
+                      }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Thêm trường ghi chú khi cập nhật trạng thái -->
               <div class="booking-section status-section" v-if="showStatusActions">
                 <div class="section-content">
                   <h3>Cập nhật trạng thái</h3>
@@ -385,7 +382,6 @@
                       selectedBooking.trangThai === 'DaCheckOut'
                     "
                   >
-                    <!-- <label for="statusNote">Ghi chú:</label> -->
                     <textarea
                       id="statusNote"
                       class="form-control"
@@ -453,21 +449,21 @@
                     <div class="info-item date-item">
                       <span class="info-label">Ngày đặt:</span>
                       <span class="info-value date-value">{{
-                        formatDate(selectedBooking.ngayDat)
+                        formatDate(selectedBooking.ngayDat, 'dateOnly')
                       }}</span>
                     </div>
                     <div class="date-range-box">
                       <div class="date-range-item">
-                        <span class="range-label">Check-in</span>
+                        <span class="range-label">Check-in (13:00 - 14:00)</span>
                         <span class="range-value">{{
-                          formatDate(selectedBooking.ngayNhanPhong)
+                          formatDate(selectedBooking.ngayNhanPhong, 'dateOnly')
                         }}</span>
                       </div>
                       <div class="date-arrow">→</div>
                       <div class="date-range-item">
-                        <span class="range-label">Check-out</span>
+                        <span class="range-label">Check-out (9:30 - 11:00)</span>
                         <span class="range-value">{{
-                          formatDate(selectedBooking.ngayTraPhong)
+                          formatDate(selectedBooking.ngayTraPhong, 'dateOnly')
                         }}</span>
                       </div>
                     </div>
@@ -475,15 +471,7 @@
                 </div>
               </div>
 
-              <!-- Các nút hành động -->
               <div class="booking-actions">
-                <button
-                  v-if="selectedBooking.trangThai === 'ChoXacNhan'"
-                  class="action-button confirm-btn"
-                  @click="updateBookingStatus(selectedBooking.id, 'DaCoc')"
-                >
-                  Đã cọc
-                </button>
                 <button
                   v-if="selectedBooking.trangThai === 'ChoXacNhan'"
                   class="action-button cancel-btn"
@@ -492,7 +480,7 @@
                   Hủy đặt phòng
                 </button>
                 <button
-                  v-if="selectedBooking.trangThai === 'DaCoc'"
+                  v-if="selectedBooking.trangThai === 'ChoXacNhan'"
                   class="action-button confirm-btn"
                   @click="updateBookingStatus(selectedBooking.id, 'DaXacNhan')"
                 >
@@ -509,8 +497,31 @@
                   v-if="selectedBooking.trangThai === 'DaCheckIn'"
                   class="action-button confirm-btn"
                   @click="handleCheckOut(selectedBooking.id)"
+                  :disabled="soTienConLai > 0 && paymentStatus !== 'ThanhCong'"
+                  :class="{ 'disabled-btn': soTienConLai > 0 && paymentStatus !== 'ThanhCong' }"
                 >
                   Check-out
+                  <span
+                    v-if="soTienConLai > 0 && paymentStatus !== 'ThanhCong'"
+                    class="payment-required-text"
+                  >
+                    (Cần thanh toán số tiền còn lại)
+                  </span>
+                </button>
+                <!-- Sửa nút thanh toán ngay để hiển thị số tiền còn lại -->
+                <button
+                  v-if="
+                    soTienConLai > 0 &&
+                    paymentStatus !== 'ThanhCong' &&
+                    selectedBooking.trangThai === 'DaCheckIn'
+                  "
+                  class="action-button payment-btn"
+                  @click="createPaymentForRemaining"
+                  :disabled="isLoadingPayment"
+                >
+                  {{ isLoadingPayment ? 'Đang xử lý...' : 'Thanh toán ngay' }} ({{
+                    formatCurrency(soTienConLai)
+                  }})
                 </button>
                 <button
                   v-if="selectedBooking.trangThai === 'DaCheckOut'"
@@ -525,6 +536,218 @@
         </div>
       </div>
     </div>
+
+    <div class="booking-modal" v-if="showLogModal">
+      <div class="modal-content logs-modal-content">
+        <div class="modal-header">
+          <div class="header-left">
+            <h2 class="modal-title">Lịch sử thay đổi trạng thái</h2>
+            <div class="booking-id" v-if="currentBookingInfo">
+              <span class="info-label">Mã đặt phòng:</span>
+              <strong>{{ currentBookingInfo.maDatHome }}</strong> |
+              <span class="info-label">Khách hàng:</span>
+              <strong>{{ currentBookingInfo.tenKhachHang }}</strong> |
+              <span class="info-label">Homestay:</span>
+              <strong>{{ currentBookingInfo.tenHomestay }}</strong>
+            </div>
+          </div>
+          <div class="header-right">
+            <button class="close-btn" @click="showLogModal = false">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="booking-details">
+          <div class="log-table-container">
+            <div v-if="loadingLogs" class="loading">Đang tải dữ liệu...</div>
+
+            <table
+              class="log-table"
+              v-else-if="currentBookingLogs && currentBookingLogs.length > 0"
+            >
+              <thead>
+                <tr>
+                  <th width="5%">STT</th>
+                  <th width="15%">Thời gian thay đổi</th>
+                  <th width="35%">Thay đổi trạng thái</th>
+                  <th width="15%">Người thực hiện</th>
+                  <th width="10%">Mã NV</th>
+                  <th width="20%">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(log, index) in sortedLogs" :key="log.id">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ formatDate(log.thoiGianThayDoi, 'dateOnly') }}</td>
+                  <td>
+                    <div class="status-change">
+                      <span
+                        v-if="log.trangThaiCu"
+                        class="status-badge"
+                        :class="getStatusClass(log.trangThaiCu)"
+                      >
+                        {{ getStatusLabel(log.trangThaiCu) }}
+                      </span>
+                      <span v-else class="status-badge status-new">Mới tạo</span>
+                      <i class="fas fa-arrow-right status-arrow"></i>
+                      <span class="status-badge" :class="getStatusClass(log.trangThaiMoi)">
+                        {{ getStatusLabel(log.trangThaiMoi) }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>{{ log.hoTenThucHien || 'N/A' }}</td>
+                  <td>{{ log.maNhanVienThucHien || 'N/A' }}</td>
+                  <td>{{ log.ghiChu || 'Không có ghi chú' }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div v-else class="no-logs">
+              <i class="fas fa-history"></i>
+              <p>Chưa có lịch sử thay đổi nào</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <teleport to="body">
+      <div class="modal-overlay" v-if="showPaymentModal">
+        <div class="modal-container payment-iframe-container">
+          <div class="modal-body payment-iframe-body">
+            <div v-if="!paymentUrl" class="payment-loading">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Đang tải trang thanh toán...</span>
+            </div>
+            <iframe
+              v-else
+              :src="paymentUrl"
+              class="payment-iframe"
+              allow="payment"
+              sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups"
+              @load="handleIframeLoad"
+              ref="paymentIframe"
+            ></iframe>
+            <div class="payment-countdown">
+              <span class="countdown-label">Thời gian còn lại:</span>
+              <span class="countdown-timer" :class="{ 'time-low': remainingTimeSeconds < 60 }">
+                {{ formatRemainingTime() }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <teleport to="body">
+      <div class="modal-overlay" v-if="showPaymentMethodModal" @click.self="cancelPaymentMethod">
+        <div class="modal-container payment-method-modal">
+          <div class="modal-header">
+            <h3>Chọn phương thức thanh toán</h3>
+            <button class="close-btn" @click="cancelPaymentMethod">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body payment-method-body">
+            <div class="payment-amount">
+              <p>Số tiền cần thanh toán:</p>
+              <div class="amount-value">{{ formatCurrency(soTienConLai) }}</div>
+            </div>
+
+            <div class="payment-methods">
+              <button class="payment-method-btn qr-payment" @click="processQRPayment">
+                <div class="method-icon">
+                  <i class="fas fa-qrcode"></i>
+                </div>
+                <div class="method-info">
+                  <h4>Thanh toán QR</h4>
+                  <p>Quét mã QR để thanh toán</p>
+                </div>
+              </button>
+
+              <button class="payment-method-btn cash-payment" @click="processCashPayment">
+                <div class="method-icon">
+                  <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="method-info">
+                  <h4>Thanh toán tiền mặt</h4>
+                  <p>Khách hàng thanh toán bằng tiền mặt</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Modal thanh toán tiền mặt -->
+    <teleport to="body">
+      <div class="modal-overlay" v-if="showCashPaymentModal" @click.self="closeCashPaymentModal">
+        <div class="modal-container cash-payment-modal">
+          <div class="modal-header">
+            <h3>Thanh toán tiền mặt</h3>
+            <button class="close-btn" @click="closeCashPaymentModal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body cash-payment-body">
+            <div class="payment-details">
+              <div class="payment-row">
+                <span class="payment-label">Tổng tiền thanh toán:</span>
+                <span class="payment-value total-amount">{{ formatCurrency(soTienConLai) }}</span>
+              </div>
+              <div class="payment-row">
+                <span class="payment-label">Tiền khách đưa:</span>
+                <div class="payment-input">
+                  <input
+                    type="number"
+                    v-model.number="cashReceived"
+                    @input="calculateChange"
+                    placeholder="Nhập số tiền khách đưa"
+                    min="0"
+                    step="10000"
+                    class="cash-input"
+                  />
+                  <span class="currency">₫</span>
+                </div>
+              </div>
+              <div class="payment-row">
+                <span class="payment-label">Tiền thối lại:</span>
+                <span class="payment-value change-amount" :class="{ negative: changeAmount < 0 }">
+                  {{ changeAmount.toLocaleString('vi-VN') }}₫
+                </span>
+              </div>
+              <div class="quick-amounts">
+                <p class="quick-title">Chọn nhanh số tiền:</p>
+                <div class="quick-buttons">
+                  <button
+                    v-for="(amount, index) in quickAmounts"
+                    :key="index"
+                    @click="setQuickAmount(amount)"
+                    class="quick-button"
+                  >
+                    {{ formatCurrency(amount) }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer cash-payment-footer">
+            <button class="btn btn-secondary" @click="closeCashPaymentModal">
+              <i class="fas fa-times"></i> Hủy
+            </button>
+            <button
+              class="btn btn-primary"
+              @click="confirmCashPayment"
+              :disabled="cashReceived === null || cashReceived < soTienConLai"
+            >
+              <i class="fas fa-check-circle"></i> Xác nhận thanh toán
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -532,26 +755,27 @@
 import {
   getAllDatHome,
   getDatHomeById,
-  deleteDatHome,
   getDatHomeByTrangThai,
   updateStatus,
   checkIn,
   checkOut,
+  confirmAndCancelOverlaps,
 } from '@/Service/DatHomeService'
+import axios from 'axios' // Used for fetching booking logs
 import { useAuthStore } from '@/stores/authStore'
-
+import notification from '@/utils/notification' // Import notification utility
+import { showCelebration } from '@/utils/fireworks' // Import hiệu ứng pháo hoa
+import PaymentService from '@/Service/PaymentService'
+import ThanhToanService from '@/Service/ThanhToan'
 export default {
   name: 'DatHome',
   data() {
     return {
       showModal: false,
       bookings: [],
-      currentMonth: 'July 2025',
-      viewMode: 'month',
       calendar: null,
       selectedBooking: null,
       currentView: 'calendar', // 'calendar' or 'detail'
-      calendarLoaded: false,
       fullCalendarLoaded: false,
       isLoading: true,
       // Thống kê
@@ -574,6 +798,36 @@ export default {
       // Check-in/out notes
       checkInNote: '',
       checkOutNote: '',
+      // Lịch sử thay đổi
+      datHomeLogs: [],
+      showLogModal: false,
+      currentBookingLogs: [],
+      currentBookingInfo: null,
+      loadingLogs: false,
+      // Thanh toán
+      soTienDaThanhToan: 0,
+      soTienConLai: 0,
+      isLoadingPayment: false,
+      showPaymentModal: false,
+      paymentUrl: '',
+      paymentOrderCode: '',
+      paymentStatus: 'DangCho', // Trạng thái thanh toán: DangCho, ThanhCong, ThatBai
+      autoCheckingStatus: false, // Đánh dấu đang tự động kiểm tra
+      statusCheckInterval: null, // Interval cho việc kiểm tra tự động
+      checkingPaymentStatus: false, // Đánh dấu đang kiểm tra thủ công
+      abortController: null, // AbortController để hủy request
+      paymentTimeoutSeconds: 300, // Thời gian thanh toán: 5 phút = 300 giây
+      remainingTimeSeconds: 300, // Thời gian còn lại
+      paymentTimer: null, // Timer để đếm ngược
+
+      // Lựa chọn phương thức thanh toán
+      showPaymentMethodModal: false,
+
+      // Thanh toán tiền mặt
+      showCashPaymentModal: false,
+      cashReceived: null,
+      changeAmount: 0,
+      quickAmounts: [],
     }
   },
   computed: {
@@ -647,6 +901,16 @@ export default {
       const authStore = useAuthStore()
       return authStore.user
     },
+    // Sắp xếp logs theo thời gian gần nhất
+    sortedLogs() {
+      if (!this.currentBookingLogs || this.currentBookingLogs.length === 0) return []
+
+      return [...this.currentBookingLogs].sort((a, b) => {
+        const dateA = new Date(a.thoiGianThayDoi).getTime()
+        const dateB = new Date(b.thoiGianThayDoi).getTime()
+        return dateB - dateA
+      })
+    },
   },
   mounted() {
     this.fetchBookings()
@@ -669,6 +933,10 @@ export default {
 
       // Add the animation
       ripple.style.animation = 'ripple 0.6s ease-out'
+    },
+    navigateToDatHomeADM() {
+      // Sử dụng tên route đã được định nghĩa trong router
+      this.$router.push({ name: 'DatHomeADM' })
     },
     async fetchBookings() {
       try {
@@ -722,13 +990,31 @@ export default {
 
     async updateBookingStatus(id, newStatus) {
       if (!this.currentUser) {
-        alert('Bạn cần đăng nhập để thực hiện thao tác này!')
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
         return
       }
 
       try {
         const userId = this.currentUser.id
-        await updateStatus(id, newStatus, userId, this.statusNote)
+
+        if (newStatus === 'DaXacNhan') {
+          // Nếu đang xác nhận đặt phòng, sử dụng API mới để hủy các đơn trùng lặp
+          await confirmAndCancelOverlaps(id, userId, this.statusNote)
+          notification.success(
+            `Xác nhận đặt phòng thành công! Các đơn trùng lặp đã được tự động hủy.`,
+          )
+        } else {
+          // Đối với các trạng thái khác, sử dụng API thông thường
+          await updateStatus(id, newStatus, userId, this.statusNote)
+
+          // Hiển thị pháo hoa nếu trạng thái là hoàn thành
+          if (newStatus === 'HoanThanh') {
+            this.showFireworks()
+            notification.success(`Chúc mừng! Đặt phòng đã hoàn thành thành công!`)
+          } else {
+            notification.success(`Cập nhật trạng thái thành công!`)
+          }
+        }
 
         // Cập nhật lại dữ liệu
         await this.fetchBookings()
@@ -740,26 +1026,16 @@ export default {
         this.showStatusActions = false
         this.checkInNote = ''
         this.checkOutNote = ''
-
-        alert(`Cập nhật trạng thái thành công!`)
       } catch (error) {
         console.error('Lỗi khi cập nhật trạng thái:', error)
-        alert('Đã xảy ra lỗi khi cập nhật trạng thái')
+        notification.error('Đã xảy ra lỗi khi cập nhật trạng thái')
       }
     },
 
-    async deleteBooking(id) {
-      if (confirm('Bạn có chắc chắn muốn xóa đặt phòng này không?')) {
-        try {
-          await deleteDatHome(id)
-          await this.fetchBookings()
-          await this.fetchStatistics()
-          alert('Xóa đặt phòng thành công!')
-        } catch (error) {
-          console.error('Lỗi khi xóa đặt phòng:', error)
-          alert('Đã xảy ra lỗi khi xóa đặt phòng')
-        }
-      }
+    // Phương thức hiển thị pháo hoa (sử dụng utility function)
+    showFireworks() {
+      // Gọi hiệu ứng pháo hoa từ utility
+      showCelebration()
     },
 
     async viewBookingDetails(booking) {
@@ -768,15 +1044,20 @@ export default {
         this.selectedBooking = response.data
         this.showModal = true
         this.showStatusActions = true
+
+        // Reset trạng thái thanh toán khi mở chi tiết đặt phòng mới
+        this.paymentStatus = 'DangCho'
+        this.soTienDaThanhToan = 0
+        this.soTienConLai = 0
+
+        // Lấy thông tin số tiền đã thanh toán khi mở chi tiết
+        if (this.selectedBooking) {
+          await this.getTongTienDatHome(this.selectedBooking.id)
+        }
       } catch (error) {
         console.error('Lỗi khi tải chi tiết đặt phòng:', error)
-        alert('Đã xảy ra lỗi khi tải chi tiết đặt phòng')
+        notification.error('Đã xảy ra lỗi khi tải chi tiết đặt phòng')
       }
-    },
-
-    editBooking(booking) {
-      // Chuyển đến trang chi tiết đặt phòng
-      this.$router.push(`/admin/datHome-detail/${booking.id}`)
     },
 
     switchToCalendarView() {
@@ -817,16 +1098,39 @@ export default {
           DaHuy: '#858796',
         }
 
+        const statusLabels = {
+          ChoXacNhan: 'Chờ xác nhận',
+          DaCoc: 'Đã cọc',
+          DaXacNhan: 'Đã xác nhận',
+          DaCheckIn: 'Đã check-in',
+          DaCheckOut: 'Đã check-out',
+          HoanThanh: 'Hoàn thành',
+          DaHuy: 'Đã hủy',
+        }
+
+        // Tạo tiêu đề sự kiện với đầy đủ thông tin
+        const title = `${booking.tenKhachHang} - ${booking.tenHomestay}
+          [${statusLabels[booking.trangThai] || booking.trangThai}]`
+
+        // Thêm 1 ngày vào ngày kết thúc để FullCalendar hiển thị đúng khoảng thời gian
+        const endDate = new Date(booking.ngayTraPhong)
+        endDate.setDate(endDate.getDate() + 1)
+
         return {
           id: booking.id,
-          resourceId: 'homestay-' + booking.id, // Tạm dùng ID để phân biệt
-          title: `${booking.tenKhachHang} (${this.formatDateShort(booking.ngayNhanPhong)} - ${this.formatDateShort(booking.ngayTraPhong)})`,
+          resourceId: 'homestay-' + booking.homestayId,
+          title: title,
           start: booking.ngayNhanPhong,
-          end: booking.ngayTraPhong,
+          end: endDate.toISOString().split('T')[0], // Format lại thành YYYY-MM-DD
           color: statusColorMap[booking.trangThai] || '#858796',
           extendedProps: {
             status: booking.trangThai,
+            homestayName: booking.tenHomestay,
+            customerName: booking.tenKhachHang,
+            bookingCode: booking.maDatHome,
+            realEndDate: booking.ngayTraPhong, // Lưu ngày kết thúc thực tế
           },
+          allDay: true,
         }
       })
 
@@ -867,11 +1171,172 @@ export default {
             locale: 'vi',
             eventClick: this.handleEventClick,
             events: [], // Sẽ được cập nhật sau bằng updateCalendarEvents()
+            eventDidMount: function (info) {
+              const event = info.event
+              const props = event.extendedProps
+
+              // Sử dụng ngày kết thúc thực tế từ dữ liệu ban đầu
+              const realEndDate = props.realEndDate
+                ? new Date(props.realEndDate).toLocaleDateString('vi-VN')
+                : 'N/A'
+              const startDate = new Date(event.start).toLocaleDateString('vi-VN')
+
+              // Lấy trạng thái và màu sắc tương ứng
+              const statusLabels = {
+                ChoXacNhan: 'Chờ xác nhận',
+                DaCoc: 'Đã cọc',
+                DaXacNhan: 'Đã xác nhận',
+                DaCheckIn: 'Đã check-in',
+                DaCheckOut: 'Đã check-out',
+                HoanThanh: 'Hoàn thành',
+                DaHuy: 'Đã hủy',
+              }
+
+              const statusLabel = statusLabels[props.status] || props.status
+
+              // Tạo tooltip tùy chỉnh
+              const tooltip = document.createElement('div')
+              tooltip.classList.add('custom-tooltip')
+              tooltip.innerHTML = `
+                <div class="tooltip-header">
+                  <i class="fas fa-user"></i> ${props.customerName}
+                </div>
+                <div class="tooltip-body">
+                  <div class="tooltip-info">
+                    <i class="fas fa-home"></i> ${props.homestayName || 'N/A'}
+                  </div>
+                  <div class="tooltip-info">
+                    <i class="fas fa-calendar-check"></i> Từ: ${startDate}
+                  </div>
+                  <div class="tooltip-info">
+                    <i class="fas fa-calendar-times"></i> Đến: ${realEndDate}
+                  </div>
+                  <div class="tooltip-status ${props.status}">
+                    <i class="fas fa-info-circle"></i> ${statusLabel}
+                  </div>
+                </div>
+              `
+
+              // Thêm style cho tooltip
+              tooltip.style.cssText = `
+                display: none;
+                position: absolute;
+                background: white;
+                color: #333;
+                border-radius: 8px;
+                box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+                padding: 0;
+                width: 250px;
+                z-index: 10000;
+                font-family: Arial, sans-serif;
+                overflow: hidden;
+              `
+
+              // Thêm style cho header
+              const header = tooltip.querySelector('.tooltip-header')
+              header.style.cssText = `
+                background: #4e73df;
+                color: white;
+                padding: 10px 15px;
+                font-weight: bold;
+                font-size: 14px;
+              `
+
+              // Thêm style cho body
+              const body = tooltip.querySelector('.tooltip-body')
+              body.style.cssText = `
+                padding: 10px 15px;
+              `
+
+              // Thêm style cho các thông tin
+              const infos = tooltip.querySelectorAll('.tooltip-info')
+              infos.forEach((info) => {
+                info.style.cssText = `
+                  margin-bottom: 8px;
+                  display: flex;
+                  align-items: center;
+                `
+              })
+
+              // Thêm style cho trạng thái
+              const status = tooltip.querySelector('.tooltip-status')
+              status.style.cssText = `
+                margin-top: 10px;
+                padding: 5px 10px;
+                border-radius: 20px;
+                display: inline-block;
+                font-weight: bold;
+                font-size: 12px;
+                color: white;
+              `
+
+              // Màu sắc cho từng trạng thái
+              if (status.classList.contains('ChoXacNhan')) {
+                status.style.backgroundColor = '#f6c23e'
+              } else if (status.classList.contains('DaCoc')) {
+                status.style.backgroundColor = '#36b9cc'
+              } else if (status.classList.contains('DaXacNhan')) {
+                status.style.backgroundColor = '#1cc88a'
+              } else if (status.classList.contains('DaCheckIn')) {
+                status.style.backgroundColor = '#e74a3b'
+              } else if (status.classList.contains('DaCheckOut')) {
+                status.style.backgroundColor = '#8e44ad'
+              } else if (status.classList.contains('HoanThanh')) {
+                status.style.backgroundColor = '#4e73df'
+              } else if (status.classList.contains('DaHuy')) {
+                status.style.backgroundColor = '#858796'
+              }
+
+              // Style cho icons
+              const icons = tooltip.querySelectorAll('i')
+              icons.forEach((icon) => {
+                icon.style.cssText = `
+                  margin-right: 8px;
+                  width: 16px;
+                  text-align: center;
+                `
+              })
+
+              // Thêm tooltip vào document
+              document.body.appendChild(tooltip)
+
+              // Hiển thị tooltip khi hover
+              info.el.addEventListener('mouseenter', function () {
+                const rect = info.el.getBoundingClientRect()
+                tooltip.style.display = 'block'
+                tooltip.style.top = rect.top + window.scrollY - tooltip.offsetHeight - 10 + 'px'
+                tooltip.style.left =
+                  rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2 + 'px'
+
+                // Thêm mũi tên
+                const arrow = document.createElement('div')
+                arrow.style.cssText = `
+                  position: absolute;
+                  bottom: -10px;
+                  left: calc(50% - 10px);
+                  width: 0;
+                  height: 0;
+                  border-left: 10px solid transparent;
+                  border-right: 10px solid transparent;
+                  border-top: 10px solid white;
+                `
+                tooltip.appendChild(arrow)
+              })
+
+              // Ẩn tooltip khi mouse leave
+              info.el.addEventListener('mouseleave', function () {
+                tooltip.style.display = 'none'
+                // Xóa mũi tên
+                const arrow = tooltip.querySelector('div[style*="position: absolute"]')
+                if (arrow) {
+                  arrow.remove()
+                }
+              })
+            },
           })
 
           // Render the calendar
           this.calendar.render()
-          this.calendarLoaded = true
 
           // Cập nhật sự kiện từ bookings
           this.updateCalendarEvents()
@@ -889,6 +1354,18 @@ export default {
           link.href = 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css'
           link.id = 'fullcalendar-css'
           document.head.appendChild(link)
+        }
+
+        // Không cần tải Tippy.js nữa, chúng ta sẽ dùng tooltip tự tạo
+
+        // Load Font Awesome nếu cần
+        if (!document.getElementById('fontawesome')) {
+          const fontAwesome = document.createElement('link')
+          fontAwesome.rel = 'stylesheet'
+          fontAwesome.href =
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css'
+          fontAwesome.id = 'fontawesome'
+          document.head.appendChild(fontAwesome)
         }
 
         // Check if FullCalendar is already loaded
@@ -925,31 +1402,24 @@ export default {
         this.viewBookingDetails(booking)
       }
     },
-    formatDate(date) {
-      if (!date) return ''
-      return new Date(date).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    },
-    formatDateShort(date) {
-      if (!date) return ''
-      return new Date(date).toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-      })
-    },
-    formatDateDay(date) {
+    // Hàm định dạng ngày tháng hợp nhất
+    formatDate(date, format = 'full') {
       if (!date) return ''
       const d = new Date(date)
-      return (
-        d.getDate().toString().padStart(2, '0') +
-        '-' +
-        (d.getMonth() + 1).toString().padStart(2, '0')
-      )
+
+      switch (format) {
+        case 'dayOnly':
+          return `${d.getDate().toString().padStart(2, '0')}-${(d.getMonth() + 1).toString().padStart(2, '0')}`
+        case 'dateOnly':
+          return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+        case 'short':
+          return new Date(date).toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+          })
+        default:
+          return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')} ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+      }
     },
     formatCurrency(value) {
       if (!value) return '0 VNĐ'
@@ -989,7 +1459,17 @@ export default {
     },
     async handleCheckIn(bookingId) {
       if (!this.currentUser) {
-        alert('Bạn cần đăng nhập để thực hiện thao tác này!')
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
+        return
+      }
+
+      // Kiểm tra thời gian hiện tại có phù hợp để check-in không
+      const now = new Date()
+      const checkInTime = 0 // 12h trưa
+      if (now.getHours() < checkInTime) {
+        notification.warning(
+          `Chưa đến thời gian check-in. Vui lòng quay lại sau ${checkInTime}:00.`,
+        )
         return
       }
 
@@ -999,16 +1479,16 @@ export default {
         await this.fetchBookings()
         await this.fetchStatistics()
         this.checkInNote = '' // Reset note
-        alert('Check-in thành công!')
+        notification.success('Check-in thành công!')
         this.showModal = false // Đóng modal sau khi thực hiện thao tác
       } catch (error) {
         console.error('Lỗi khi check-in:', error)
-        alert('Đã xảy ra lỗi khi check-in')
+        notification.error('Đã xảy ra lỗi khi check-in')
       }
     },
     async handleCheckOut(bookingId) {
       if (!this.currentUser) {
-        alert('Bạn cần đăng nhập để thực hiện thao tác này!')
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
         return
       }
 
@@ -1018,16 +1498,463 @@ export default {
         await this.fetchBookings()
         await this.fetchStatistics()
         this.checkOutNote = '' // Reset note
-        alert('Check-out thành công!')
+        notification.success('Check-out thành công!')
         this.showModal = false // Đóng modal sau khi thực hiện thao tác
       } catch (error) {
         console.error('Lỗi khi check-out:', error)
-        alert('Đã xảy ra lỗi khi check-out')
+        notification.error('Đã xảy ra lỗi khi check-out')
       }
     },
     loadMoreBookings() {
       // Tăng số lượng thẻ hiển thị lên theo bước
       this.visibleBookingsCount += this.loadMoreStep
+    },
+
+    async showBookingLogs(bookingId) {
+      try {
+        this.loadingLogs = true
+
+        // Lấy thông tin booking để hiển thị trong header
+        const bookingInfo = this.bookings.find((booking) => booking.id === bookingId)
+        this.currentBookingInfo = bookingInfo
+
+        // Lấy lịch sử thay đổi
+        const response = await axios.get(`http://localhost:8080/api/datHomeLog/${bookingId}`)
+        this.currentBookingLogs = response.data
+        this.showLogModal = true
+        this.loadingLogs = false
+      } catch (error) {
+        console.error('Lỗi khi tải lịch sử thay đổi:', error)
+        notification.error('Đã xảy ra lỗi khi tải lịch sử thay đổi')
+        this.loadingLogs = false
+      }
+    },
+
+    // Lấy thông tin số tiền đã thanh toán
+    async getTongTienDatHome(idDatHome) {
+      try {
+        const response = await ThanhToanService.tongTienDatHome(idDatHome)
+        // Xử lý cả trường hợp response là null
+        // API trả về số tiền trực tiếp, không phải object có tongTienDaThanhToan
+        this.soTienDaThanhToan =
+          response && response.data !== null && response.data !== undefined
+            ? Number(response.data)
+            : 0
+
+        // Đảm bảo lấy giá trị tongTien từ selectedBooking
+        if (this.selectedBooking && this.selectedBooking.tongTien) {
+          this.soTienConLai = this.selectedBooking.tongTien - this.soTienDaThanhToan
+        } else {
+          this.soTienConLai = 0
+        }
+
+        console.log('Số tiền đã thanh toán:', this.soTienDaThanhToan)
+        console.log('Tổng tiền:', this.selectedBooking.tongTien)
+        console.log('Số tiền còn lại:', this.soTienConLai)
+
+        // Nếu không còn số tiền phải thanh toán, cập nhật trạng thái thanh toán thành công
+        if (this.soTienConLai <= 0) {
+          this.paymentStatus = 'ThanhCong'
+          console.log('Đã thanh toán đủ, cập nhật trạng thái thành ThanhCong')
+        } else {
+          this.paymentStatus = 'DangCho'
+          console.log('Chưa thanh toán đủ, trạng thái thanh toán: DangCho')
+        }
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin tổng tiền đã thanh toán:', error)
+        // Đặt giá trị mặc định nếu có lỗi
+        this.soTienDaThanhToan = 0
+        this.soTienConLai = this.selectedBooking ? this.selectedBooking.tongTien : 0
+      }
+    },
+
+    // Tạo link thanh toán cho số tiền còn lại - Cập nhật để hiển thị modal lựa chọn
+    async createPaymentForRemaining() {
+      if (this.soTienConLai <= 0) return
+
+      // Hiển thị modal lựa chọn phương thức thanh toán
+      this.showPaymentMethodModal = true
+
+      // Tính nhanh các mức tiền gợi ý cho thanh toán tiền mặt
+      this.generateQuickAmounts()
+    },
+
+    // Chọn phương thức thanh toán QR
+    async processQRPayment() {
+      this.isLoadingPayment = true
+      this.showPaymentMethodModal = false
+
+      try {
+        const response = await PaymentService.createPaymentRemaining(
+          this.soTienConLai,
+          this.selectedBooking.id,
+        )
+        console.log('Response thanh toán:', response)
+
+        if (response && response.checkoutUrl) {
+          this.paymentUrl = response.checkoutUrl
+          this.paymentOrderCode = response.orderCode || ''
+          this.showPaymentModal = true
+
+          // Khởi tạo trạng thái và AbortController
+          this.paymentStatus = 'DangCho'
+          this.abortController = new AbortController()
+
+          // Bắt đầu kiểm tra trạng thái thanh toán
+          this.startAutoStatusCheck()
+
+          // Bắt đầu đếm ngược thời gian thanh toán
+          this.startPaymentCountdown()
+        } else {
+          notification.error('Không nhận được link thanh toán từ hệ thống')
+        }
+      } catch (error) {
+        console.error('Lỗi khi tạo link thanh toán:', error)
+        notification.error('Không thể tạo link thanh toán')
+      } finally {
+        this.isLoadingPayment = false
+      }
+    },
+
+    // Chọn phương thức thanh toán tiền mặt
+    processCashPayment() {
+      this.showPaymentMethodModal = false
+      this.showCashPaymentModal = true
+      this.cashReceived = null
+      this.changeAmount = 0
+    },
+
+    // Hủy thanh toán
+    cancelPaymentMethod() {
+      this.showPaymentMethodModal = false
+    },
+
+    // Tạo các mức tiền gợi ý
+    generateQuickAmounts() {
+      const totalAmount = this.soTienConLai
+
+      // Làm tròn tổng tiền lên 10.000
+      const roundedTotal = Math.ceil(totalAmount / 10000) * 10000
+
+      this.quickAmounts = [
+        roundedTotal,
+        roundedTotal + 50000,
+        roundedTotal + 100000,
+        roundedTotal + 200000,
+        roundedTotal + 500000,
+        roundedTotal + 1000000,
+      ]
+    },
+
+    // Xử lý chọn nhanh số tiền
+    setQuickAmount(amount) {
+      this.cashReceived = amount
+      this.calculateChange()
+    },
+
+    // Tính tiền thối
+    calculateChange() {
+      if (this.cashReceived === null) {
+        this.changeAmount = 0
+        return
+      }
+
+      this.changeAmount = this.cashReceived - this.soTienConLai
+    },
+
+    // Đóng modal thanh toán tiền mặt
+    closeCashPaymentModal() {
+      this.showCashPaymentModal = false
+      this.cashReceived = null
+      this.changeAmount = 0
+    },
+
+    // Xác nhận thanh toán tiền mặt
+    async confirmCashPayment() {
+      if (this.cashReceived < this.soTienConLai) {
+        notification.warning('Số tiền khách đưa phải lớn hơn hoặc bằng tổng tiền thanh toán')
+        return
+      }
+
+      try {
+        // Gọi API thanh toán tiền mặt
+        await ThanhToanService.createThanhToanTienMat(
+          this.selectedBooking.id,
+          this.cashReceived,
+          this.changeAmount,
+          this.soTienConLai,
+        )
+
+        notification.success('Thanh toán tiền mặt thành công!')
+
+        // Cập nhật trạng thái thanh toán thành công
+        this.paymentStatus = 'ThanhCong'
+
+        // Cập nhật thông tin số tiền đã thanh toán
+        if (this.selectedBooking && this.selectedBooking.id) {
+          await this.getTongTienDatHome(this.selectedBooking.id)
+        }
+
+        // Đóng modal
+        this.closeCashPaymentModal()
+      } catch (error) {
+        console.error('Lỗi khi xử lý thanh toán tiền mặt:', error)
+        notification.error('Không thể hoàn tất thanh toán tiền mặt')
+      }
+    },
+
+    // Bắt đầu đếm ngược thời gian thanh toán
+    startPaymentCountdown() {
+      // Reset thời gian còn lại
+      this.remainingTimeSeconds = this.paymentTimeoutSeconds
+
+      // Xóa timer cũ nếu có
+      this.stopPaymentCountdown()
+
+      // Tạo timer mới
+      this.paymentTimer = setInterval(() => {
+        // Giảm thời gian còn lại
+        this.remainingTimeSeconds--
+
+        // Nếu hết thời gian
+        if (this.remainingTimeSeconds <= 0) {
+          this.stopPaymentCountdown()
+          this.cancelPayment()
+        }
+      }, 1000)
+    },
+
+    // Dừng đếm ngược
+    stopPaymentCountdown() {
+      if (this.paymentTimer) {
+        clearInterval(this.paymentTimer)
+        this.paymentTimer = null
+      }
+    },
+
+    // Hủy thanh toán khi hết thời gian
+    async cancelPayment() {
+      // Hiển thị thông báo
+      notification.warning('Hết thời gian thanh toán (5 phút). Link thanh toán đã bị hủy.')
+
+      // Hủy link thanh toán nếu có mã giao dịch
+      if (this.paymentOrderCode) {
+        try {
+          await PaymentService.cancelPaymentLink(this.paymentOrderCode, 'Hết thời gian thanh toán')
+        } catch (error) {
+          console.error('Lỗi khi hủy link thanh toán:', error)
+        }
+      }
+
+      // Đóng modal
+      this.closePaymentModal()
+    },
+
+    // Định dạng thời gian còn lại dưới dạng mm:ss
+    formatRemainingTime() {
+      const minutes = Math.floor(this.remainingTimeSeconds / 60)
+      const seconds = this.remainingTimeSeconds % 60
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    },
+
+    closePaymentModal() {
+      // Đóng modal
+      this.showPaymentModal = false
+
+      // Xóa thông tin thanh toán URL
+      this.paymentUrl = ''
+
+      // Dừng việc kiểm tra trạng thái tự động
+      this.stopAutoStatusCheck()
+
+      // Dừng đếm ngược
+      this.stopPaymentCountdown()
+    },
+
+    openPaymentUrl() {
+      if (this.paymentUrl) {
+        window.open(this.paymentUrl, '_blank')
+      }
+    },
+
+    handleIframeLoad() {
+      try {
+        const iframe = this.$refs.paymentIframe
+        if (!iframe || !iframe.contentWindow) return
+
+        try {
+          const currentUrl = iframe.contentWindow.location.href
+          console.log('Iframe URL changed:', currentUrl)
+
+          if (
+            currentUrl.includes('payment-success') ||
+            currentUrl.includes('success=true') ||
+            currentUrl.includes('status=success')
+          ) {
+            console.log('Payment successful, closing modal')
+            // Gọi kiểm tra trạng thái thanh toán thay vì đóng modal ngay
+            this.checkPaymentStatus(true)
+          } else if (
+            currentUrl.includes('payment-failure') ||
+            currentUrl.includes('cancel=true') ||
+            currentUrl.includes('status=cancel')
+          ) {
+            console.log('Payment cancelled, closing modal')
+            this.closePaymentModal()
+            notification.info('Thanh toán đã bị hủy')
+          }
+        } catch (e) {
+          console.log('Cannot access iframe URL due to CORS policy', e)
+        }
+      } catch (error) {
+        console.error('Error handling iframe load:', error)
+      }
+    },
+
+    // Định dạng trạng thái thanh toán để hiển thị
+    formatPaymentStatus(status) {
+      const statusMap = {
+        DangCho: 'Đang chờ thanh toán',
+        ThanhCong: 'Thanh toán thành công',
+        ThatBai: 'Thanh toán thất bại',
+        KhongXacDinh: 'Không xác định',
+      }
+
+      return statusMap[status] || status
+    },
+
+    // Kiểm tra xem có thể check-out không (dựa vào trạng thái thanh toán)
+    canCheckOut() {
+      // Nếu không có tiền còn lại hoặc đã thanh toán thành công thì có thể check-out
+      return this.soTienConLai <= 0 || this.paymentStatus === 'ThanhCong'
+    },
+
+    // Bắt đầu tự động kiểm tra trạng thái thanh toán
+    startAutoStatusCheck() {
+      if (!this.paymentOrderCode) return
+
+      // Dừng interval cũ nếu có
+      this.stopAutoStatusCheck()
+
+      this.autoCheckingStatus = true
+      console.log('Bắt đầu tự động kiểm tra trạng thái thanh toán')
+
+      // Tạo một AbortController để kiểm soát việc hủy request
+      this.abortController = new AbortController()
+
+      // Kiểm tra ngay lập tức một lần
+      this.checkPaymentStatus(false)
+
+      // Thiết lập interval để kiểm tra mỗi 3 giây
+      this.statusCheckInterval = setInterval(() => {
+        // Chỉ tiếp tục kiểm tra nếu chưa nhận được trạng thái cuối cùng
+        if (this.paymentStatus !== 'ThanhCong' && this.paymentStatus !== 'ThatBai') {
+          this.checkPaymentStatus(false)
+        } else {
+          // Nếu đã có trạng thái cuối cùng, dừng kiểm tra
+          console.log('Đã nhận được trạng thái cuối cùng, dừng kiểm tra')
+          this.stopAutoStatusCheck()
+        }
+      }, 3000)
+    },
+
+    // Dừng tự động kiểm tra trạng thái
+    stopAutoStatusCheck() {
+      console.log('Đang dừng kiểm tra trạng thái thanh toán...')
+
+      // Dừng interval kiểm tra
+      if (this.statusCheckInterval) {
+        clearInterval(this.statusCheckInterval)
+        this.statusCheckInterval = null
+      }
+
+      // Hủy request đang chờ nếu có
+      if (this.abortController) {
+        this.abortController.abort()
+        this.abortController = null
+      }
+
+      this.autoCheckingStatus = false
+      console.log('Đã dừng tự động kiểm tra trạng thái thanh toán')
+    },
+
+    // Kiểm tra trạng thái thanh toán
+    async checkPaymentStatus(showLoading = true) {
+      if (!this.paymentOrderCode || !this.abortController) return
+
+      // Không cập nhật nếu đã biết trạng thái cuối cùng
+      if (this.paymentStatus === 'ThatBai' || this.paymentStatus === 'ThanhCong') {
+        console.log(`Đã xác định trạng thái cuối cùng (${this.paymentStatus}), không cập nhật nữa`)
+        this.stopAutoStatusCheck() // Dừng kiểm tra tự động
+        return
+      }
+
+      if (showLoading) {
+        this.checkingPaymentStatus = true
+      }
+
+      try {
+        console.log('Đang kiểm tra trạng thái thanh toán...')
+
+        // Gọi API để lấy thông tin thanh toán từ database với signal
+        const dbStatus = await PaymentService.getPaymentStatusFromDB(
+          this.paymentOrderCode,
+          this.abortController?.signal,
+        )
+
+        if (dbStatus && dbStatus.data) {
+          const oldStatus = this.paymentStatus
+          const newStatus = dbStatus.data.trangThai
+
+          console.log(
+            `Nhận được trạng thái từ server: ${newStatus} (hiện tại: ${this.paymentStatus})`,
+          )
+
+          // Chỉ cập nhật nếu chưa ở trạng thái cuối cùng
+          if (this.paymentStatus !== 'ThatBai' && this.paymentStatus !== 'ThanhCong') {
+            // Cập nhật trạng thái mới
+            this.paymentStatus = newStatus
+
+            // Xử lý khi trạng thái thay đổi
+            if (oldStatus !== this.paymentStatus) {
+              console.log(
+                `Trạng thái thanh toán thay đổi từ ${oldStatus} thành ${this.paymentStatus}`,
+              )
+
+              if (this.paymentStatus === 'ThanhCong') {
+                notification.success('Thanh toán thành công!')
+
+                // Cập nhật lại thông tin tổng tiền đã thanh toán
+                if (this.selectedBooking && this.selectedBooking.id) {
+                  await this.getTongTienDatHome(this.selectedBooking.id)
+                }
+
+                this.stopAutoStatusCheck() // Dừng kiểm tra khi thanh toán thành công
+                // Đóng modal thanh toán nếu đang mở
+                if (this.showPaymentModal) {
+                  this.closePaymentModal()
+                }
+              } else if (this.paymentStatus === 'ThatBai') {
+                notification.error('Thanh toán thất bại')
+                this.stopAutoStatusCheck() // Dừng kiểm tra khi thanh toán thất bại
+              }
+            }
+          } else {
+            console.log(
+              `Giữ nguyên trạng thái cuối cùng (${this.paymentStatus}), không cập nhật thành ${newStatus}`,
+            )
+          }
+        }
+      } catch (error) {
+        // Bỏ qua lỗi khi request bị hủy (do dừng kiểm tra)
+        if (error.name !== 'AbortError') {
+          console.error('Lỗi khi kiểm tra trạng thái thanh toán:', error)
+        }
+      } finally {
+        if (showLoading) {
+          this.checkingPaymentStatus = false
+        }
+      }
     },
   },
 }
@@ -1328,8 +2255,16 @@ export default {
   color: #ff9800;
 }
 
-.delete-btn {
-  color: #f44336;
+.history-btn {
+  color: #8e24aa;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+}
+
+.history-btn span {
+  font-size: 0.85rem;
 }
 
 .action-btn:hover svg {
@@ -1498,7 +2433,7 @@ export default {
 .bookings-table th,
 .bookings-table td {
   padding: 14px 18px;
-  text-align: left;
+  text-align: center;
   border-bottom: 1px solid #eee;
   vertical-align: middle;
 }
@@ -1611,6 +2546,10 @@ export default {
   border-bottom: 1px solid #eee;
   padding: 14px 18px;
   height: 59px; /* Match the height of regular rows */
+  font-size: 0;
+  color: transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 .empty-row:hover {
@@ -1799,6 +2738,62 @@ textarea.form-control {
   font-weight: 500;
 }
 
+/* Tùy chỉnh hiển thị sự kiện trên lịch */
+:deep(.fc-event) {
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+:deep(.fc-event:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+:deep(.fc-event-title) {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 1px 0;
+}
+
+:deep(.fc-event-time) {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Tùy chỉnh hiển thị ngày trong lịch */
+:deep(.fc-day-today) {
+  background-color: rgba(78, 115, 223, 0.05) !important;
+}
+
+:deep(.fc-day-past) {
+  opacity: 0.85;
+}
+
+:deep(.fc-day-future) {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+:deep(.tippy-box) {
+  background-color: white;
+  color: #333;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  border: 1px solid #eee;
+}
+
+:deep(.tippy-arrow) {
+  color: white;
+}
+
 /* Bookings Detail View */
 .bookings-detail-view {
   width: 100%;
@@ -1807,46 +2802,59 @@ textarea.form-control {
 }
 
 /* Status badges */
-.status-confirmed {
-  background-color: rgba(67, 160, 71, 0.15);
-  color: #43a047;
-  border-left: 3px solid #43a047;
+.status-confirmed,
+.status-DaXacNhan {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
 }
 
-.status-pending {
-  background-color: rgba(255, 160, 0, 0.15);
-  color: #ffa000;
-  border-left: 3px solid #ffa000;
+.status-pending,
+.status-ChoXacNhan {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
 }
 
-.status-in-progress {
-  background-color: rgba(229, 57, 53, 0.15);
-  color: #e53935;
-  border-left: 3px solid #e53935;
+.status-in-progress,
+.status-DaCheckIn {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
 }
 
-.status-deposit {
-  background-color: rgba(0, 172, 193, 0.15);
-  color: #00acc1;
-  border-left: 3px solid #00acc1;
+.status-deposit,
+.status-DaCoc {
+  background-color: #e0f7fa;
+  color: #006064;
+  border: 1px solid #80deea;
 }
 
-.status-completed {
-  background-color: rgba(2, 136, 209, 0.15);
+.status-completed,
+.status-HoanThanh {
+  background-color: #e1f5fe;
+  color: #01579b;
+  border: 1px solid #81d4fa;
+}
+
+.status-cancelled,
+.status-DaHuy {
+  background-color: #efebe9;
+  color: #3e2723;
+  border: 1px solid #bcaaa4;
+}
+
+.status-check-out,
+.status-DaCheckOut {
+  background-color: #f3e5f5;
+  color: #4a148c;
+  border: 1px solid #ce93d8;
+}
+
+.status-new {
+  background-color: #e1f5fe;
   color: #0288d1;
-  border-left: 3px solid #0288d1;
-}
-
-.status-cancelled {
-  background-color: rgba(93, 64, 55, 0.15);
-  color: #5d4037;
-  border-left: 3px solid #5d4037;
-}
-
-.status-check-out {
-  background-color: rgba(142, 36, 170, 0.15);
-  color: #8e24aa;
-  border-left: 3px solid #8e24aa;
+  border: 1px solid #81d4fa;
 }
 
 /* Modal */
@@ -2367,6 +3375,10 @@ textarea.form-control {
   border-bottom: 1px solid #eee;
   padding: 14px 18px;
   height: 59px; /* Match the height of regular rows */
+  font-size: 0;
+  color: transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 /* Form styling */
@@ -2995,5 +4007,756 @@ textarea.form-control {
   color: #6c757d;
   font-size: 0.9rem;
   text-align: center;
+}
+
+.log-table-container {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 15px 0;
+  border-radius: 8px;
+  box-shadow: rgba(17, 12, 46, 0.05) 0px 5px 15px 0px;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.log-table th,
+.log-table td {
+  padding: 5px 15px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.log-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid #4e73df;
+}
+
+.log-table tbody tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+.log-table tbody tr:hover {
+  background-color: #edf2f7;
+}
+
+.no-logs {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.no-logs i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  color: #adb5bd;
+}
+
+.status-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+}
+
+.status-badge {
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  min-width: 130px;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  border-left: none;
+}
+
+.status-arrow {
+  color: #6c757d;
+  font-size: 1.4rem;
+  margin: 0 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Add box shadow to status badges in the log modal */
+.log-table .status-badge {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.log-table .status-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Add animation for status changes */
+.log-table tr:hover .status-arrow {
+  animation: pulse-arrow 1.5s infinite;
+}
+
+@keyframes pulse-arrow {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .log-table-container {
+    max-height: 300px;
+  }
+
+  .log-table th,
+  .log-table td {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Specific styling for the logs modal */
+.logs-modal-content {
+  max-width: 1300px !important;
+}
+
+@keyframes modal-backdrop-in {
+  from {
+    backdrop-filter: blur(0px);
+    background-color: rgba(0, 0, 0, 0);
+  }
+  to {
+    backdrop-filter: blur(5px);
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.payment-btn {
+  background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+  color: white;
+}
+
+.payment-btn:hover {
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+}
+
+.payment-btn:disabled {
+  background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+  cursor: not-allowed;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.modal-body {
+  padding: 30px;
+}
+
+.payment-info {
+  text-align: center;
+}
+
+.payment-text {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.payment-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4e73df;
+  margin-bottom: 20px;
+}
+
+.payment-order {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+}
+
+.payment-code {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.payment-actions {
+  margin: 30px 0;
+}
+
+.payment-note {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  background-color: #fff3cd;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+  border-left: 4px solid #ffc107;
+}
+
+.payment-actions .action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 25px;
+}
+
+.payment-iframe-container {
+  width: 90%;
+  max-width: 1100px;
+  height: 75vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-iframe-body {
+  flex: 1;
+  padding: 0;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  flex: 1;
+  border-radius: 0 0 16px 16px;
+}
+
+.payment-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 15px;
+}
+
+.payment-loading i {
+  font-size: 2rem;
+  color: #4e73df;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.disabled-btn {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #adb5bd 0%, #8e959c 100%) !important;
+}
+
+.payment-required-text {
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-left: 5px;
+  font-weight: normal;
+}
+
+.payment-countdown {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 10px 0 0 0;
+  font-weight: 800;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.countdown-label {
+  font-size: 0.85rem;
+}
+
+.countdown-timer {
+  font-size: 1rem;
+  font-family: monospace;
+}
+
+.time-low {
+  color: #ff6b6b;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Styles cho modal chọn phương thức thanh toán */
+.payment-method-modal {
+  max-width: 650px;
+  width: 95%;
+  min-height: unset;
+}
+
+.payment-method-body {
+  padding: 30px;
+}
+
+.payment-amount {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.payment-amount p {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.amount-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #0071c2;
+}
+
+.payment-methods {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.payment-method-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  min-width: 250px;
+}
+
+.payment-method-btn:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 113, 194, 0.3);
+}
+
+.qr-payment:hover {
+  border-color: #4e73df;
+}
+
+.cash-payment:hover {
+  border-color: #28a745;
+}
+
+.method-icon {
+  font-size: 2rem;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.qr-payment .method-icon {
+  color: #4e73df;
+  background-color: rgba(78, 115, 223, 0.1);
+}
+
+.cash-payment .method-icon {
+  color: #28a745;
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+.method-info {
+  flex: 1;
+  text-align: left;
+}
+
+.method-info h4 {
+  font-size: 1.1rem;
+  margin: 0 0 5px 0;
+  color: #333;
+}
+
+.method-info p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Styles cho modal tính tiền thối */
+.cash-payment-modal {
+  max-width: 680px;
+  width: 95%;
+  min-height: unset;
+}
+
+.cash-payment-body {
+  padding: 28px;
+  background-color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.cash-payment-body::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(0, 113, 194, 0.06) 0%, rgba(0, 113, 194, 0) 70%);
+  z-index: 0;
+  border-radius: 50%;
+}
+
+.payment-details {
+  background-color: #f9fafb;
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  max-width: 92%;
+  margin: 0 auto;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.payment-row:last-child {
+  border-bottom: none;
+  margin-bottom: 5px;
+  padding-bottom: 0;
+}
+
+.payment-label {
+  font-weight: 600;
+  color: #344054;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.payment-label::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #0071c2;
+}
+
+.payment-row:nth-child(2) .payment-label::before {
+  background-color: #ff6b6b;
+}
+
+.payment-row:nth-child(3) .payment-label::before {
+  background-color: #37b24d;
+}
+
+.payment-value {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.total-amount {
+  color: #0071c2;
+  background: linear-gradient(90deg, #0071c2, #0096c7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  padding: 5px 12px;
+}
+
+.total-amount::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 113, 194, 0.08);
+  border-radius: 20px;
+  z-index: -1;
+}
+
+.change-amount {
+  color: #2b8a3e;
+  padding: 5px 15px;
+  background-color: rgba(40, 167, 69, 0.08);
+  border-radius: 20px;
+  position: relative;
+  transition: all 0.3s ease;
+  font-size: 20px;
+}
+
+.change-amount::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid rgba(40, 167, 69, 0.12);
+  border-radius: 20px;
+  opacity: 0.7;
+}
+
+.change-amount.negative {
+  color: #c92a2a;
+  background-color: rgba(220, 53, 69, 0.08);
+}
+
+.change-amount.negative::after {
+  border-color: rgba(220, 53, 69, 0.12);
+}
+
+.payment-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cash-input {
+  width: 280px;
+  padding: 14px 35px 14px 16px;
+  border: 2px solid #0071c2;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #344054;
+  text-align: right;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+}
+
+.cash-input::placeholder {
+  padding-left: 10px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 450;
+  opacity: 0.55;
+}
+
+.cash-input:focus {
+  border-color: #0095ff;
+  outline: none;
+  box-shadow:
+    0 0 0 4px rgba(0, 113, 194, 0.15),
+    0 2px 10px rgba(0, 0, 0, 0.07);
+  transform: translateY(-1px);
+}
+
+.cash-input:hover {
+  border-color: #0095ff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.currency {
+  position: absolute;
+  right: 14px;
+  font-weight: 600;
+  color: #0071c2;
+  font-size: 16px;
+}
+
+.quick-amounts {
+  margin-top: 25px;
+  background-color: #f0f9ff;
+  padding: 18px;
+  border-radius: 14px;
+}
+
+.quick-title {
+  font-size: 14px;
+  color: #555;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.quick-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.quick-button {
+  padding: 10px 5px;
+  background-color: white;
+  border: 1px solid #d1e9ff;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #0071c2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+}
+
+.quick-button:hover {
+  background-color: rgba(0, 113, 194, 0.06);
+  border-color: #83c0ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn {
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-size: 1rem;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-secondary {
+  background-color: #f1f3f5;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.btn-secondary:hover {
+  background-color: #e9ecef;
+  color: #212529;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0071c2 0%, #0096c7 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 113, 194, 0.1);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 113, 194, 0.2);
+}
+
+.btn-primary:disabled {
+  background: linear-gradient(135deg, #adb5bd 0%, #868e96 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px 30px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eee;
+  border-radius: 0 0 16px 16px;
 }
 </style>

@@ -1,25 +1,42 @@
 <script>
 import { RouterView } from 'vue-router'
-import { onMounted } from 'vue'
-import HeaderChillstay from './components/HeaderChillstay.vue'
+import { onMounted, onUnmounted } from 'vue'
+import HeaderNav from './components/HeaderChillstay.vue'
 import FooterHome from './components/FooterHome.vue'
 import NotificationContainer from './components/notifications/NotificationContainer.vue'
 import { useAuthStore } from './stores/authStore'
+import { useNotificationStore } from './stores/notificationStore'
 
 export default {
   components: {
     RouterView,
-    HeaderChillstay,
+    HeaderNav,
     FooterHome,
     NotificationContainer,
   },
   setup() {
     const authStore = useAuthStore()
+    const notificationStore = useNotificationStore()
+
+    // Hàm xử lý sự kiện phiên đăng nhập hết hạn
+    const handleSessionExpired = (event) => {
+      console.log('Phát hiện sự kiện phiên hết hạn')
+      notificationStore.showNotification({
+        type: 'error',
+        title: 'Phiên đăng nhập hết hạn',
+        message:
+          event.detail.message || 'Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.',
+        timeout: 5000,
+      })
+    }
 
     onMounted(() => {
       // Khôi phục trạng thái đăng nhập khi ứng dụng khởi động
       console.log('App mounted, initializing auth state...')
       try {
+        // Đăng ký lắng nghe sự kiện phiên hết hạn
+        window.addEventListener('session-expired', handleSessionExpired)
+
         // Khôi phục trạng thái đăng nhập từ localStorage nếu có
         authStore.initAuth()
 
@@ -28,12 +45,44 @@ export default {
           isAdmin: authStore.isAdmin,
           hasUser: !!authStore.user,
         })
+
+        // Kiểm tra lại trạng thái sau khi khởi tạo để đảm bảo UI phản ánh đúng trạng thái
+        if (authStore.isLoggedIn) {
+          console.log('User is logged in:', authStore.user?.username)
+        } else {
+          console.log('No user is currently logged in')
+        }
+
+        // Kiểm tra nếu URL có tham số expired=true
+        const urlParams = new URLSearchParams(window.location.search)
+        if (urlParams.get('expired') === 'true') {
+          notificationStore.showNotification({
+            type: 'error',
+            title: 'Phiên đăng nhập hết hạn',
+            message: 'Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.',
+            timeout: 5000,
+          })
+          // Xóa tham số khỏi URL
+          const url = new URL(window.location)
+          url.searchParams.delete('expired')
+          window.history.replaceState({}, '', url)
+        }
       } catch (error) {
         console.error('Lỗi khi khởi tạo trạng thái đăng nhập:', error)
         // Nếu có lỗi, đảm bảo trạng thái đã được đăng xuất
         authStore.logout()
       }
     })
+
+    onUnmounted(() => {
+      // Hủy đăng ký sự kiện khi component bị hủy
+      window.removeEventListener('session-expired', handleSessionExpired)
+    })
+
+    return {
+      authStore,
+      notificationStore,
+    }
   },
   computed: {
     isAdminRoute() {
@@ -44,7 +93,7 @@ export default {
 </script>
 
 <template>
-  <HeaderChillstay v-if="!isAdminRoute" />
+  <HeaderNav v-if="!isAdminRoute" />
   <RouterView />
   <FooterHome v-if="!isAdminRoute" />
   <NotificationContainer />

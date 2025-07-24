@@ -14,7 +14,7 @@
               class="search-input"
               @input="handleSearch"
             />
-            <button v-if="searchTerm" @click="searchTerm = ''" class="clear-search-btn">
+            <button v-if="searchTerm" @click="clearSearch" class="clear-search-btn">
               <i class="fas fa-times"></i>
             </button>
           </div>
@@ -33,6 +33,12 @@
         </select>
         <button class="btn btn-info loai-homestay-btn" @click="navigateToLoaiHomestay">
           <i class="fas fa-tags"></i>
+        </button>
+        <button class="btn btn-warning dichvu-homestay-btn" @click="navigateToHomestayDichVu">
+          <i class="fas fa-utensils"></i>
+        </button>
+        <button class="btn btn-success tiennghi-homestay-btn" @click="navigateToTienNghiHomestay">
+          <i class="fas fa-concierge-bell"></i>
         </button>
         <button class="btn btn-primary add-button" @click="openAddModal">
           <font-awesome-icon icon="fa-solid fa-building-user" />
@@ -78,13 +84,13 @@
             :key="hs.id"
             @dblclick="viewHomestayDetails(hs)"
           >
-            <td class="text-center">{{ index + 1 }}</td>
+            <td class="text-center">{{ calculateIndex(index) }}</td>
             <td class="text-center">{{ hs.tenHomestay }}</td>
             <td class="text-center">{{ getChuName(hs.idChuHomeStay) }}</td>
             <td class="text-center">{{ hs.dienTich }} m²</td>
             <td class="text-center">{{ formatCurrency(hs.giaCaHomestay) }} đ</td>
             <td class="text-center">{{ hs.diaChi }}</td>
-            <td class="text-center">{{ hs.tinhTrang }}</td>
+            <td class="text-center">{{ formatTinhTrang(hs.tinhTrang) }}</td>
             <td class="text-center">{{ getLoaiName(hs.idLoaiHomeStay) }}</td>
             <td class="text-center">
               <span :class="`badge ${hs.trangThai ? 'bg-success' : 'bg-danger'}`">
@@ -142,7 +148,8 @@
     <!-- Empty state -->
     <div v-if="!loading && filteredHomestays.length === 0" class="empty-state">
       <i class="fas fa-box-open empty-icon"></i>
-      <p>Không tìm thấy homestay nào.</p>
+      <p v-if="searchTerm">Không tìm thấy homestay nào phù hợp với từ khóa "{{ searchTerm }}".</p>
+      <p v-else>Không tìm thấy homestay nào.</p>
     </div>
 
     <!-- Pagination -->
@@ -152,22 +159,22 @@
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 0 }">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
             <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
           <li
-            v-for="page in totalPages"
+            v-for="page in displayedPages"
             :key="page"
             class="page-item"
-            :class="{ active: page - 1 === currentPage }"
+            :class="{ active: page === currentPage }"
           >
-            <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
           </li>
           <li
             class="page-item"
-            :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            :class="{ disabled: currentPage === totalPages || totalPages === 0 }"
           >
             <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
@@ -202,7 +209,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   getAllHomeStay,
   getLoaiHomeStay,
@@ -210,6 +217,7 @@ import {
   createHomestay,
   updateHomestay,
   deleteHomestayAPI,
+  searchByKeyword
 } from '@/Service/HomeStayService'
 import HomestayModal from '../components/HomestayModal.vue'
 import AnhHomestayModal from '../components/AnhHomestayModal.vue'
@@ -233,11 +241,12 @@ export default {
     const apiErrorMessage = ref('')
     const selectedStatus = ref('all')
     const loading = ref(false)
+    const searchTimeout = ref(null)
 
     // Pagination
-    const currentPage = ref(0)
+    const currentPage = ref(1)
     const pageSize = ref(10)
-    const totalPages = ref(1)
+    // Remove the ref declaration for totalPages as we'll use a computed property instead
 
     // State for modal
     const showModal = ref(false)
@@ -258,15 +267,17 @@ export default {
           getLoaiHomeStay(),
           getChuHomeStay(),
         ])
-        homestays.value = hsRes.data || []
-        loaiList.value = loaiRes.data || []
-        chuList.value = chuRes.data || []
+        // Đảm bảo homestays luôn là một mảng
+        homestays.value = Array.isArray(hsRes.data) ? hsRes.data : []
+        loaiList.value = Array.isArray(loaiRes.data) ? loaiRes.data : []
+        chuList.value = Array.isArray(chuRes.data) ? chuRes.data : []
         apiError.value = false
-
-        // Cập nhật thông tin phân trang
-        totalPages.value = Math.ceil(homestays.value.length / pageSize.value) || 1
       } catch (e) {
         apiError.value = true
+        console.error('Lỗi khi tải dữ liệu:', e)
+
+        // Đảm bảo homestays vẫn là mảng ngay cả khi có lỗi
+        homestays.value = []
 
         // Kiểm tra lỗi cụ thể để hiển thị thông báo phù hợp
         if (e.response && e.response.status === 404) {
@@ -303,62 +314,197 @@ export default {
       return img
     }
 
+    const formatTinhTrang = (tinhTrang) => {
+      // Map old values to new values if they still exist in the database
+      if (tinhTrang === 'Còn phòng') {
+        return 'Đã có người ở'
+      } else if (tinhTrang === 'Hết phòng') {
+        return 'Trống nhưng bẩn'
+      }
+      return tinhTrang
+    }
+
+    // Computed property for filtered homestays
     const filteredHomestays = computed(() => {
-      let filtered = homestays.value
-
-      // Lọc theo từ khóa tìm kiếm
-      if (searchTerm.value) {
-        const key = searchTerm.value.toLowerCase()
-        filtered = filtered.filter(
-          (h) =>
-            h.tenHomestay?.toLowerCase().includes(key) || h.diaChi?.toLowerCase().includes(key),
-        )
+      // Đảm bảo homestays.value luôn là một mảng
+      if (!Array.isArray(homestays.value)) {
+        console.error('homestays.value không phải là mảng:', homestays.value)
+        return []
       }
 
-      // Lọc theo trạng thái
+      let filtered = [...homestays.value];
+
+      // Chỉ lọc theo trạng thái active/inactive ở phía client
       if (selectedStatus.value !== 'all') {
-        const isActive = selectedStatus.value === 'active'
-        filtered = filtered.filter((h) => h.trangThai === isActive)
+        const isActive = selectedStatus.value === 'active';
+        filtered = filtered.filter((h) => h.trangThai === isActive);
       }
 
-      return filtered
-    })
+      // Đảm bảo filtered là một mảng trước khi dùng slice
+      if (!Array.isArray(filtered)) {
+        console.error('filtered không phải là mảng:', filtered)
+        return []
+      }
 
-    // Computed properties cho phân trang
-    const paginatedHomestays = computed(() => {
-      const start = currentPage.value * pageSize.value
-      const end = start + pageSize.value
-      return filteredHomestays.value.slice(start, end)
-    })
+      // Phân trang
+      const start = (currentPage.value - 1) * pageSize.value;
+      const end = start + pageSize.value;
 
-    const totalItems = computed(() => filteredHomestays.value.length)
+      return filtered.slice(start, end);
+    });
+
+    // Tính toán số trang và các thông tin phân trang
+    const totalItems = computed(() => {
+      // Đảm bảo homestays.value luôn là một mảng
+      if (!Array.isArray(homestays.value)) {
+        return 0;
+      }
+
+      let filtered = [...homestays.value];
+      if (selectedStatus.value !== 'all') {
+        const isActive = selectedStatus.value === 'active';
+        filtered = filtered.filter((h) => h.trangThai === isActive);
+      }
+      return filtered.length;
+    });
+
+    const totalPages = computed(() => {
+      if (totalItems.value === 0) {
+        return 1;
+      }
+      return Math.ceil(totalItems.value / pageSize.value) || 1;
+    });
 
     const startItem = computed(() => {
-      return totalItems.value === 0 ? 0 : currentPage.value * pageSize.value + 1
-    })
+      if (totalItems.value === 0) {
+        return 0;
+      }
+      return (currentPage.value - 1) * pageSize.value + 1;
+    });
 
     const endItem = computed(() => {
-      const end = (currentPage.value + 1) * pageSize.value
-      return end > totalItems.value ? totalItems.value : end
-    })
+      if (totalItems.value === 0) {
+        return 0;
+      }
+      const end = currentPage.value * pageSize.value;
+      return end > totalItems.value ? totalItems.value : end;
+    });
+
+    // Display a reasonable number of page buttons
+    const displayedPages = computed(() => {
+      const maxDisplayed = 5;
+      const pages = [];
+
+      if (totalPages.value <= maxDisplayed) {
+        // If we have 5 or fewer pages, show all
+        for (let i = 1; i <= totalPages.value; i++) {
+          pages.push(i);
+        }
+      } else {
+        // We have more than maxDisplayed pages, need to decide which to show
+        if (currentPage.value <= 3) {
+          // Near the start
+          for (let i = 1; i <= 5; i++) {
+            pages.push(i);
+          }
+        } else if (currentPage.value >= totalPages.value - 2) {
+          // Near the end
+          for (let i = totalPages.value - 4; i <= totalPages.value; i++) {
+            pages.push(i);
+          }
+        } else {
+          // Somewhere in the middle
+          for (let i = currentPage.value - 2; i <= currentPage.value + 2; i++) {
+            pages.push(i);
+          }
+        }
+      }
+
+      return pages;
+    });
 
     const emptyRows = computed(() => {
-      const rowsCount = paginatedHomestays.value.length
-      return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0
-    })
+      const rowsCount = filteredHomestays.value.length;
+      return rowsCount < pageSize.value ? pageSize.value - rowsCount : 0;
+    });
 
+    // Tính số thứ tự cho hàng
+    const calculateIndex = (index) => {
+      return (currentPage.value - 1) * pageSize.value + index + 1;
+    };
+
+    // Update page when data changes
+    watch([homestays, selectedStatus], () => {
+      // Reset to page 1 when filters change
+      if (currentPage.value > totalPages.value && totalPages.value > 0) {
+        currentPage.value = 1;
+      }
+    });
+
+    // Xử lý tìm kiếm từ khóa tổng hợp với debounce
     const handleSearch = () => {
-      currentPage.value = 0
+      // Xóa timeout cũ nếu có
+      if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+      }
+
+      // Thiết lập timeout mới (500ms)
+      searchTimeout.value = setTimeout(async () => {
+        try {
+          loading.value = true;
+          currentPage.value = 1;
+
+          if (!searchTerm.value || searchTerm.value.trim() === '') {
+            await fetchData(); // Nếu không có từ khóa, tải lại toàn bộ dữ liệu
+            return;
+          }
+
+          // Gọi API tìm kiếm theo từ khóa
+          const response = await searchByKeyword(searchTerm.value);
+
+          if (response && response.data) {
+            // Kiểm tra dữ liệu trả về từ API
+            if (response.data.data && Array.isArray(response.data.data)) {
+              // Nếu API trả về cấu trúc { data: [...] }
+              homestays.value = response.data.data;
+              // Bỏ thông báo kết quả thành công
+            } else if (Array.isArray(response.data)) {
+              // Nếu API trả về mảng trực tiếp
+              homestays.value = response.data;
+              // Bỏ thông báo kết quả thành công
+            } else {
+              // Nếu không đúng định dạng mong đợi
+              console.error('Dữ liệu API không đúng định dạng:', response.data);
+              homestays.value = [];
+              toast.warning('Định dạng dữ liệu trả về không hợp lệ');
+            }
+          } else {
+            homestays.value = [];
+          }
+        } catch (error) {
+          console.error('Lỗi khi tìm kiếm:', error);
+          apiError.value = true;
+          apiErrorMessage.value = 'Lỗi khi gọi API tìm kiếm.';
+          homestays.value = []; // Đảm bảo là mảng khi có lỗi
+        } finally {
+          loading.value = false;
+        }
+      }, 500); // Trì hoãn 500ms
+    };
+
+    const clearSearch = () => {
+      searchTerm.value = '';
+      fetchData(); // Tải lại toàn bộ dữ liệu
     }
 
     const handleStatusChange = (status) => {
-      selectedStatus.value = status
-      currentPage.value = 0
+      selectedStatus.value = status;
+      currentPage.value = 1;
     }
 
     const changePage = (page) => {
-      if (page >= 0 && page < totalPages.value) {
-        currentPage.value = page
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
       }
     }
 
@@ -455,6 +601,14 @@ export default {
       router.push('/admin/loai-homestay')
     }
 
+    const navigateToTienNghiHomestay = () => {
+      router.push({ name: 'admin-homestay-tien-nghi' })
+    }
+
+    const navigateToHomestayDichVu = () => {
+      router.push({ name: 'admin-homestay-dich-vu' })
+    }
+
     // Quản lý modal ảnh chi tiết
     const openAnhModal = (homestay) => {
       selectedHomestay.value = { ...homestay }
@@ -475,17 +629,19 @@ export default {
       showAnhModal.value = false
     }
 
-    onMounted(fetchData)
+    onMounted(() => {
+      fetchData();
+    });
 
     return {
       searchTerm,
       filteredHomestays,
-      paginatedHomestays,
       getLoaiName,
       getChuName,
       formatCurrency,
       getImageUrl,
       handleSearch,
+      clearSearch,
       apiError,
       apiErrorMessage,
       selectedStatus,
@@ -500,6 +656,7 @@ export default {
       endItem,
       emptyRows,
       changePage,
+      displayedPages,
       // Modal state và functions
       showModal,
       selectedHomestay,
@@ -516,11 +673,15 @@ export default {
       loaiList,
       chuList,
       navigateToLoaiHomestay,
+      navigateToTienNghiHomestay,
+      navigateToHomestayDichVu,
       showAnhModal,
       viewOnlyImages,
       openAnhModal,
       openAnhModalFromDetails,
-      closeAnhModal
+      closeAnhModal,
+      formatTinhTrang,
+      calculateIndex
     }
   },
 }
@@ -530,20 +691,21 @@ export default {
 /* GENERAL CONTAINER & TITLE */
 .homestay-container {
   background-color: #f8f9fa;
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.06);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .page-title {
-  font-size: 2.25rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 25px;
   color: #343a40;
-  background: linear-gradient(90deg, #0d6efd 40%, #20c997 100%);
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* CONTROLS BAR */
@@ -551,11 +713,11 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   background-color: #ffffff;
-  padding: 15px 20px;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 /* LEFT SIDE: SEARCH BOX */
@@ -577,45 +739,69 @@ export default {
 
 .search-icon {
   position: absolute;
-  left: 15px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9a9a9a;
-  font-size: 1rem;
+  color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon {
+  color: #495057;
+}
+
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
 }
 
 .search-input {
   width: 100%;
-  border: 1px solid #e9ecef;
-  padding: 12px 15px 12px 45px;
-  border-radius: 30px;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   font-size: 1rem;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .search-input:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-  background-color: #fff;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
 }
 
 .clear-search-btn {
   position: absolute;
-  right: 15px;
+  right: 18px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #9a9a9a;
+  color: #6c757d;
   cursor: pointer;
   padding: 0;
-  font-size: 0.9rem;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.25s ease;
 }
 
 .clear-search-btn:hover {
-  color: #495057;
+  background-color: #e9ecef;
+  color: #212529;
 }
 
 /* RIGHT SIDE: FILTERS & ADD BUTTON */
@@ -627,36 +813,91 @@ export default {
 
 .status-filter {
   min-width: 180px;
-  border-radius: 30px;
-  padding: 10px 15px;
-  border: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
   font-size: 0.95rem;
   color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
 }
 
-.loai-homestay-btn {
-  height: 42px;
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
+}
+
+.add-button, .loai-homestay-btn, .dichvu-homestay-btn, .tiennghi-homestay-btn {
+  height: 48px;
+  min-width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 21px;
+  border-radius: 50px;
   font-weight: 600;
   padding: 0 20px;
-  gap: 8px;
-  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
-  transition: all 0.3s ease;
-  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
   border: none;
-}
-
-.loai-homestay-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
-  background: linear-gradient(45deg, #0a58ca, #0077cc);
 }
 
 .add-button {
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+}
+
+.add-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
+}
+
+.loai-homestay-btn {
+  background: linear-gradient(135deg, #0dcaf0, #0aa2c0);
+}
+
+.loai-homestay-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 202, 240, 0.4);
+  background: linear-gradient(135deg, #0aa2c0, #0892ac);
+}
+
+.dichvu-homestay-btn {
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.dichvu-homestay-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(255, 193, 7, 0.4);
+  background: linear-gradient(135deg, #e0a800, #e76b00);
+}
+
+.tiennghi-homestay-btn {
+  background: linear-gradient(135deg, #198754, #20c997);
+}
+
+.tiennghi-homestay-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(25, 135, 84, 0.4);
+  background: linear-gradient(135deg, #157347, #13aa80);
+}
+
+.loai-homestay-btn, .dichvu-homestay-btn, .tiennghi-homestay-btn {
   height: 42px;
   display: flex;
   align-items: center;
@@ -665,16 +906,12 @@ export default {
   font-weight: 600;
   padding: 0 20px;
   gap: 8px;
-  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
   transition: all 0.3s ease;
-  background: linear-gradient(45deg, #0d6efd, #0099ff);
   border: none;
 }
 
-.add-button:hover {
+.loai-homestay-btn:hover, .dichvu-homestay-btn:hover, .tiennghi-homestay-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
-  background: linear-gradient(45deg, #0a58ca, #0077cc);
 }
 
 /* TABLE STYLES */
@@ -825,41 +1062,57 @@ export default {
 
 /* Pagination */
 .pagination-container {
+  padding: 20px 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
 }
 
 .pagination-info {
   color: #6c757d;
-  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .pagination {
   margin-bottom: 0;
 }
 
-.page-link {
-  color: #0d6efd;
-  border: 1px solid #dee2e6;
-  margin: 0 2px;
-  border-radius: 4px;
-  padding: 8px 12px;
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  border: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.page-link:hover {
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-item:not(.active) .page-link:hover {
   background-color: #e9ecef;
+  transform: translateY(-2px);
 }
 
-.page-item.active .page-link {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.page-item.disabled .page-link {
-  color: #6c757d;
-  pointer-events: none;
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Empty rows */
@@ -873,5 +1126,61 @@ export default {
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
+}
+
+/* Thêm CSS cho advanced filters */
+.advanced-filters {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.advanced-filters select {
+  min-width: 150px;
+  height: 38px;
+}
+
+.search-btn {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 40px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.clear-search-btn:hover {
+  color: #dc3545;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="vattu-phong-container">
+  <div class="loai-phong-container">
     <h1 class="page-title">Quản Lý Vật Tư Phòng</h1>
 
     <div class="controls-container">
@@ -10,68 +10,51 @@
             <input
               type="text"
               v-model="searchTerm"
-              placeholder="Tìm kiếm theo tên phòng hoặc vật tư..."
+              placeholder="Tìm kiếm vật tư phòng..."
               class="search-input"
-              @input="handleSearch"
             />
-            <button v-if="searchTerm" @click="searchTerm = ''" class="clear-search-btn">
-              <i class="fas fa-times"></i>
-            </button>
           </div>
         </div>
       </div>
 
       <div class="right-controls">
-        <select class="form-select status-filter" v-model="filterStatus" @change="filterByStatus">
-          <option value="all">Tất cả</option>
-          <option value="true">Đang hoạt động</option>
-          <option value="false">Ngừng hoạt động</option>
+        <select class="form-select status-filter" v-model="selectedStatus">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Không hoạt động</option>
         </select>
       </div>
     </div>
 
-    <!-- API Error Alert -->
-    <div v-if="apiError" class="alert alert-warning">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      <strong>Lưu ý:</strong> {{ apiErrorMessage }}
-      <button type="button" class="btn-close float-end" @click="apiError = false"></button>
-    </div>
-
-    <!-- Loading indicator -->
     <div v-if="loading" class="loading-indicator">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Đang tải...</span>
       </div>
     </div>
 
-    <!-- Vật Tư Phòng Table -->
     <div class="table-responsive" v-if="!loading">
       <table class="table table-hover table-bordered table-sm">
         <thead>
           <tr>
             <th>STT</th>
             <th>Tên Phòng</th>
-            <th>Vật tư</th>
-            <th>Số lượng</th>
+            <th>Tên Vật Tư</th>
+            <th>Số Lượng</th>
             <th>Trạng Thái</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(item, index) in paginatedItems"
-            :key="`${item.phong?.id}-${item.vatTu?.id}`"
-          >
-            <td class="text-center">{{ index + 1 + currentPage * pageSize }}</td>
-            <td class="text-center">{{ item.phong?.tenPhong }}</td>
-            <td class="text-center">{{ item.vatTu?.tenVatTu }}</td>
-            <td class="text-center">{{ item.soLuong }} {{ item.vatTu?.donVi || 'cái' }}</td>
+          <tr v-for="(item, index) in paginatedItems" :key="`${item.phong?.id}-${item.vatTu?.id}`">
+            <td class="text-center">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+            <td>{{ item.phong?.tenPhong }}</td>
+            <td>{{ item.vatTu?.tenVatTu }}</td>
+            <td class="text-center">{{ item.soLuong }} {{ item.vatTu?.donVi }}</td>
             <td class="text-center">
               <span :class="`badge ${item.trangThai ? 'bg-success' : 'bg-danger'}`">
-                {{ item.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
+                {{ item.trangThai ? 'Hoạt động' : 'Không hoạt động' }}
               </span>
             </td>
           </tr>
-          <!-- Empty rows to ensure space for 10 rows -->
           <tr v-for="i in emptyRows" :key="`empty-${i}`" class="empty-row">
             <td colspan="5">&nbsp;</td>
           </tr>
@@ -79,35 +62,33 @@
       </table>
     </div>
 
-    <!-- Empty state -->
     <div v-if="!loading && filteredItems.length === 0" class="empty-state">
       <i class="fas fa-box-open empty-icon"></i>
       <p>Không tìm thấy vật tư phòng nào.</p>
     </div>
 
-    <!-- Pagination -->
     <div class="pagination-container" v-if="!loading && filteredItems.length > 0">
       <div class="pagination-info">
         Hiển thị {{ startItem }} đến {{ endItem }} trong số {{ totalItems }} vật tư phòng
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 0 }">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
             <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
           <li
-            v-for="page in totalPages"
+            v-for="page in displayedPages"
             :key="page"
             class="page-item"
-            :class="{ active: page - 1 === currentPage }"
+            :class="{ active: page === currentPage }"
           >
-            <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
+            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
           </li>
           <li
             class="page-item"
-            :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            :class="{ disabled: currentPage === totalPages || totalPages === 0 }"
           >
             <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
@@ -120,161 +101,164 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useToast } from '@/stores/notificationStore'
-import { getAllVatTuPhong } from '@/Service/vatTuPhongService'
+import { ref, onMounted, computed, watch } from 'vue';
+import { getAllVatTuPhong } from '@/Service/vatTuPhongService';
+import { useToast } from '@/stores/notificationStore';
+import api from '@/utils/api';
 
 export default {
   name: 'QlyVatTuPhong',
   setup() {
-    const toast = useToast()
-    const vatTuPhongList = ref([])
-    const searchTerm = ref('')
-    const filterStatus = ref('all')
-    const apiError = ref(false)
-    const apiErrorMessage = ref('')
-    const loading = ref(false)
+    const vatTuPhongList = ref([]);
+    const phongList = ref([]);
+    const vatTuList = ref([]);
+    const toast = useToast();
+    const searchTerm = ref('');
+    const selectedStatus = ref('all');
+    const loading = ref(false);
 
-    // Pagination
-    const currentPage = ref(0)
-    const pageSize = ref(10)
-    const totalPages = ref(1)
+    const currentPage = ref(1); // 1-based indexing
+    const pageSize = ref(10);
 
-    // API calls
     const fetchData = async () => {
+      loading.value = true;
       try {
-        loading.value = true
-        const response = await getAllVatTuPhong()
-        vatTuPhongList.value = response.data || []
-        apiError.value = false
+        const res = await getAllVatTuPhong();
+        vatTuPhongList.value = res.data || [];
 
-        // Cập nhật thông tin phân trang
-        totalPages.value = Math.ceil(vatTuPhongList.value.length / pageSize.value) || 1
-      } catch (e) {
-        apiError.value = true
-        apiErrorMessage.value = 'Không thể tải dữ liệu vật tư phòng. Vui lòng thử lại sau.'
-        console.error('Error fetching vat tu phong data:', e)
-        toast.error('Không thể tải dữ liệu vật tư phòng')
+        const phongRes = await api.get('/api/phong');
+        phongList.value = phongRes.data;
+
+        const vatTuRes = await api.get('/api/vattu/all');
+        vatTuList.value = vatTuRes.data.filter(vt => vt.trangThai);
+      } catch (error) {
+        toast.error('Lỗi khi tải dữ liệu vật tư phòng');
+        console.error(error);
       } finally {
-        loading.value = false
+        loading.value = false;
       }
-    }
+    };
 
-    // Filtered items
     const filteredItems = computed(() => {
-      let filtered = vatTuPhongList.value
+      let filtered = vatTuPhongList.value;
 
-      // Lọc theo từ khóa tìm kiếm
       if (searchTerm.value) {
-        const key = searchTerm.value.toLowerCase()
-        filtered = filtered.filter((item) =>
-          item.phong?.tenPhong?.toLowerCase().includes(key) ||
-          item.vatTu?.tenVatTu?.toLowerCase().includes(key)
-        )
+        const lowerCaseSearchTerm = searchTerm.value.toLowerCase();
+        filtered = filtered.filter(
+          (item) =>
+            (item.phong?.tenPhong?.toLowerCase().includes(lowerCaseSearchTerm)) ||
+            (item.vatTu?.tenVatTu?.toLowerCase().includes(lowerCaseSearchTerm)) ||
+            String(item.soLuong).includes(searchTerm.value)
+        );
       }
 
-      // Lọc theo trạng thái
-      if (filterStatus.value !== 'all') {
-        const status = filterStatus.value === 'true'
-        filtered = filtered.filter(item => item.trangThai === status)
+      if (selectedStatus.value !== 'all') {
+        const isActive = selectedStatus.value === 'active';
+        filtered = filtered.filter((item) => item.trangThai === isActive);
       }
 
-      return filtered
-    })
+      return filtered;
+    });
 
-    // Cập nhật totalPages khi filteredItems thay đổi
-    watch(filteredItems, (newItems) => {
-      totalPages.value = Math.ceil(newItems.length / pageSize.value) || 1
-      // Reset về trang đầu nếu trang hiện tại vượt quá tổng số trang
-      if (currentPage.value >= totalPages.value) {
-        currentPage.value = 0
+    watch(filteredItems, () => {
+      if (currentPage.value > totalPages.value) {
+        currentPage.value = totalPages.value || 1;
       }
-    })
+    });
 
-    // Computed properties cho phân trang
+    const totalPages = computed(() => {
+      return Math.ceil(filteredItems.value.length / pageSize.value) || 1;
+    });
+
     const paginatedItems = computed(() => {
-      const start = currentPage.value * pageSize.value
-      const end = start + pageSize.value
-      return filteredItems.value.slice(start, end)
-    })
-
-    const totalItems = computed(() => filteredItems.value.length)
-
-    const startItem = computed(() => {
-      if (totalItems.value === 0) return 0
-      return currentPage.value * pageSize.value + 1
-    })
-
-    const endItem = computed(() => {
-      const end = (currentPage.value + 1) * pageSize.value
-      return end > totalItems.value ? totalItems.value : end
-    })
+      const start = (currentPage.value - 1) * pageSize.value;
+      const end = start + pageSize.value;
+      return filteredItems.value.slice(start, end);
+    });
 
     const emptyRows = computed(() => {
-      const itemsOnPage = paginatedItems.value.length
-      return itemsOnPage < pageSize.value ? pageSize.value - itemsOnPage : 0
-    })
+      const remainingRows = pageSize.value - paginatedItems.value.length;
+      return remainingRows > 0 ? remainingRows : 0;
+    });
 
-    // Pagination methods
+    const totalItems = computed(() => filteredItems.value.length);
+
+    const startItem = computed(() => {
+      if (totalItems.value === 0) return 0;
+      return (currentPage.value - 1) * pageSize.value + 1;
+    });
+
+    const endItem = computed(() => {
+      const end = currentPage.value * pageSize.value;
+      return Math.min(end, totalItems.value);
+    });
+
+    const displayedPages = computed(() => {
+      const maxDisplayed = 5;
+      const pages = [];
+      if (totalPages.value <= maxDisplayed) {
+        for (let i = 1; i <= totalPages.value; i++) pages.push(i);
+      } else {
+        if (currentPage.value <= 3) {
+          pages.push(1, 2, 3, 4, 5);
+        } else if (currentPage.value >= totalPages.value - 2) {
+          for (let i = totalPages.value - 4; i <= totalPages.value; i++) pages.push(i);
+        } else {
+          for (let i = currentPage.value - 2; i <= currentPage.value + 2; i++) pages.push(i);
+        }
+      }
+      return pages;
+    });
+
     const changePage = (page) => {
-      if (page < 0 || page >= totalPages.value) return
-      currentPage.value = page
-    }
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+      }
+    };
 
-    // Search methods
-    const handleSearch = () => {
-      currentPage.value = 0 // Reset về trang đầu tiên khi tìm kiếm
-    }
-
-    // Filter methods
-    const filterByStatus = () => {
-      currentPage.value = 0 // Reset về trang đầu tiên khi lọc
-    }
-
-    // Fetch data on component mount
-    onMounted(() => {
-      fetchData()
-    })
+    onMounted(fetchData);
 
     return {
       vatTuPhongList,
+      phongList,
+      vatTuList,
       searchTerm,
-      filterStatus,
-      apiError,
-      apiErrorMessage,
+      selectedStatus,
       loading,
       currentPage,
       pageSize,
+      totalPages,
       filteredItems,
       paginatedItems,
+      emptyRows,
       totalItems,
-      totalPages,
       startItem,
       endItem,
-      emptyRows,
-      changePage,
-      handleSearch,
-      filterByStatus
-    }
+      displayedPages,
+      changePage
+    };
   }
-}
+};
 </script>
 
 <style scoped>
-.vattu-phong-container {
-  padding: 20px;
+.loai-phong-container {
   background-color: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 25px;
   color: #343a40;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #e9ecef;
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .controls-container {
@@ -282,359 +266,207 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  background-color: #ffffff;
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .search-box {
   position: relative;
-  width: 50%;
+  width: 450px;
 }
 
 .search-control-group {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .search-input-wrapper {
   position: relative;
-  width: 100%;
+  flex-grow: 1;
 }
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
   color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon {
+  color: #495057;
+}
+
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 35px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.25s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
 }
 
-.clear-search-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.search-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
 }
 
 .right-controls {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 15px;
 }
 
 .status-filter {
-  width: auto;
-  min-width: 150px;
+  min-width: 180px;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
 }
 
-.add-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
+}
+
+.table-responsive {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.table thead th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 2px solid #e9ecef;
+  padding: 15px 10px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.table tbody td {
+  padding: 15px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
 }
 
 .loading-indicator {
   display: flex;
   justify-content: center;
-  padding: 20px;
-}
-
-.table-responsive {
-  margin-bottom: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  background-color: #f8f9fa;
-  color: #495057;
-  font-weight: 600;
-  text-align: center;
-  padding: 12px 8px;
-  border-bottom: 2px solid #dee2e6;
-}
-
-td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #e9ecef;
-  vertical-align: middle;
-}
-
-tr:hover td {
-  background-color: #f8f9fa;
-}
-
-.badge {
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 0.8rem;
-}
-
-.bg-success {
-  background-color: #28a745 !important;
-}
-
-.bg-danger {
-  background-color: #dc3545 !important;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-icon {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.btn-warning-light {
-  background-color: rgba(255, 193, 7, 0.1);
-  color: #ffc107;
-  border: 1px solid #ffc107;
-}
-
-.btn-warning-light:hover {
-  background-color: #ffc107;
-  color: #fff;
-}
-
-.btn-danger-light {
-  background-color: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
-  border: 1px solid #dc3545;
-}
-
-.btn-danger-light:hover {
-  background-color: #dc3545;
-  color: #fff;
-}
-
-.btn-success-light {
-  background-color: rgba(40, 167, 69, 0.1);
-  color: #28a745;
-  border: 1px solid #28a745;
-}
-
-.btn-success-light:hover {
-  background-color: #28a745;
-  color: #fff;
-}
-
-.empty-row td {
-  border-bottom: none;
-  background-color: #fff !important;
+  padding: 40px 0;
 }
 
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
+  text-align: center;
+  padding: 50px 0;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
 }
 
 .empty-icon {
   font-size: 3rem;
-  color: #6c757d;
+  color: #adb5bd;
   margin-bottom: 15px;
 }
 
 .pagination-container {
+  padding: 20px 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
 }
 
 .pagination-info {
   color: #6c757d;
-  font-size: 0.9rem;
-}
-
-.pagination {
-  margin: 0;
-}
-
-.page-link {
-  color: #0d6efd;
-  padding: 6px 12px;
-}
-
-.page-item.active .page-link {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.nav-arrow {
-  padding: 6px 10px;
-}
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-form {
-  background-color: #fff;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-  color: #6c757d;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
   font-weight: 500;
 }
 
-.form-control {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  transition: border-color 0.15s ease-in-out;
-}
-
-.form-control:focus {
-  border-color: #86b7fe;
-  outline: 0;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.required {
-  color: #dc3545;
-}
-
-/* Confirmation box */
-.confirmation-box {
-  background-color: #fff;
-  border-radius: 8px;
-  width: 400px;
-  max-width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  position: relative;
-}
-
-.confirmation-body {
-  padding: 30px 20px;
-  text-align: center;
-}
-
-.confirm-icon-wrapper {
-  width: 70px;
-  height: 70px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-}
-
-.icon-danger {
-  background-color: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
-}
-
-.icon-success {
-  background-color: rgba(40, 167, 69, 0.1);
-  color: #28a745;
-}
-
-.confirm-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 15px;
-}
-
-.confirm-text {
-  color: #6c757d;
+.pagination {
   margin-bottom: 0;
 }
 
-.confirmation-footer {
-  padding: 15px 20px;
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 10px;
-  border-top: 1px solid #e9ecef;
+  margin: 0 5px;
+  border: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-item:not(.active) .page-link:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.empty-row td {
+    padding: 24.5px !important;
+    border-bottom: none !important;
 }
 </style>

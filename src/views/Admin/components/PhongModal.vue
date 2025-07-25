@@ -285,45 +285,25 @@
 
                 <div class="form-group">
                   <label>Loại Phòng</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="getLoaiPhongName(formData.loaiPhongId)"
-                    readonly
-                  />
+                  <input type="text" class="form-control" :value="getLoaiPhongName(formData.loaiPhongId)" readonly />
                 </div>
 
                 <div class="form-group">
                   <label>Homestay</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="getHomestayName(formData.homeStayId)"
-                    readonly
-                  />
+                  <input type="text" class="form-control" :value="getHomestayName(formData.homeStayId)" readonly />
                 </div>
 
                 <div class="row">
                   <div class="col-md-6">
                     <div class="form-group">
                       <label>Diện Tích</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="`${formData.dienTich} m²`"
-                        readonly
-                      />
+                      <input type="text" class="form-control" :value="`${formData.dienTich} m²`" readonly />
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
                       <label>Tầng</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="formData.tangSo"
-                        readonly
-                      />
+                      <input type="text" class="form-control" :value="formData.tangSo" readonly />
                     </div>
                   </div>
                 </div>
@@ -332,46 +312,27 @@
                   <div class="col-md-4">
                     <div class="form-group">
                       <label>Số Người Lớn</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="`${formData.soNguoiLon} người`"
-                        readonly
-                      />
+                      <input type="text" class="form-control" :value="`${formData.soNguoiLon} người`" readonly />
                     </div>
                   </div>
                   <div class="col-md-4">
                     <div class="form-group">
                       <label>Số Trẻ Nhỏ</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="`${formData.soNguoiNho} trẻ`"
-                        readonly
-                      />
+                      <input type="text" class="form-control" :value="`${formData.soNguoiNho} trẻ`" readonly />
                     </div>
                   </div>
                   <div class="col-md-4">
                     <div class="form-group">
                       <label>Số Người Tối Đa</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="`${formData.soNguoiToiDa} người`"
-                        readonly
-                      />
+                      <input type="text" class="form-control" :value="`${formData.soNguoiToiDa} người`" readonly />
                     </div>
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label>Mô Tả</label>
-                  <textarea
-                    class="form-control"
-                    rows="3"
-                    :value="formData.moTa || 'Không có mô tả'"
-                    readonly
-                  ></textarea>
+                  <textarea class="form-control" rows="3" :value="formData.moTa || 'Không có mô tả'"
+                    readonly></textarea>
                 </div>
 
                 <!-- Phần hiển thị Vật tư phòng -->
@@ -424,15 +385,11 @@
       </div>
     </div>
 
-    <!-- Add VatTuPhongModal component -->
-    <VatTuPhongModal v-if="showVatTuPhongModal" :phongId="formData.id" :isEdit="true" @close="closeVatTuPhongModal"
-      @save="handleVatTuPhongSaved" />
   </div>
 </template>
 
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
-import VatTuPhongModal from './VatTuPhongModal.vue'
 import { useToast } from '@/stores/notificationStore'
 import { getVatTuList, createVatTu } from '@/Service/vatTuService'
 import api from '@/utils/api'
@@ -440,7 +397,6 @@ import api from '@/utils/api'
 export default {
   name: 'PhongModal',
   components: {
-    VatTuPhongModal
   },
   props: {
     phong: {
@@ -496,25 +452,6 @@ export default {
     const fileInput = ref(null)
     const previewImage = ref(null)
     const imageFile = ref(null)
-
-    // Quản lý modal vật tư phòng
-    const showVatTuPhongModal = ref(false)
-
-    const openVatTuPhongModal = () => {
-      if (!formData.value.id) {
-        toast.warning('Vui lòng lưu phòng trước khi quản lý vật tư')
-        return
-      }
-      showVatTuPhongModal.value = true
-    }
-
-    const closeVatTuPhongModal = () => {
-      showVatTuPhongModal.value = false
-    }
-
-    const handleVatTuPhongSaved = () => {
-      toast.success('Cập nhật vật tư phòng thành công')
-    }
 
     // Hàm cập nhật số người tối đa khi số người lớn hoặc số trẻ nhỏ thay đổi
     const updateSoNguoiToiDa = () => {
@@ -840,11 +777,6 @@ export default {
       viewDetailImages,
       updateSoNguoiToiDa,
       handleSubmit,
-      showVatTuPhongModal,
-      openVatTuPhongModal,
-      closeVatTuPhongModal,
-      handleVatTuPhongSaved,
-      // Vật tư
       vatTuList,
       selectedVatTu,
       showAddVatTu,
@@ -951,7 +883,8 @@ export default {
 .modal-body {
   padding: 20px;
   overflow-y: auto;
-  max-height: calc(90vh - 70px); /* Trừ đi chiều cao của header */
+  max-height: calc(90vh - 70px);
+  /* Trừ đi chiều cao của header */
   scrollbar-width: thin;
   scrollbar-color: #6b7280 #f1f5f9;
 }

@@ -95,6 +95,13 @@ export const restoreTaiKhoan = (id) => {
   return api.put(`/api/taiKhoan/restore/${id}`);
 };
 
+// Xóa vĩnh viễn tài khoản (chỉ người dùng tự xóa)
+export const permanentDeleteTaiKhoan = (id, password) => {
+  return api.delete(`/api/taiKhoan/permanent-delete/${id}`, {
+    data: { password }
+  });
+};
+
 export const searchTaiKhoan = (query) => {
   return api.get(`/api/taiKhoan/search?query=${query}`);
 };

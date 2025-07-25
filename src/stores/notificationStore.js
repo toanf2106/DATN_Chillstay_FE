@@ -153,6 +153,8 @@ export function useToast() {
     success: store.success.bind(store),
     error: store.error.bind(store),
     warning: store.warning.bind(store),
-    info: store.info.bind(store)
+    info: store.info.bind(store),
+    removeToast: store.removeToast.bind(store),
+    dismissNotification: store.dismissNotification.bind(store)
   };
 }

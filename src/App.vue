@@ -1,7 +1,7 @@
 <script>
 import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
-import HeaderNav from './components/HeaderChillstay.vue'
+import HeaderNav from './components/HeaderNav.vue'
 import FooterHome from './components/FooterHome.vue'
 import NotificationContainer from './components/notifications/NotificationContainer.vue'
 import { useAuthStore } from './stores/authStore'

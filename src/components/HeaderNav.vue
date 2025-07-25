@@ -43,9 +43,10 @@
         <!-- Nút hiển thị thông tin người dùng -->
         <div @click="toggleUserMenu" class="user-info">
           <img
-            :src="currentUserData?.Anh || '/images/default-avatar.png'"
+            :src="currentUserData?.Anh || defaultAvatarUrl"
             alt="User Avatar"
             class="user-avatar"
+            @error="handleAvatarError"
           />
           <span class="username">Xin chào, {{ currentUserData?.username || 'Không có tên' }}</span>
           <i class="fas fa-caret-down"></i>
@@ -203,6 +204,41 @@
               Quay lại <a href="#" @click.prevent="switchForm('login')">Đăng nhập</a>
             </p>
           </div>
+
+          <!-- Email Verification Form -->
+          <div
+            class="auth-form"
+            :class="{ 'form-active': activeForm === 'verification' }"
+            v-show="activeForm === 'verification'"
+          >
+            <h2>Xác nhận email</h2>
+            <p class="instruction">Nhập email của bạn để nhận hướng dẫn xác nhận email</p>
+            <form @submit.prevent="resendVerificationEmail">
+              <div class="input-container">
+                <input
+                  type="email"
+                  v-model="verificationForm.email"
+                  placeholder=" "
+                  required
+                  :disabled="isVerificationEmailProcessing"
+                />
+                <label>Email</label>
+              </div>
+              <div v-if="verificationEmailError" class="form-error">
+                {{ verificationEmailError }}
+              </div>
+              <div v-if="verificationEmailSuccess" class="alert-success">
+                {{ verificationEmailSuccess }}
+              </div>
+              <button type="submit" class="submit-btn" :disabled="isVerificationEmailProcessing">
+                <span v-if="isVerificationEmailProcessing" class="loading-spinner"></span>
+                <span v-else>GỬI LẠI EMAIL XÁC NHẬN</span>
+              </button>
+            </form>
+            <p class="form-switcher">
+              Quay lại <a href="#" @click.prevent="switchForm('login')">Đăng nhập</a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -213,6 +249,7 @@
 import { useAuthStore } from '@/stores/authStore'
 import notification from '@/utils/notification'
 import api from '@/utils/api'
+// Xóa dòng import avatar mặc định không đúng
 
 export default {
   name: 'HeaderNav',
@@ -222,6 +259,7 @@ export default {
       modalVisible: false,
       activeForm: 'login',
       showUserMenu: false, // Biến kiểm soát dropdown menu
+      defaultAvatarUrl: '/images/default-avatar.png', // Đường dẫn tới thư mục public
       loginForm: {
         username: '',
         password: '',
@@ -237,16 +275,23 @@ export default {
       forgotPasswordForm: {
         email: '',
       },
+      verificationForm: {
+        email: '', // Thêm form xác nhận email
+      },
       loginError: '',
       signupError: '', // Biến hiển thị lỗi đăng ký
       forgotPasswordError: '', // Biến hiển thị lỗi quên mật khẩu
       forgotPasswordSuccess: '', // Biến hiển thị thông báo thành công
+      verificationEmailError: '', // Biến hiển thị lỗi xác nhận email
+      verificationEmailSuccess: '', // Biến hiển thị thành công xác nhận email
       isEmailProcessing: false, // Biến kiểm soát trạng thái xử lý gửi email
+      isVerificationEmailProcessing: false, // Biến kiểm soát trạng thái xử lý gửi email xác nhận
       passwordVisible: false,
       signupPasswordVisible: false,
       confirmPasswordVisible: false,
       isLoginProcessing: false,
       isRegisterProcessing: false,
+      avatarError: false, // Để xử lý lỗi khi không tải được avatar
     }
   },
   computed: {
@@ -369,10 +414,16 @@ export default {
         email: '',
       }
 
+      this.verificationForm = {
+        email: '',
+      }
+
       this.loginError = ''
       this.signupError = ''
       this.forgotPasswordError = ''
       this.forgotPasswordSuccess = ''
+      this.verificationEmailError = ''
+      this.verificationEmailSuccess = ''
       this.passwordVisible = false
       this.signupPasswordVisible = false
       this.confirmPasswordVisible = false
@@ -403,6 +454,11 @@ export default {
           // Xử lý các trường hợp lỗi đăng nhập
           if (result.error?.response?.data?.error === 'email_not_verified') {
             this.loginError = result.error.response.data.message
+
+            // Chuyển sang form xác nhận email
+            this.verificationForm.email = result.error.response.data.email || ''
+            this.switchForm('verification')
+
             notification.warning('Vui lòng xác nhận email trước khi đăng nhập', {
               position: 'top-right',
               duration: 5000,
@@ -660,6 +716,72 @@ export default {
       } finally {
         this.isEmailProcessing = false
       }
+    },
+
+    // Thêm phương thức gửi lại email xác nhận
+    async resendVerificationEmail() {
+      try {
+        this.isVerificationEmailProcessing = true
+        this.verificationEmailError = ''
+        this.verificationEmailSuccess = ''
+
+        // Kiểm tra email
+        const email = this.verificationForm.email.trim()
+        if (!email) {
+          this.verificationEmailError = 'Vui lòng nhập email của bạn'
+          return
+        }
+
+        const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!regexEmail.test(email)) {
+          this.verificationEmailError = 'Email không hợp lệ'
+          return
+        }
+
+        // Gọi API để gửi lại email xác nhận
+        await api.post('/api/gui-lai-xac-nhan', { email })
+
+        this.verificationEmailSuccess =
+          'Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.'
+        notification.success('Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.', {
+          position: 'top-right',
+          duration: 5000,
+        })
+
+        // Đóng modal sau khoảng thời gian
+        setTimeout(() => {
+          this.switchForm('login')
+        }, 3000)
+      } catch (error) {
+        console.error('Lỗi gửi lại email xác nhận:', error)
+
+        // Xử lý lỗi từ server
+        if (error.response && error.response.data) {
+          if (typeof error.response.data === 'string') {
+            this.verificationEmailError = error.response.data
+          } else if (error.response.data.message) {
+            this.verificationEmailError = error.response.data.message
+          } else {
+            this.verificationEmailError = 'Có lỗi xảy ra khi gửi email xác nhận'
+          }
+        } else {
+          this.verificationEmailError = 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
+        }
+
+        notification.error(this.verificationEmailError, {
+          position: 'top-right',
+          duration: 5000,
+        })
+      } finally {
+        this.isVerificationEmailProcessing = false
+      }
+    },
+
+    // Xử lý lỗi khi không tải được avatar
+    handleAvatarError(event) {
+      console.log('Không thể tải ảnh đại diện, sử dụng ảnh mặc định')
+      event.target.src = this.defaultAvatarUrl
+      this.avatarError = true
     },
 
     // Chức năng đăng xuất

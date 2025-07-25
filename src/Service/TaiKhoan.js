@@ -15,6 +15,11 @@ export const addTaiKhoan = (taiKhoanData) => {
   formData.append('email', taiKhoanData.email);
   formData.append('soDienThoai', taiKhoanData.soDienThoai);
 
+  // Thêm trường hoTen mới
+  if (taiKhoanData.hoTen) {
+    formData.append('hoTen', taiKhoanData.hoTen);
+  }
+
   if (taiKhoanData.matKhau) {
     formData.append('matKhau', taiKhoanData.matKhau);
   }

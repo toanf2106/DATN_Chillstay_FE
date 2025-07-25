@@ -230,6 +230,20 @@
                 </div>
 
                 <div class="form-group">
+                  <label>Họ và tên <span class="required-mark">*</span></label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="newAccount.hoTen"
+                    required
+                    :class="{ 'is-invalid': validationErrors.hoTen }"
+                  />
+                  <div class="invalid-feedback" v-if="validationErrors.hoTen">
+                    {{ validationErrors.hoTen }}
+                  </div>
+                </div>
+
+                <div class="form-group">
                   <label>Mật khẩu <span class="required-mark">*</span></label>
                   <input
                     type="password"
@@ -650,6 +664,7 @@ export default {
       anh: '',
       anhPreview: null,
       trangThai: true, // Default to active status
+      hoTen: '', // Thêm trường họ tên
     })
     const validationErrors = ref({})
     const isAddingAccount = ref(false)
@@ -1098,6 +1113,7 @@ export default {
         anh: '',
         anhPreview: null,
         trangThai: true, // Always default to active status
+        hoTen: '', // Reset trường họ tên
       }
       validationErrors.value = {}
     }
@@ -1111,10 +1127,14 @@ export default {
       if (
         !newAccount.value.tenDangNhap ||
         !newAccount.value.email ||
-        !newAccount.value.soDienThoai
+        !newAccount.value.soDienThoai ||
+        !newAccount.value.hoTen
       ) {
         if (!newAccount.value.tenDangNhap) {
           notification.error('Tên đăng nhập là bắt buộc')
+        }
+        if (!newAccount.value.hoTen) {
+          notification.error('Họ và tên là bắt buộc')
         }
         if (!newAccount.value.email) {
           notification.error('Email là bắt buộc')
@@ -2718,7 +2738,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  padding: 20px 35px 30px;
+  padding: 20px 10px 30px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background-color: #fff;
 }
@@ -2957,7 +2977,7 @@ export default {
 }
 .add-account-modal .modal-body,
 .account-details-modal .modal-body {
-  padding: 30px 35px;
+  padding: 30px 30px 5px 30px;
   background-color: #fff;
 }
 .account-avatar-display {
@@ -3178,7 +3198,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  padding: 20px 35px 30px;
+  padding: 10px 35px 10px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background-color: #fff;
 }

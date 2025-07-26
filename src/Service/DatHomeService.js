@@ -113,4 +113,9 @@ export async function createDatHomeKHTT(datHomeData) {
   }
 }
 
+// Lấy loại tài khoản theo mã đặt home
+export function getLoaiTaiKhoanByMaDatHome(maDatHome) {
+  return api.get(`/api/datHome/maDatHome/${maDatHome}`)
+}
+
 

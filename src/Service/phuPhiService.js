@@ -65,3 +65,7 @@ export const searchPhuPhi = async (keyword) => {
     throw error;
   }
 };
+
+export function getPhuPhiChiTietByDatHomeId(datHomeId) {
+    return api.get(`/phu-phi-chi-tiet/dat-home/${datHomeId}`);
+}

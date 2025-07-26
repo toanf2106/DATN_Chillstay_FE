@@ -10,6 +10,7 @@
     <div v-else class="booking-content">
       <h2 class="page-title">Chi tiết đặt phòng</h2>
       <div class="booking-card">
+        <img :src="getImageUrl(booking.hinhAnh)" alt="Ảnh homestay" class="homestay-image-header" />
         <div class="card-header">
           <h3>{{ booking.tenHomestay }}</h3>
           <span class="status" :class="getStatusClass(booking.trangThai)">
@@ -51,6 +52,32 @@
             </div>
           </div>
           <hr />
+
+          <!-- Service Details -->
+          <div v-if="services.length > 0" class="service-details">
+            <h4>Dịch vụ đã sử dụng</h4>
+            <ul>
+              <li v-for="service in services" :key="service.id">
+                <span>{{ service.dichVu.tenDichVu }} (x{{ service.soLuong }})</span>
+                <span>{{ formatCurrency(service.thanhTien) }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Surcharge Details -->
+          <div v-if="surcharges.length > 0" class="surcharge-details">
+             <hr v-if="services.length > 0"/>
+            <h4>Phụ phí</h4>
+            <ul>
+              <li v-for="surcharge in surcharges" :key="surcharge.id">
+                <span>{{ surcharge.phuPhi.tenPhuPhi }}</span>
+                <span>{{ formatCurrency(surcharge.gia) }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <hr v-if="services.length > 0 || surcharges.length > 0" />
+
           <div class="pricing-details">
             <div class="price-item">
               <span class="label">Tổng tiền phòng:</span>
@@ -78,18 +105,38 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getDatHomeById } from '@/Service/DatHomeService'
+import { getDichVuChiTietByDatHomeId } from '@/Service/dichVuService'
+import { getPhuPhiChiTietByDatHomeId } from '@/Service/phuPhiService'
+import api from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
 
 const booking = ref(null)
+const services = ref([])
+const surcharges = ref([])
 const isLoading = ref(true)
 
 const fetchBookingDetails = async () => {
   isLoading.value = true
+  const bookingId = route.params.id;
   try {
-    const response = await getDatHomeById(route.params.id)
-    booking.value = response.data
+    const [bookingResponse, servicesResponse, surchargesResponse] = await Promise.allSettled([
+      getDatHomeById(bookingId),
+      getDichVuChiTietByDatHomeId(bookingId),
+      getPhuPhiChiTietByDatHomeId(bookingId)
+    ]);
+
+    if (bookingResponse.status === 'fulfilled') {
+      booking.value = bookingResponse.value.data;
+    }
+    if (servicesResponse.status === 'fulfilled' && servicesResponse.value.data) {
+      services.value = servicesResponse.value.data;
+    }
+    if (surchargesResponse.status === 'fulfilled' && surchargesResponse.value.data) {
+      surcharges.value = surchargesResponse.value.data;
+    }
+
   } catch (error) {
     console.error('Lỗi khi tải chi tiết đặt phòng:', error)
   } finally {
@@ -131,6 +178,22 @@ const getStatusClass = (status) => {
 const goBack = () => {
   router.back()
 }
+
+const getImageUrl = (imagePath) => {
+  if (!imagePath) {
+    return '/images/default-thumbnail.jpg'; // Path to a default image
+  }
+  try {
+    // Use URL constructor for robust path joining
+    const baseUrl = new URL(api.defaults.baseURL);
+    // The pathname will handle slashes correctly.
+    const fullUrl = new URL(imagePath, baseUrl);
+    return fullUrl.href;
+  } catch (e) {
+    console.error('Error creating image URL:', e);
+    return '/images/default-thumbnail.jpg'; // Fallback on error
+  }
+}
 </script>
 
 <style scoped>
@@ -153,6 +216,13 @@ const goBack = () => {
   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
   overflow: hidden;
 }
+
+.homestay-image-header {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -259,5 +329,28 @@ hr {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+.service-details, .surcharge-details {
+  margin-top: 1.5rem;
+}
+
+.service-details h4, .surcharge-details h4 {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.service-details ul, .surcharge-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.service-details li, .surcharge-details li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
 }
 </style>

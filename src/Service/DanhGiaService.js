@@ -11,26 +11,10 @@ export function getDanhGiaById(id) {
     return api.get(`/api/danh-gia/detail/${id}`);
 }
 
-export function createDanhGia(danhGiaDto, files) {
-  const formData = new FormData();
-
-  // Part 1: Đóng gói dữ liệu đánh giá dưới dạng JSON và đặt tên là "danhGia"
-  const danhGiaJson = JSON.stringify(danhGiaDto);
-  formData.append('danhGia', new Blob([danhGiaJson], { type: 'application/json' }));
-
-  // Part 2: Đóng gói các tệp ảnh và đặt tên là "files"
-  if (files && files.length > 0) {
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-  }
-
-  // Gửi yêu cầu với đúng định dạng
+export function createDanhGia(formData) {
+  // Gửi yêu cầu với đúng định dạng FormData đã được chuẩn bị sẵn
   return api.post('/api/danh-gia/create', formData, {
     headers: {
-      // Trình duyệt sẽ tự động đặt Content-Type là multipart/form-data
-      // khi bạn truyền một đối tượng FormData.
-      // Không cần thiết phải đặt thủ công, nhưng để rõ ràng thì có thể giữ lại.
       'Content-Type': 'multipart/form-data',
     },
   });

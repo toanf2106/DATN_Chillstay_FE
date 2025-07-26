@@ -127,3 +127,11 @@ export function searchDichVu({
 
   return api.get('/api/dich-vu/search', { params });
 }
+
+export function getDichVuByHomestay(id) {
+    return api.get(`/dich-vu/by-homeStay2/${id}`);
+}
+
+export function getDichVuChiTietByDatHomeId(datHomeId) {
+    return api.get(`/dich-vu-chi-tiet/dat-home/${datHomeId}`);
+}

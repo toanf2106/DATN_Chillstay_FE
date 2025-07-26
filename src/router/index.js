@@ -71,7 +71,10 @@ const router = createRouter({
         { path: 'bao-mat', name: 'tai-khoan-bao-mat', component: CaiDatBaoMat },
         { path: 'lich-su-dat-phong', name: 'tai-khoan-lich-su', component: LichSuDatPhong },
         { path: 'lich-su-dat-phong/:id', name: 'booking-detail', component: () => import('../views/BookingDetailView.vue'), props: true },
-        { path: 'danh-gia', name: 'tai-khoan-danh-gia', component: DanhGiaCuaBan },
+        // Nâng cấp route: Thêm tham số customerId tùy chọn
+        // /danh-gia -> xem đánh giá của mình
+        // /danh-gia/5 -> xem đánh giá của khách hàng có ID là 5
+        { path: 'danh-gia/:customerId?', name: 'tai-khoan-danh-gia', component: DanhGiaCuaBan, props: true },
       ],
     },
 

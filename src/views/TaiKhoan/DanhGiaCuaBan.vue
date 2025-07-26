@@ -1,7 +1,8 @@
 <template>
     <div class="reviews-page">
         <div class="header">
-            <h1>Đánh giá của tôi</h1>
+            <!-- Title changes based on context -->
+            <h1 v-if="pageTitle">{{ pageTitle }}</h1>
         </div>
 
         <div v-if="loading" class="loading-state">Đang tải đánh giá...</div>
@@ -63,7 +64,7 @@
 
                 <div class="homestay-info-modal">
                     <i class="fas fa-home"></i>
-                    <div>
+  <div>
                         <p class="homestay-name-modal">{{ editingReview.homestayName }}</p>
                         <p class="booking-code-modal">Mã đặt phòng: {{ editingReview.maDatHome }}</p>
                     </div>
@@ -109,22 +110,31 @@
                 </button>
             </div>
         </div>
-    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
-import { getDanhGiaByKhachHangId, updateDanhGia, deleteAnhDanhGia, uploadAnhDanhGia } from '@/Service/DanhGiaService';
+import { ref, reactive, watch } from 'vue';
+import { updateDanhGia, deleteAnhDanhGia, uploadAnhDanhGia, getDanhGiaByKhachHangId } from '@/Service/DanhGiaService';
 import { getHomeStayById } from '@/Service/HomeStayService';
-import { getKhachHangById } from '@/Service/khachHangService';
+import { getKhachHangById, getAllKhachHang } from '@/Service/khachHangService';
 import { getDatHomeById } from '@/Service/DatHomeService';
 import { useToast } from '@/stores/notificationStore';
-// Removed authStore and user info service imports as they are not needed for hardcoded ID
+import { useAuthStore } from '@/stores/authStore';
+
+const props = defineProps({
+  customerId: {
+    type: [String, Number],
+    default: null
+  }
+});
 
 const toast = useToast();
+const authStore = useAuthStore();
 const processedReviews = ref([]);
 const loading = ref(true);
 const error = ref(null);
+const pageTitle = ref(''); // Reactive title
 const isEditModalVisible = ref(false);
 const isSubmitting = ref(false);
 const editingReview = reactive({
@@ -144,7 +154,13 @@ const API_BASE_URL = 'http://localhost:8080';
 const getFullImageUrl = (relativeUrl) => {
     if (!relativeUrl) return null;
     if (relativeUrl.startsWith('http')) return relativeUrl;
-    return `${API_BASE_URL}${relativeUrl}`;
+    try {
+        // Use URL constructor for robust path joining
+        return new URL(relativeUrl, API_BASE_URL).href;
+    } catch {
+        console.error("Invalid URL:", relativeUrl);
+        return relativeUrl;
+    }
 };
 
 const openEditModal = (reviewData) => {
@@ -177,8 +193,8 @@ const handleImageUpload = (event) => {
     files.forEach(file => {
         newImageFiles.value.push(file);
         const reader = new FileReader();
-        reader.onload = (e) => {
-            newImagePreviews.value.push({ src: e.target.result, file: file });
+        reader.onload = (event) => {
+            newImagePreviews.value.push({ src: event.target.result, file: file });
         };
         reader.readAsDataURL(file);
     });
@@ -221,33 +237,74 @@ const submitEditReview = async () => {
 
 const fetchAndProcessReviews = async () => {
     loading.value = true;
+    error.value = null;
+    processedReviews.value = [];
+
     try {
-        // Hardcoding customer ID to 5 as requested
-        const customerId = 5;
+        let reviewsToFetch = [];
 
-        const reviewsResponse = await getDanhGiaByKhachHangId(customerId);
-        const reviews = reviewsResponse.data;
+        // Case 1: A specific customer's reviews are requested via URL parameter
+        if (props.customerId) {
+            const customerIdNum = Number(props.customerId);
+            pageTitle.value = `Đánh giá của Khách hàng #${customerIdNum}`;
+            const reviewsResponse = await getDanhGiaByKhachHangId(customerIdNum);
+            reviewsToFetch = reviewsResponse.data || [];
+        }
+        // Case 2: Show reviews for the logged-in user
+        else {
+            if (!authStore.user || !authStore.user.id) {
+                error.value = "Vui lòng đăng nhập để xem đánh giá.";
+                pageTitle.value = 'Đánh giá'; // Default title
+                loading.value = false;
+                return;
+            }
+            pageTitle.value = 'Đánh giá của tôi';
 
-        if (!reviews || reviews.length === 0) {
-            processedReviews.value = [];
+            // Step 1: Get all customer profiles linked to the logged-in account
+            const allKhachHangRes = await getAllKhachHang();
+            // This is the core logic requested by the user.
+            const userCustomerProfiles = (allKhachHangRes.data || []).filter(
+                // Use `taiKhoan.id` which should be available from the updated DTO
+                kh => kh.taiKhoan && kh.taiKhoan.id === authStore.user.id
+            );
+
+            if (userCustomerProfiles.length === 0) {
+                loading.value = false;
+                console.log("Không tìm thấy hồ sơ khách hàng nào cho tài khoản này.");
+                return; // No customer profiles for this user, so no reviews
+            }
+
+            // Step 2: Fetch reviews for each customer profile using a loop (Promise.all)
+            const reviewPromises = userCustomerProfiles.map(profile =>
+                getDanhGiaByKhachHangId(profile.id).catch(e => {
+                    console.error(`Không thể tải đánh giá cho khách hàng ${profile.id}:`, e);
+                    return { data: [] }; // Return empty data on error to not break Promise.all
+                })
+            );
+            const reviewResponses = await Promise.all(reviewPromises);
+            reviewsToFetch = reviewResponses.flatMap(res => res.data);
+        }
+
+        if (reviewsToFetch.length === 0) {
             loading.value = false;
             return;
         }
 
-        const customerResponse = await getKhachHangById(customerId);
-        const customer = customerResponse.data;
-
+        // Step 3: Fetch details for the filtered/fetched reviews
         const reviewsWithDetails = await Promise.all(
-            reviews.map(async (review) => {
+            reviewsToFetch.map(async (review) => {
                 try {
-                    const [homestayResponse, bookingResponse] = await Promise.all([
+                    const [homestayResponse, bookingResponse, customerResponse] = await Promise.all([
                         getHomeStayById(review.homeStayId),
-                        getDatHomeById(review.datHomeId)
+                        getDatHomeById(review.datHomeId),
+                        getKhachHangById(review.khachHangId)
                     ]);
 
-                    const homestayData = homestayResponse.data;
-                    const bookingData = bookingResponse.data;
+                    const homestayData = homestayResponse.data || {};
+                    const bookingData = bookingResponse.data || {};
+                    const customerData = customerResponse.data || {};
 
+                    // Ensure all images have full URLs
                     const processedReview = {
                         ...review,
                         anhDanhGias: (review.anhDanhGias || []).map(img => ({
@@ -255,7 +312,6 @@ const fetchAndProcessReviews = async () => {
                             duongDanAnh: getFullImageUrl(img.duongDanAnh)
                         }))
                     };
-
                     const processedHomestay = {
                         ...homestayData,
                         hinhAnh: getFullImageUrl(homestayData.hinhAnh)
@@ -263,27 +319,39 @@ const fetchAndProcessReviews = async () => {
 
                     return {
                         review: processedReview,
-                        customer,
+                        customer: customerData,
                         homestay: processedHomestay,
                         booking: bookingData
                     };
                 } catch (e) {
-                    console.error(`Error fetching details for review ID ${review.id}:`, e);
-                    return { review, customer, homestay: null, booking: null };
+                    console.error(`Lỗi khi lấy chi tiết cho đánh giá ID ${review.id}:`, e);
+                    return null; // Return null for failed fetches
                 }
             })
         );
-        processedReviews.value = reviewsWithDetails;
+
+        // Filter out any nulls from failed detail fetches and sort
+        processedReviews.value = reviewsWithDetails
+            .filter(Boolean)
+            .sort((a, b) => new Date(b.review.thoiGianDanhGia) - new Date(a.review.thoiGianDanhGia));
+
     } catch (err) {
-        error.value = 'Đã xảy ra lỗi khi tải đánh giá. Vui lòng thử lại.';
-        console.error('Lỗi khi tải dữ liệu:', err);
+        error.value = 'Đã xảy ra lỗi khi tải đánh giá.';
+        console.error('Lỗi tổng thể:', err);
     } finally {
         loading.value = false;
     }
 };
 
-onMounted(fetchAndProcessReviews);
 
+// Watch for changes in user login state or the customerId prop
+watch(
+  [() => authStore.user, () => props.customerId],
+  () => {
+    fetchAndProcessReviews();
+  },
+  { immediate: true, deep: true }
+);
 </script>
 
 <style scoped>
@@ -522,7 +590,7 @@ h1 {
     padding: 15px;
     text-align: center;
     color: #888;
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 .image-editing-section p {
     margin-bottom: 15px;

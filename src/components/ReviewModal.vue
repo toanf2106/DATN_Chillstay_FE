@@ -95,13 +95,16 @@ const closeModal = () => {
 };
 
 const submitReview = () => {
-  // Logic to submit review data
   const reviewData = {
-    ...review.value,
-    bookingId: props.booking.id
+    quality: review.value.quality,
+    comment: review.value.comment,
+    bookingId: props.booking.id,
+    idKhachHang: props.booking.idKhachHang,
+    homestayId: props.booking.homestayId,
+    images: review.value.images.map(img => img.file)
   };
   emit('submit', reviewData);
-  closeModal();
+  // closeModal(); // The parent component will now be responsible for closing the modal
 };
 </script>
 

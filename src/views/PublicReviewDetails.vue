@@ -29,7 +29,10 @@
               <img src="/public/images/default-avatar.png" alt="User avatar">
             </div>
             <div class="user-info">
-              <div class="username">{{ getReviewCustomerName(review.khachHangId) }}</div>
+              <!-- Make the username a clickable link -->
+              <router-link :to="{ name: 'tai-khoan-danh-gia', params: { customerId: review.khachHangId } }" class="username-link">
+                {{ getReviewCustomerName(review.khachHangId) }}
+              </router-link>
               <div class="rating-stars">
                 <template v-for="n in 5" :key="n">
                   <i v-if="Math.floor(review.diemSo) >= n" class="fas fa-star filled"></i>
@@ -721,5 +724,16 @@ textarea {
     color: #e53e3e;
     font-size: 13px;
     margin-top: 5px;
+}
+.username-link {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 15px;
+    margin-bottom: 4px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.username-link:hover {
+    color: #007bff; /* Highlight on hover */
 }
 </style>

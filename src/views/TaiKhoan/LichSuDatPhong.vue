@@ -11,6 +11,7 @@
     <div v-else>
       <div class="booking-list">
         <div v-for="booking in filteredBookings" :key="booking.id" class="booking-item">
+          <img :src="getImageUrl(booking.hinhAnh)" alt="Ảnh homestay" class="homestay-image" />
           <div class="booking-details">
             <h3 class="homestay-name">{{ booking.tenHomestay }}</h3>
             <p><strong>Mã đặt phòng:</strong> {{ booking.maDatHome }}</p>
@@ -24,18 +25,12 @@
             </p>
           </div>
           <div class="booking-actions">
-            <button
-              v-if="isReviewable(booking)"
-              @click="openReviewModal(booking)"
-              class="review-button"
-            >
+            <!-- Nút Đánh giá: Chỉ hiện khi trạng thái là REVIEWABLE. -->
+            <button v-if="getBookingReviewState(booking) === 'REVIEWABLE'" @click="openReviewModal(booking)" class="review-button">
               Đánh giá
             </button>
-            <!-- Changed button to a span for "Reviewed" state -->
-            <span
-              v-else-if="booking.trangThai === 'HoanThanh' || booking.trangThai === 'DaCheckOut'"
-              class="reviewed-label"
-            >
+            <!-- Chữ "Đã đánh giá": Chỉ hiện khi trạng thái là REVIEWED. -->
+            <span v-if="getBookingReviewState(booking) === 'REVIEWED'" class="reviewed-label">
               Đã đánh giá
             </span>
             <button @click="viewBookingDetails(booking)" class="details-button">
@@ -55,86 +50,126 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue' // onMounted is no longer needed, replaced by watch
+import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAllDatHome } from '@/Service/DatHomeService'
 import { useAuthStore } from '@/stores/authStore'
 import ReviewModal from '@/components/ReviewModal.vue'
-import { createDanhGia, getDanhGiaByKhachHangId } from '@/Service/DanhGiaService'
-import { getThongTinNguoiDungByTaiKhoanId } from '@/Service/ThongTinNguoiDungService'
+import { createDanhGia, getAllDanhGia } from '@/Service/DanhGiaService' // Use getAllDanhGia
+import { getAllKhachHang } from '@/Service/khachHangService' // Import service to get all customers
+import api from '@/utils/api'
+import notification from '@/utils/notification'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const bookings = ref([])
-const reviewedBookingIds = ref(new Set())
+const allBookings = ref([])
+const reviewedBookingIds = ref(new Set()) // Logic changed: now tracks reviewed BOOKING IDs (datHomeId)
+const userCustomerIds = ref([])
 const isLoading = ref(true)
 const isReviewModalVisible = ref(false)
 const selectedBookingForReview = ref(null)
 
-const fetchUserAndBookings = async () => {
+/**
+ * Determines the review state of a booking.
+ * This state is updated immediately after a success or error notification is shown.
+ * @param {object} booking - The booking object.
+ * @returns {'REVIEWABLE' | 'REVIEWED' | 'NOT_REVIEWABLE'}
+ */
+const getBookingReviewState = (booking) => {
+  const isCompleted = booking.trangThai === 'HoanThanh' || booking.trangThai === 'DaCheckOut'
+
+  // A booking can only be reviewed if it's completed.
+  if (!isCompleted) {
+    return 'NOT_REVIEWABLE'
+  }
+
+  // If the booking ID is in our list, it means a notification has been shown
+  // (either success or "already reviewed" error), so it's considered reviewed.
+  if (reviewedBookingIds.value.has(booking.id)) {
+    return 'REVIEWED'
+  }
+
+  // If it's completed but not in the list, it's ready to be reviewed.
+  return 'REVIEWABLE'
+}
+
+const fetchAllDataAndProcess = async () => {
   isLoading.value = true
   if (!authStore.user || !authStore.user.id) {
     isLoading.value = false
-    console.warn('Người dùng chưa đăng nhập, không thể tải lịch sử đặt phòng.')
     return
   }
 
   try {
-    console.log(`Bắt đầu lấy dữ liệu cho TaiKhoan ID: ${authStore.user.id}`)
+    // Để giữ trạng thái "Đã đánh giá" khi tải lại trang, chúng ta thực hiện quy trình sau:
+    // 1. Lấy tất cả dữ liệu cần thiết từ server, bao gồm cả các đánh giá đã tồn tại.
+    // 2. Dựa trên dữ liệu đó, xây dựng lại trạng thái cho giao diện.
 
-    const userInfoResponse = await getThongTinNguoiDungByTaiKhoanId(authStore.user.id)
-    const customerId = userInfoResponse.data?.id
-    console.log(`Tìm thấy KhachHang ID: ${customerId}`)
+    console.log('[Persistence] Bắt đầu đồng bộ hóa trạng thái từ server...')
 
-    if (!customerId) {
-      console.warn('Không tìm thấy thông tin khách hàng tương ứng với tài khoản.')
-      const bookingsResponse = await getAllDatHome()
-      bookings.value = bookingsResponse.data
-      isLoading.value = false
-      return
-    }
-
-    const [reviewsResponse, bookingsResponse] = await Promise.all([
-      getDanhGiaByKhachHangId(customerId),
+    const [allCustomersRes, allReviewsRes, allBookingsRes] = await Promise.all([
+      getAllKhachHang(),
+      // Bước 1.1: Lấy tất cả các bài đánh giá đã được lưu vĩnh viễn trong cơ sở dữ liệu.
+      getAllDanhGia(),
       getAllDatHome()
     ])
 
-    const reviewsData = reviewsResponse.data || []
-    const reviewedIds = new Set(reviewsData.map((review) => review.datHomeId))
-    reviewedBookingIds.value = reviewedIds
-    console.log('Các ID đơn hàng đã được đánh giá:', reviewedBookingIds.value)
+    // Bước 1.2: Xác định các hồ sơ khách hàng của người dùng hiện tại.
+    const currentUserTaiKhoanId = authStore.user.id
+    const customersForUser = (allCustomersRes.data || []).filter(
+      (customer) => customer.taiKhoan && customer.taiKhoan.id === currentUserTaiKhoanId
+    )
+    userCustomerIds.value = customersForUser.map((c) => c.id)
 
-    bookings.value = bookingsResponse.data || []
+    // Bước 2: Xây dựng lại danh sách các lượt đặt phòng đã được đánh giá.
+    // Đây là bước cốt lõi để giữ lại trạng thái "Đã đánh giá" sau khi tải lại trang.
+    const reviewedSetFromServer = new Set()
+    ;(allReviewsRes.data || []).forEach((review) => {
+      // Kiểm tra xem bài đánh giá có thuộc về người dùng hiện tại và có mã đặt phòng không.
+      if (userCustomerIds.value.includes(review.khachHangId) && review.datHomeId) {
+        // Nếu có, thêm mã đặt phòng vào danh sách đã được đánh giá.
+        reviewedSetFromServer.add(review.datHomeId)
+      }
+    })
 
-  } catch (error) {
-    console.error('Đã xảy ra lỗi trong quá trình tải dữ liệu:', error)
-  } finally {
+    // Cập nhật "bộ nhớ" của giao diện với dữ liệu bền vững từ server.
+    reviewedBookingIds.value = reviewedSetFromServer
+    console.log('[Persistence] Đồng bộ hóa hoàn tất. Các ID đã đánh giá:', reviewedBookingIds.value)
+
+
+    // Lưu lại toàn bộ lịch sử đặt phòng để hiển thị.
+    allBookings.value = allBookingsRes.data || []
+    } catch (error) {
+    console.error('Đã xảy ra lỗi trong quá trình tải dữ liệu bền vững:', error)
+    } finally {
     isLoading.value = false
   }
 }
 
-// Watch for changes in user login state instead of using onMounted
-watch(
-  () => authStore.user,
-  (newUser) => {
+watch(() => authStore.user, (newUser) => {
     if (newUser && newUser.id) {
-      // User is logged in, fetch data
-      fetchUserAndBookings()
+      fetchAllDataAndProcess()
     } else {
-      // User is not logged in or has logged out, clear data
+      // Clear data on logout
       isLoading.value = false
-      bookings.value = []
+      allBookings.value = []
       reviewedBookingIds.value = new Set()
+      userCustomerIds.value = []
     }
   },
-  { immediate: true } // Run the watcher immediately on component mount
+  { immediate: true }
 )
 
 const filteredBookings = computed(() => {
-  if (!authStore.user || !authStore.user.id) return []
-  // Filter client-side based on the correct TaiKhoanId
-  return bookings.value.filter((booking) => booking.taiKhoanId === authStore.user.id)
+  const user = authStore.user
+  if (!user || !user.id) {
+    return []
+  }
+  const userId = user.id
+  // Filter bookings that belong to the current user's account ID
+  const userBookings = allBookings.value.filter((booking) => booking.taiKhoanId === userId)
+  return userBookings.sort((a, b) => b.id - a.id)
 })
 
 const formatDate = (dateString) => {
@@ -151,6 +186,7 @@ const getStatusLabel = (status) => {
     DaCheckIn: 'Đã check-in',
     DaCheckOut: 'Đã check-out',
     HoanThanh: 'Hoàn thành'
+    // Thêm các trạng thái khác nếu có
   }
   return statusMap[status] || status
 }
@@ -160,42 +196,92 @@ const getStatusClass = (status) => {
 }
 
 const openReviewModal = (booking) => {
+  // Dòng dưới đây sẽ in ID ra console để bạn có thể sao chép.
+  console.log(`ID của lượt đặt phòng "${booking.tenHomestay}" (mã: ${booking.maDatHome}) là:`, booking.id)
   selectedBookingForReview.value = booking
   isReviewModalVisible.value = true
 }
 
 const closeReviewModal = () => {
-  isReviewModalVisible.value = false
-  selectedBookingForReview.value = null
-}
-
-const isReviewable = (booking) => {
-  const isCompleted = booking.trangThai === 'HoanThanh' || booking.trangThai === 'DaCheckOut'
-  const isNotReviewed = !reviewedBookingIds.value.has(booking.id)
-  return isCompleted && isNotReviewed
+  isReviewModalVisible.value = false;
+  selectedBookingForReview.value = null;
 }
 
 const handleReviewSubmit = async (reviewData) => {
-  const payload = {
+  try {
+    const formData = new FormData()
+    const danhGiaJson = {
     diemSo: reviewData.quality,
     noiDung: reviewData.comment,
-    datHomeId: reviewData.bookingId
-  }
-  const imageFiles = reviewData.images.map((img) => img.file)
+    datHomeId: reviewData.bookingId,
+      khachHangId: reviewData.idKhachHang,
+      homeStayId: reviewData.homestayId
+    }
 
-  try {
-    await createDanhGia(payload, imageFiles)
-    alert('Cảm ơn bạn đã gửi đánh giá!')
-    reviewedBookingIds.value.add(reviewData.bookingId)
+    formData.append('danhGia', JSON.stringify(danhGiaJson))
+
+    if (reviewData.images && reviewData.images.length > 0) {
+      for (const file of reviewData.images) {
+        formData.append('files', file)
+      }
+    }
+
+    // Call API to create the review
+    await createDanhGia(formData)
+
+    // On successful submission, show a success toast and update the UI
+    notification.success('Cảm ơn bạn đã gửi đánh giá!')
+
+    const bookingToUpdate = selectedBookingForReview.value
+    if (bookingToUpdate) {
+      // Add the booking's ID to the reviewed set to change its state to "Reviewed"
+      const updatedReviewedIds = new Set(reviewedBookingIds.value)
+      updatedReviewedIds.add(bookingToUpdate.id)
+      reviewedBookingIds.value = updatedReviewedIds
+
+      console.log(`[UI Update] Booking ID ${bookingToUpdate.id} is now marked as reviewed.`)
+    }
+
+    // Close the modal
     closeReviewModal()
   } catch (error) {
-    console.error('Lỗi khi gửi đánh giá:', error)
-    alert('Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại.')
+    console.error('Lỗi khi gửi đánh giá:', error.response?.data || error)
+    const errorMessage =
+      error.response?.data?.message || 'Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại.'
+    notification.error(errorMessage)
+
+    // Synchronize state if the backend reports the review already exists
+    if (errorMessage.includes('Bạn đã đánh giá')) {
+      const booking = selectedBookingForReview.value
+      if (booking) {
+        const newReviewedIds = new Set(reviewedBookingIds.value)
+        newReviewedIds.add(booking.id)
+        reviewedBookingIds.value = newReviewedIds
+  }
+    }
+    closeReviewModal()
   }
 }
 
 const viewBookingDetails = (booking) => {
+  // Có thể chuyển đến một trang chi tiết đặt phòng nếu có
   router.push({ name: 'booking-detail', params: { id: booking.id } })
+}
+
+const getImageUrl = (imagePath) => {
+  if (!imagePath) {
+    return '/images/default-thumbnail.jpg'; // Path to a default image
+  }
+  try {
+    // Use URL constructor for robust path joining
+    const baseUrl = new URL(api.defaults.baseURL);
+    // The pathname will handle slashes correctly.
+    const fullUrl = new URL(imagePath, baseUrl);
+    return fullUrl.href;
+  } catch (e) {
+    console.error('Error creating image URL:', e);
+    return '/images/default-thumbnail.jpg'; // Fallback on error
+  }
 }
 </script>
 
@@ -253,9 +339,17 @@ h2 {
   border-radius: 8px;
   padding: 1.5rem;
   display: flex;
-  justify-content: space-between;
+  gap: 1.5rem; /* Add gap between image and details */
   align-items: center;
   transition: box-shadow 0.3s ease;
+}
+
+.homestay-image {
+  width: 150px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #eee;
 }
 
 .booking-item:hover {
@@ -332,24 +426,6 @@ h2 {
   background-color: #218838;
 }
 
-.review-button.reviewed {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-.review-button.reviewed:hover {
-  background-color: #5a6268;
-}
-
-.reviewed-label {
-  font-style: italic;
-  color: #888;
-  font-size: 0.9rem;
-  padding: 0.6rem 1.2rem;
-  text-align: center;
-  display: inline-block;
-  min-height: 38px; /* Match button height */
-}
-
 .details-button {
   background-color: #f0f0f0;
   color: #333;
@@ -358,5 +434,14 @@ h2 {
 
 .details-button:hover {
   background-color: #e0e0e0;
+}
+.reviewed-label {
+  font-style: italic;
+  color: #888;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.2rem;
+  text-align: center;
+  display: inline-block;
+  min-height: 38px; /* Match button height */
 }
 </style>

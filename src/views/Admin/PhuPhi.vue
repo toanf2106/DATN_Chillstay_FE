@@ -306,11 +306,11 @@
             </div>
           </div>
 
-          <div class="form-section">
+          <div class="form-section" v-if="showEditTimeSection">
             <h4 class="section-title">Thời gian áp dụng</h4>
 
             <div class="dual-field">
-              <div class="form-group animate-field">
+              <div class="form-group animate-field" v-if="showEditGioGioiHan">
                 <label for="editGioGioiHan">
                   <i class="far fa-clock field-icon"></i>
                   Giờ Giới Hạn
@@ -327,7 +327,7 @@
                 <small class="text-muted">Thời gian áp dụng giới hạn</small>
               </div>
 
-              <div class="form-group animate-field">
+              <div class="form-group animate-field" v-if="showEditNgayApDung">
                 <label for="editNgayApDung">
                   <i class="far fa-calendar-alt field-icon"></i>
                   Ngày Áp Dụng
@@ -347,7 +347,6 @@
           </div>
 
           <div class="form-section status-section">
-            <!-- <h4 class="section-title">Cài đặt trạng thái</h4> -->
             <div class="status-toggle-container">
               <div class="status-text">
                 <div class="status-label">Trạng thái:</div>
@@ -462,8 +461,9 @@
                     required
                   >
                     <option value="" disabled selected>Chọn loại phụ phí</option>
-                    <option value="Dịch Vụ">Dịch Vụ</option>
-                    <option value="Phụ Thu">Phụ Thu</option>
+                    <option value="Đến/Đi">Đến/Đi</option>
+                    <option value="Ngày Lễ">Ngày Lễ</option>
+                    <option value="Cuối Tuần">Cuối Tuần</option>
                     <option value="Phát Sinh">Phát Sinh</option>
                   </select>
                   <div class="select-icon">
@@ -478,11 +478,11 @@
             </div>
           </div>
 
-          <div class="form-section">
+          <div class="form-section" v-if="showTimeSection">
             <h4 class="section-title">Thời gian áp dụng</h4>
 
             <div class="dual-field">
-              <div class="form-group animate-field">
+              <div class="form-group animate-field" v-if="showGioGioiHan">
                 <label for="addGioGioiHan">
                   <i class="far fa-clock field-icon"></i>
                   Giờ Giới Hạn
@@ -499,7 +499,7 @@
                 <small class="text-muted">Thời gian áp dụng giới hạn</small>
               </div>
 
-              <div class="form-group animate-field">
+              <div class="form-group animate-field" v-if="showNgayApDung">
                 <label for="addNgayApDung">
                   <i class="far fa-calendar-alt field-icon"></i>
                   Ngày Áp Dụng
@@ -518,8 +518,7 @@
             </div>
           </div>
 
-          <div class="form-section status-section">
-            <!-- <h4 class="section-title">Cài đặt trạng thái</h4> -->
+          <!-- <div class="form-section status-section">
             <div class="status-toggle-container">
               <div class="status-text">
                 <div class="status-label">Trạng thái:</div>
@@ -535,7 +534,7 @@
                 </span>
               </label>
             </div>
-          </div>
+          </div> -->
 
           <div class="modal-footer">
             <button type="button" class="btn-cancel" @click="cancelAdd">
@@ -557,7 +556,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import {
   getAllPhuPhi,
   deletePhuPhiById,
@@ -646,6 +645,32 @@ export default {
     const endItem = computed(() => {
       const end = (currentPage.value + 1) * pageSize.value
       return end > totalItems.value ? totalItems.value : end
+    })
+
+    // Computed properties cho ẩn/hiện thời gian áp dụng trong form thêm mới
+    const showTimeSection = computed(() => {
+      return ['Đến/Đi', 'Ngày Lễ'].includes(newPhuPhi.value.loaiPhuPhi)
+    })
+
+    const showGioGioiHan = computed(() => {
+      return newPhuPhi.value.loaiPhuPhi === 'Đến/Đi'
+    })
+
+    const showNgayApDung = computed(() => {
+      return newPhuPhi.value.loaiPhuPhi === 'Ngày Lễ'
+    })
+
+    // Computed properties cho ẩn/hiện thời gian áp dụng trong form chỉnh sửa
+    const showEditTimeSection = computed(() => {
+      return ['Đến/Đi', 'Ngày Lễ'].includes(editedPhuPhi.value.loaiPhuPhi)
+    })
+
+    const showEditGioGioiHan = computed(() => {
+      return editedPhuPhi.value.loaiPhuPhi === 'Đến/Đi'
+    })
+
+    const showEditNgayApDung = computed(() => {
+      return editedPhuPhi.value.loaiPhuPhi === 'Ngày Lễ'
     })
 
     // Danh sách phụ phí đã phân trang
@@ -887,6 +912,17 @@ export default {
         return
       }
 
+      // Xử lý các trường thời gian dựa trên loại phụ phí
+      if (editedPhuPhi.value.loaiPhuPhi === 'Đến/Đi') {
+        editedPhuPhi.value.ngayApDung = null
+      } else if (editedPhuPhi.value.loaiPhuPhi === 'Ngày Lễ') {
+        editedPhuPhi.value.gioGioiHan = null
+      } else {
+        // Nếu là "Cuối Tuần" hoặc "Phát Sinh" thì cả hai trường đều null
+        editedPhuPhi.value.gioGioiHan = null
+        editedPhuPhi.value.ngayApDung = null
+      }
+
       isEditing.value = true
 
       try {
@@ -976,6 +1012,17 @@ export default {
         return
       }
 
+      // Xử lý các trường thời gian dựa trên loại phụ phí
+      if (newPhuPhi.value.loaiPhuPhi === 'Đến/Đi') {
+        newPhuPhi.value.ngayApDung = null
+      } else if (newPhuPhi.value.loaiPhuPhi === 'Ngày Lễ') {
+        newPhuPhi.value.gioGioiHan = null
+      } else {
+        // Nếu là "Cuối Tuần" hoặc "Phát Sinh" thì cả hai trường đều null
+        newPhuPhi.value.gioGioiHan = null
+        newPhuPhi.value.ngayApDung = null
+      }
+
       isAdding.value = true
 
       try {
@@ -996,6 +1043,40 @@ export default {
         isAdding.value = false
       }
     }
+
+    // Theo dõi sự thay đổi của loại phụ phí trong form chỉnh sửa
+    watch(
+      () => editedPhuPhi.value.loaiPhuPhi,
+      (newValue) => {
+        // Xử lý các trường thời gian dựa trên loại phụ phí
+        if (newValue === 'Đến/Đi') {
+          editedPhuPhi.value.ngayApDung = null
+        } else if (newValue === 'Ngày Lễ') {
+          editedPhuPhi.value.gioGioiHan = null
+        } else {
+          // Nếu là "Cuối Tuần" hoặc "Phát Sinh" thì cả hai trường đều null
+          editedPhuPhi.value.gioGioiHan = null
+          editedPhuPhi.value.ngayApDung = null
+        }
+      },
+    )
+
+    // Theo dõi sự thay đổi của loại phụ phí trong form thêm mới
+    watch(
+      () => newPhuPhi.value.loaiPhuPhi,
+      (newValue) => {
+        // Xử lý các trường thời gian dựa trên loại phụ phí
+        if (newValue === 'Đến/Đi') {
+          newPhuPhi.value.ngayApDung = null
+        } else if (newValue === 'Ngày Lễ') {
+          newPhuPhi.value.gioGioiHan = null
+        } else {
+          // Nếu là "Cuối Tuần" hoặc "Phát Sinh" thì cả hai trường đều null
+          newPhuPhi.value.gioGioiHan = null
+          newPhuPhi.value.ngayApDung = null
+        }
+      },
+    )
 
     onMounted(() => {
       fetchPhuPhi()
@@ -1050,6 +1131,12 @@ export default {
       openAddModal,
       cancelAdd,
       submitAddPhuPhi,
+      showTimeSection,
+      showGioGioiHan,
+      showNgayApDung,
+      showEditTimeSection,
+      showEditGioGioiHan,
+      showEditNgayApDung,
     }
   },
 }

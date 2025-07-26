@@ -126,15 +126,17 @@
         </div>
       </div>
     </div>
-    <!-- Image Modal -->
-    <div v-if="isImageModalOpen" class="image-modal-overlay" @click="closeImageModal">
+
+      <!-- Image Modal -->
+      <div v-if="isImageModalOpen" class="image-modal-overlay" @click="closeImageModal">
       <div class="image-modal-content" @click.stop>
         <span class="close-modal" @click="closeImageModal">&times;</span>
-        <img :src="currentModalImage" alt="Ảnh đánh giá phóng to" class="modal-image" />
+        <img :src="currentModalImage" alt="Ảnh đánh giá phóng to" class="modal-image">
       </div>
     </div>
-    <!-- Removed Admin Anh Danh Gia Modal -->
-    <!-- Removed Add Review Modal -->
+     <!-- Removed Admin Anh Danh Gia Modal -->
+     <!-- Removed Add Review Modal -->
+
   </div>
 </template>
 

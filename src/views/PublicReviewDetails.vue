@@ -21,10 +21,30 @@
       <p>Chưa có đánh giá nào</p>
     </div>
     <div v-else class="reviews-list">
-      <div class="danh-gia-card" v-for="review in reviews" :key="review.id">
-        <div class="review-header">
-          <div class="user-avatar">
-            <img src="/public/images/default-avatar.png" alt="User avatar" />
+
+        <div
+          class="danh-gia-card"
+          v-for="review in reviews"
+          :key="review.id"
+        >
+          <div class="review-header">
+            <div class="user-avatar">
+              <img src="/public/images/default-avatar.png" alt="User avatar">
+            </div>
+            <div class="user-info">
+              <!-- Make the username a clickable link -->
+              <router-link :to="{ name: 'tai-khoan-danh-gia', params: { customerId: review.khachHangId } }" class="username-link">
+                {{ getReviewCustomerName(review.khachHangId) }}
+              </router-link>
+              <div class="rating-stars">
+                <template v-for="n in 5" :key="n">
+                  <i v-if="Math.floor(review.diemSo) >= n" class="fas fa-star filled"></i>
+                  <i v-else-if="Math.floor(review.diemSo) === n-1 && (review.diemSo % 1) >= 0.5" class="fas fa-star-half-alt filled"></i>
+                  <i v-else class="far fa-star"></i>
+                </template>
+              </div>
+            </div>
+
           </div>
           <div class="user-info">
             <div class="username">{{ getReviewCustomerName(review.khachHangId) }}</div>
@@ -747,5 +767,16 @@ textarea {
   color: #e53e3e;
   font-size: 13px;
   margin-top: 5px;
+}
+.username-link {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 15px;
+    margin-bottom: 4px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.username-link:hover {
+    color: #007bff; /* Highlight on hover */
 }
 </style>

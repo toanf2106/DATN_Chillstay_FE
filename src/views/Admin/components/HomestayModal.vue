@@ -229,20 +229,6 @@
                     </button>
                   </div>
 
-                  <div class="controls-container">
-                    <div class="search-box">
-                      <div class="search-input-wrapper">
-                        <i class="fas fa-search search-icon"></i>
-                        <input
-                          type="text"
-                          v-model="searchTienNghi"
-                          placeholder="Tìm kiếm tiện nghi..."
-                          class="search-input"
-                          @input="filterTienNghi"
-                        />
-                      </div>
-                    </div>
-                  </div>
 
                   <div class="tien-nghi-container">
                     <div v-if="loading" class="text-center py-3">

@@ -608,7 +608,7 @@ watch(currentPage, (newPage) => {
   padding-right: 40px;
 }
 
-.search-icon {
+.search-icon { 
   position: absolute;
   top: 50%;
   left: 16px;

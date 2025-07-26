@@ -15,6 +15,11 @@ export const addTaiKhoan = (taiKhoanData) => {
   formData.append('email', taiKhoanData.email);
   formData.append('soDienThoai', taiKhoanData.soDienThoai);
 
+  // Thêm trường hoTen mới
+  if (taiKhoanData.hoTen) {
+    formData.append('hoTen', taiKhoanData.hoTen);
+  }
+
   if (taiKhoanData.matKhau) {
     formData.append('matKhau', taiKhoanData.matKhau);
   }
@@ -93,6 +98,13 @@ export const deleteTaiKhoan = (id) => {
 
 export const restoreTaiKhoan = (id) => {
   return api.put(`/api/taiKhoan/restore/${id}`);
+};
+
+// Xóa vĩnh viễn tài khoản (chỉ người dùng tự xóa)
+export const permanentDeleteTaiKhoan = (id, password) => {
+  return api.delete(`/api/taiKhoan/permanent-delete/${id}`, {
+    data: { password }
+  });
 };
 
 export const searchTaiKhoan = (query) => {

@@ -18,6 +18,7 @@ import NewsView from '../views/NewsView.vue'
 import NewsDetailView from '../views/NewsDetailView.vue'
 import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
 import QlyVatTuPhong from '@/views/Admin/Home/QlyVatTuPhong.vue'
+import QlyPhong from '@/views/Admin/Home/QlyPhong.vue'
 import DanhGiaView from '../views/DanhGiaView.vue'
 import PublicReviewDetails from '../views/Admin/NoiDung&DanhGia/ReviewDetails.vue';
 
@@ -258,7 +259,7 @@ const router = createRouter({
         {
           path: '/admin/phong',
           name: 'admin-phong',
-          component: () => import('../views/Admin/Home/QlyPhong.vue'),
+          component: QlyPhong,
           meta: {
             requiresAuth: true,
             requiresAdmin: true

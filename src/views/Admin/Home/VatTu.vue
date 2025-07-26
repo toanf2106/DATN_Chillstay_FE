@@ -1,9 +1,11 @@
 <template>
-  <div class="vat-tu-container">
+  <div class="vattu-container">
     <h1 class="page-title">Quản Lý Vật Tư</h1>
 
     <div class="controls-container">
       <div class="search-box">
+        <div class="search-control-group">
+          <div class="search-input-wrapper">
         <i class="fas fa-search search-icon"></i>
         <input
           type="text"
@@ -12,6 +14,8 @@
           class="search-input"
           @input="onSearchChange"
         />
+          </div>
+        </div>
       </div>
 
       <div class="right-controls">
@@ -20,7 +24,7 @@
           <option value="Ngừng hoạt động">Ngừng hoạt động</option>
         </select>
         <button class="btn btn-primary add-button" @click="showAddModal">
-          <i class="fas fa-plus-circle"></i>
+          <i class="fas fa-plus"></i>
         </button>
       </div>
     </div>
@@ -54,9 +58,9 @@
           >
             <td class="text-center">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
             <td class="text-center">{{ item.id }}</td>
-            <td class="text-center">{{ item.tenVatTu }}</td>
+            <td>{{ item.tenVatTu }}</td>
             <td class="text-center">{{ item.donVi }}</td>
-            <td class="text-center">{{ item.moTa }}</td>
+            <td>{{ item.moTa }}</td>
             <td class="text-center">
               <span
                 :class="`badge ${item.trangThai === 'Đang hoạt động' ? 'bg-success' : 'bg-danger'}`"
@@ -114,12 +118,12 @@
       <nav aria-label="Page navigation">
         <ul class="pagination">
           <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage - 1)">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
           <li
-            v-for="page in totalPages"
+            v-for="page in displayedPages"
             :key="page"
             class="page-item"
             :class="{ active: currentPage === page }"
@@ -127,7 +131,7 @@
             <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
           </li>
           <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage + 1)">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
             </a>
           </li>
@@ -330,6 +334,24 @@ const endItem = computed(() => {
   return end > totalItems.value ? totalItems.value : end
 })
 
+// Hiển thị các trang phân trang
+const displayedPages = computed(() => {
+  const maxDisplayed = 5
+  const pages = []
+  if (totalPages.value <= maxDisplayed) {
+    for (let i = 1; i <= totalPages.value; i++) pages.push(i)
+  } else {
+    if (currentPage.value <= 3) {
+      pages.push(1, 2, 3, 4, 5)
+    } else if (currentPage.value >= totalPages.value - 2) {
+      for (let i = totalPages.value - 4; i <= totalPages.value; i++) pages.push(i)
+    } else {
+      for (let i = currentPage.value - 2; i <= currentPage.value + 2; i++) pages.push(i)
+    }
+  }
+  return pages
+})
+
 async function fetchVatTu() {
   loading.value = true
   try {
@@ -459,64 +481,92 @@ async function saveVatTu() {
 </script>
 
 <style scoped>
-/* Main Container Styling */
-.vat-tu-container {
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-  padding: 25px;
-  margin-bottom: 30px;
-  min-height: 80vh;
+.vattu-container {
+  background-color: #f8f9fa;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .page-title {
-  color: #2c3e50;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 25px;
-  border-bottom: 2px solid #eaeaea;
-  padding-bottom: 10px;
+  color: #343a40;
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Controls Styling */
 .controls-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
+  background-color: #ffffff;
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .search-box {
   position: relative;
+  width: 450px;
+}
+
+.search-control-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input-wrapper {
+  position: relative;
   flex-grow: 1;
-  max-width: 400px;
 }
 
 .search-icon {
   position: absolute;
-  left: 15px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon {
+  color: #495057;
+}
+
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 15px 12px 40px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.25s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .search-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
 }
 
 .right-controls {
@@ -526,84 +576,82 @@ async function saveVatTu() {
 }
 
 .status-filter {
-  padding: 10px 15px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
   min-width: 180px;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
+}
+
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
 }
 
 .add-button {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  height: 48px;
+  min-width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  padding: 0;
+  border-radius: 50px;
+  font-weight: 600;
+  padding: 0 20px;
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
   border: none;
-  background-color: #2563eb;
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+  color: white;
 }
 
 .add-button:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
 }
 
-.add-button i {
-  font-size: 20px;
-}
-
-/* Table Styling */
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.table-responsive {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   margin-bottom: 20px;
 }
 
-.table th {
-  background-color: #f3f4f6;
-  padding: 12px 15px;
-  text-align: center;
+.table thead th {
+  background-color: #f8f9fa;
+  color: #495057;
   font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid #e9ecef;
+  padding: 15px 10px;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
-.table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #e5e7eb;
+.table tbody td {
+  padding: 15px 10px;
   vertical-align: middle;
-}
-
-.table tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-.table .badge {
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-
-.bg-success {
-  background-color: #10b981 !important;
-}
-
-.bg-danger {
-  background-color: #ef4444 !important;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
 }
 
 .action-buttons {
@@ -613,182 +661,127 @@ async function saveVatTu() {
 }
 
 .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: none;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  border: none;
 }
 
 .btn-warning-light {
-  color: #d97706;
-  background-color: #fef3c7;
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.btn-warning-light:hover {
+  background-color: rgba(255, 193, 7, 0.3);
+  color: #e0a800;
 }
 
 .btn-danger-light {
-  color: #dc2626;
-  background-color: #fee2e2;
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+.btn-danger-light:hover {
+  background-color: rgba(220, 53, 69, 0.3);
+  color: #bd2130;
 }
 
 .btn-success-light {
-  color: #059669;
-  background-color: #d1fae5;
+  background-color: rgba(40, 167, 69, 0.15);
+  color: #28a745;
 }
 
-.btn-info-light {
-  color: #0284c7;
-  background-color: #e0f2fe;
+.btn-success-light:hover {
+  background-color: rgba(40, 167, 69, 0.3);
+  color: #218838;
 }
 
-.btn-icon:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.empty-row td {
-  height: 54px;
-  background-color: #f9fafb;
-}
-
-/* Loading Indicator */
 .loading-indicator {
   display: flex;
   justify-content: center;
-  align-items: center;
   padding: 40px 0;
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
-  padding: 40px 0;
-  color: #6b7280;
+  padding: 50px 0;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
 }
 
 .empty-icon {
-  font-size: 48px;
+  font-size: 3rem;
+  color: #adb5bd;
   margin-bottom: 15px;
 }
 
-/* Pagination */
 .pagination-container {
+  padding: 20px 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
-  flex-wrap: wrap;
-  gap: 15px;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
 }
 
 .pagination-info {
-  color: #6b7280;
-  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
 }
 
 .pagination {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  gap: 8px;
+  margin-bottom: 0;
 }
 
-.page-item {
-  margin: 0;
-}
-
-.page-link {
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: #4b5563;
-  background-color: #f9fafb;
+  margin: 0 5px;
   border: none;
-  text-decoration: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
-.page-link:hover {
-  background-color: #e5e7eb;
-}
-
-.page-item.active .page-link {
-  background-color: #2563eb;
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
   color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
 }
 
-.page-item.disabled .page-link {
-  color: #d1d5db;
-  pointer-events: none;
-  cursor: default;
-  opacity: 0.6;
-  background-color: #f3f4f6;
+.pagination .page-item:not(.active) .page-link:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
 }
 
-.nav-arrow {
-  color: #6b7280;
-  font-size: 12px;
-  background-color: #f9fafb;
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* Button Styling */
-.btn {
-  padding: 10px 16px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.95rem;
+.empty-row td {
+  padding: 24.5px !important;
+  border-bottom: none !important;
 }
 
-.btn:focus {
-  box-shadow: none;
-}
-
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-.btn-primary:hover {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
-}
-
-.btn-secondary {
-  background-color: #6b7280;
-  border-color: #6b7280;
-}
-
-.btn-secondary:hover {
-  background-color: #4b5563;
-  border-color: #4b5563;
-}
-
-.btn-danger {
-  background-color: #dc2626;
-  border-color: #dc2626;
-}
-
-.btn-danger:hover {
-  background-color: #b91c1c;
-  border-color: #b91c1c;
-}
-
-/* Modal Styling */
+/* Modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -800,7 +793,6 @@ async function saveVatTu() {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 15px;
 }
 
 .modal-form,
@@ -812,7 +804,6 @@ async function saveVatTu() {
   width: 550px;
   max-width: 95%;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modal-fade-in 0.3s ease;
   overflow: hidden;
 }
 
@@ -884,6 +875,23 @@ async function saveVatTu() {
   margin-top: 25px;
 }
 
+/* Form fields */
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.25s ease;
+  color: #495057;
+}
+
+.form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
+}
+
 /* Detail View Styling */
 .detail-content {
   padding: 5px 0;
@@ -925,13 +933,13 @@ async function saveVatTu() {
 }
 
 .icon-danger {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
 }
 
 .icon-success {
-  background-color: #d1fae5;
-  color: #059669;
+  background-color: rgba(40, 167, 69, 0.15);
+  color: #28a745;
 }
 
 .confirm-title {
@@ -955,47 +963,28 @@ async function saveVatTu() {
   border-top: 1px solid #e5e7eb;
 }
 
-.form-control {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #d1d5db;
+/* Button styles */
+.btn {
+  padding: 10px 16px;
+  font-weight: 500;
   border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-  font-family: 'Roboto', sans-serif !important;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: 0.95rem;
 }
 
-.form-control:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
+.btn-primary {
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+  border-color: transparent;
 }
 
-/* Đảm bảo hiển thị tiếng Việt đúng */
-input,
-textarea,
-label,
-span,
-h3,
-h4,
-p,
-button {
-  font-family: 'Roboto', sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-@keyframes modal-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
 }
 </style>

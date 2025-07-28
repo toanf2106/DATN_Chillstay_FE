@@ -14,8 +14,10 @@
     <!-- Page Header -->
     <section class="page-header">
       <div class="container">
-        <h1 class="page-title">Tin Tức & Sự Kiện</h1>
-        <p class="page-subtitle">Cập nhật những thông tin mới nhất về du lịch và các sự kiện tại ChillStay.</p>
+        <h1 class="page-title">Khám phá Mộc Châu</h1>
+        <p class="page-subtitle">Mộc Châu mang vẻ đẹp hoang sơ với những đồi chè xanh</p>
+        <p class="page-subtitle">và làn sương bảng làng mỗi sớm mai</p>
+
       </div>
     </section>
 
@@ -174,6 +176,7 @@ onMounted(() => {
   background-color: #f8f9fa;
   padding: 12px 0;
   border-bottom: 1px solid #e9ecef;
+
 }
 
 .breadcrumb {
@@ -204,23 +207,40 @@ onMounted(() => {
 
 /* Page Header */
 .page-header {
-  text-align: center;
-  padding: 40px 20px;
-  background-color: #f8f9fa;
+  text-align: left;
+  padding-top: 0;
+  padding-bottom: 5px;
+  background-color: #ffffff;
 }
 
 .page-title {
-  font-size: 2.5rem;
+  font-size: 2.6rem;
   font-weight: 700;
   color: #2c3e50;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  line-height: 1.3;
+
+  margin-top: 20px;
+
 }
 
 .page-subtitle {
-  font-size: 1.1rem;
-  color: #6c757d;
-  max-width: 600px;
-  margin: 0 auto;
+  font-size: 1.15rem;
+  color: #666;
+  line-height: 1.7;
+  margin-bottom: 5px;
+  max-width: 700px;
+}
+
+/* Thêm đường gạch ngang màu xanh dương */
+.page-header .container::after {
+  content: "";
+  display: block;
+  width: 80px;
+  height: 2px;
+  background-color: #4ddbff;
+  margin-top: 20px;
+  margin-bottom: 10px;
 }
 
 /* News Content Section */
@@ -232,43 +252,50 @@ onMounted(() => {
 .news-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
+  gap: 15px;
+  padding: 20px;
+  margin: 20px auto;
 }
 
 /* News Card */
 .news-card {
-  background-color: #fff;
+  width: 90%;
+  background: #fff;
   border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  margin: 10px;
+  border: 1px solid #ddd;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .news-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
 .card-image-container {
   width: 100%;
-  padding-top: 65%;
-  /* Aspect ratio for the image */
+  height: auto;
   position: relative;
   overflow: hidden;
+  margin: 0;
+  padding:10px;
+  border-radius: 5px;
 }
 
 .card-image {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
-  height: 100%;
+  height: 180px;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  border-radius: 16px;
+  margin: 10px;
+  width: calc(100% - 20px);
+  display: block;
+  transition: transform 0.5s ease;
 }
 
 .news-card:hover .card-image {
@@ -276,34 +303,37 @@ onMounted(() => {
 }
 
 .card-body {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
 }
 
 .card-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #343a40;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2c3e50;
   margin: 0 0 10px;
   line-height: 1.4;
-  height: 5.25rem;
-  /* Fallback for older browsers */
+  height: auto;
+  max-height: 3rem;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  /* Limit to 3 lines */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .card-excerpt {
-  font-size: 0.95rem;
-  color: #6c757d;
-  line-height: 1.6;
+  font-size: 0.9rem;
+  color: #4a6f8a;
+  line-height: 1.5;
   margin-bottom: 15px;
   flex-grow: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-meta {
@@ -333,7 +363,7 @@ onMounted(() => {
   border-radius: 50%;
   background-color: #fff;
   border: 1px solid #dee2e6;
-  color: #007bff;
+  color: #4ddbff;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -345,10 +375,10 @@ onMounted(() => {
 }
 
 .pagination-btn.active {
-  background-color: #007bff;
+  background-color: #4ddbff;
   color: #fff;
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
+  border-color: #4ddbff;
+  box-shadow: 0 2px 8px rgba(77, 219, 255, 0.4);
 }
 
 .pagination-btn:disabled {
@@ -420,5 +450,29 @@ onMounted(() => {
 .retry-btn:hover {
   background-color: #0056b3;
   transform: translateY(-2px);
+}
+
+.card h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0 0 8px;
+}
+
+.card p {
+  font-size: 14px;
+  color: #555;
+  margin: 0 0 12px;
+}
+
+.card .date {
+  font-size: 12px;
+  color: #888;
+}
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 </style>

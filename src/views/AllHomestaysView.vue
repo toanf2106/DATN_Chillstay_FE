@@ -71,20 +71,16 @@
         <!-- Lưới Homestay -->
         <div v-else class="homestays-grid">
           <div class="homestay-card" v-for="home in paginatedHomestays" :key="home.id">
+            <!-- Sửa phần hiển thị ảnh trong component -->
             <div class="homestay-image">
-              <img v-if="home.hinhAnh" :src="home.hinhAnh" :alt="home.tenHomestay" />
-
-
-              <img v-else
-                :src="'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80'"
-                :alt="home.tenHomestay" />
+              <img v-if="home.hinhAnh" :src="fixImageUrl(home.hinhAnh)" :alt="home.tenHomestay" />
+              <img v-else :src="defaultImage" :alt="home.tenHomestay" />
               <div class="rating-badge" v-if="home.danhGiaTrungBinh !== undefined">
                 <span>★ {{ home.danhGiaTrungBinh }} ({{ home.soDanhGia || 0 }} đánh giá)</span>
               </div>
               <span class="homestay-status" v-if="home.trangThai">
                 {{ home.trangThai === true ? 'Hoạt động' : home.trangThai }}
               </span>
-
             </div>
             <div class="homestay-content">
               <div class="location" v-if="home.diaChi">
@@ -130,31 +126,18 @@
 
         <!-- Phân trang -->
         <div v-if="totalPages > 1 && !isLoading && !hasError" class="pagination">
-          <button
-            class="pagination-btn"
-            :class="{ disabled: currentPage === 1 }"
-            @click="previousPage"
-            :disabled="currentPage === 1"
-          >
+          <button class="pagination-btn" :class="{ disabled: currentPage === 1 }" @click="previousPage"
+            :disabled="currentPage === 1">
             <i class="fas fa-chevron-left"></i>
           </button>
 
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            class="pagination-btn"
-            :class="{ active: page === currentPage }"
-            @click="goToPage(page)"
-          >
+          <button v-for="page in totalPages" :key="page" class="pagination-btn"
+            :class="{ active: page === currentPage }" @click="goToPage(page)">
             {{ page }}
           </button>
 
-          <button
-            class="pagination-btn"
-            :class="{ disabled: currentPage === totalPages }"
-            @click="nextPage"
-            :disabled="currentPage === totalPages"
-          >
+          <button class="pagination-btn" :class="{ disabled: currentPage === totalPages }" @click="nextPage"
+            :disabled="currentPage === totalPages">
             <i class="fas fa-chevron-right"></i>
           </button>
         </div>
@@ -173,6 +156,7 @@ import {
   getAvailableHomestay // Thêm import API mới
 } from '@/Service/HomeStayService';
 import { useRouter, useRoute } from 'vue-router';
+import api from '@/utils/api';
 
 const router = useRouter();
 const route = useRoute();
@@ -183,6 +167,7 @@ const errorMessage = ref('');
 const sortOption = ref('price-asc');
 const roomTypeFilter = ref('');
 const homestayTypes = ref([]); // Array to store unique homestay types
+const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80';
 
 // Thêm biến state cho tìm kiếm
 const searchName = ref('')
@@ -379,38 +364,86 @@ const fetchHomestayTypes = async () => {
   }
 }
 
+// Helper function to fix image URLs if they start with a slash
+const fixImageUrl = (url) => {
+  if (!url) return defaultImage;
+
+  // If it's already an absolute URL, return it as is
+  if (url.startsWith('http')) {
+    return url;
+  }
+
+  // If it's a relative URL
+  if (url.startsWith('/')) {
+    // Use the API base URL from api.js
+    return api.defaults.baseURL + url;
+  }
+
+  return url;
+};
+
 const fetchHomestayData = async () => {
   try {
-    isLoading.value = true
-    hasError.value = false
-    errorMessage.value = ''
-    console.log('Đang tải dữ liệu homestay...')
+    isLoading.value = true;
+    hasError.value = false;
+    errorMessage.value = '';
+    console.log('Đang tải dữ liệu homestay...');
 
     try {
+
       // Sử dụng API mới để lấy danh sách homestay khả dụng (đã loại bỏ các homestay đang bị khóa)
       const res = await getAvailableHomestay()
       console.log('Dữ liệu homestay từ API:', res.data)
 
+  
+
+      // In ra dữ liệu để kiểm tra
+      console.log('Dữ liệu homestay đầu tiên:', {
+        id: res.data[0].id,
+        ten: res.data[0].tenHomestay,
+        chu: res.data[0].hotenChuHomestay,
+        loai: res.data[0].tenLoaiHomestay || (res.data[0].loaiHomeStay ? res.data[0].loaiHomeStay.tenLoai : undefined),
+        allProps: Object.keys(res.data[0])
+      });
+
+
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-
-
-        // In ra dữ liệu để kiểm tra
-        console.log('Dữ liệu homestay đầu tiên:', {
-          id: res.data[0].id,
-          ten: res.data[0].tenHomestay,
-          chu: res.data[0].hotenChuHomestay,
-          loai: res.data[0].tenLoaiHomestay || (res.data[0].loaiHomeStay ? res.data[0].loaiHomeStay.tenLoai : undefined),
-          allProps: Object.keys(res.data[0])
-        });
-
         homestays.value = await Promise.all(res.data.map(async (homestay) => {
           try {
-            // Tìm hình ảnh cho homestay
-            const anhResponse = await getAnhHomeStayByHomestayId(homestay.id);
-            if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
-              const mainImage = anhResponse.data.find(img => img.trangThai !== false);
-              if (mainImage) {
-                homestay.hinhAnh = mainImage.duongDanAnh;
+            // Kiểm tra nếu homestay đã có trường hình ảnh từ dữ liệu trực tiếp
+            if (homestay.Hinh_Anh) {
+              homestay.hinhAnh = homestay.Hinh_Anh;
+              console.log(`Sử dụng hình ảnh từ dữ liệu trực tiếp cho homestay ${homestay.id}:`, homestay.Hinh_Anh);
+            }
+            // Nếu không có trường Hinh_Anh, thử với trường viết thường hinhAnh
+            else if (homestay.hinhAnh) {
+              // Đã có hình ảnh, không cần làm gì thêm
+              console.log(`Đã có hình ảnh cho homestay ${homestay.id}:`, homestay.hinhAnh);
+            }
+            // Thử tìm trong các thuộc tính khác có thể chứa URL hình ảnh
+            else if (homestay.image || homestay.imageUrl || homestay.anhDaiDien || homestay.anhBia) {
+              homestay.hinhAnh = homestay.image || homestay.imageUrl || homestay.anhDaiDien || homestay.anhBia;
+              console.log(`Sử dụng hình ảnh thay thế cho homestay ${homestay.id}:`, homestay.hinhAnh);
+            }
+            // Nếu không có trường hình ảnh trực tiếp, gọi API để lấy
+            else {
+              const anhResponse = await getAnhHomeStayByHomestayId(homestay.id);
+              if (anhResponse && anhResponse.data && anhResponse.data.length > 0) {
+                // Ưu tiên ảnh bìa đang hoạt động
+                const anhBia = anhResponse.data.find(img => img.anhBia === true && img.trangThai !== false) ||
+                  anhResponse.data.find(img => img.anhBia === true);
+
+                // Nếu không có ảnh bìa, dùng ảnh đầu tiên đang hoạt động
+                const anhDauTien = anhBia || anhResponse.data.find(img => img.trangThai !== false) || anhResponse.data[0];
+
+                if (anhDauTien) {
+                  homestay.hinhAnh = anhDauTien.duongDanAnh;
+                  console.log(`Lấy hình ảnh từ API cho homestay ${homestay.id}:`, anhDauTien.duongDanAnh);
+                } else {
+                  console.log(`Không tìm thấy ảnh phù hợp cho homestay ${homestay.id}`);
+                }
+              } else {
+                console.log(`Không có ảnh nào cho homestay ${homestay.id}`);
               }
             }
           } catch (imgError) {
@@ -418,7 +451,6 @@ const fetchHomestayData = async () => {
           }
           return homestay;
         }));
-
 
         // Nếu không có dữ liệu loại homestay từ API riêng, trích xuất từ dữ liệu homestay
         if (homestayTypes.value.length === 0) {
@@ -431,9 +463,9 @@ const fetchHomestayData = async () => {
 
         }
       } else {
-        hasError.value = true
-        errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.'
-        console.warn('API trả về dữ liệu không hợp lệ:', res.data)
+        hasError.value = true;
+        errorMessage.value = 'Không có dữ liệu homestay nào được tìm thấy từ API.';
+        console.warn('API trả về dữ liệu không hợp lệ:', res.data);
       }
     } catch (apiError) {
       hasError.value = true
@@ -459,9 +491,9 @@ const fetchHomestayData = async () => {
     hasError.value = true
     errorMessage.value = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.'
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
 onMounted(async () => {
   console.log('Component AllHomestaysView đã được mount')
@@ -519,8 +551,7 @@ watch(currentPage, (newPage) => {
 
 /* Phần Hero */
 .hero-section {
-  background: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
-    no-repeat center/cover;
+  background: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center/cover;
   color: #fff;
   padding: 80px 0;
   position: relative;
@@ -731,14 +762,24 @@ watch(currentPage, (newPage) => {
 .homestay-image {
   width: 350px;
   min-width: 300px;
-  height: auto;
+  height: 250px;
+  /* Đảm bảo chiều cao cố định */
   position: relative;
+  overflow: hidden;
+  /* Đảm bảo ảnh không tràn ra ngoài */
 }
 
 .homestay-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Đảm bảo ảnh được hiển thị đầy đủ và không bị méo */
+  transition: transform 0.3s ease;
+}
+
+.homestay-card:hover .homestay-image img {
+  transform: scale(1.05);
+  /* Hiệu ứng zoom khi hover */
 }
 
 .rating-badge {
@@ -860,7 +901,8 @@ watch(currentPage, (newPage) => {
 
   .homestay-image {
     width: 100%;
-    height: 250px;
+    height: 200px;
+    min-width: auto;
   }
 }
 

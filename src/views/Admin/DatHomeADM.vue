@@ -564,6 +564,7 @@
                 class="payment-option"
                 :class="{ selected: selectedPayment === 'cash' }"
                 @click="selectPayment('cash')"
+                v-if="isCheckInToday()"
               >
                 <div class="option-icon"><i class="fas fa-money-bill-wave"></i></div>
                 <div class="option-details">
@@ -853,67 +854,6 @@
         </div>
       </div>
     </teleport>
-
-    <!-- Thêm modal tính tiền thối -->
-    <teleport to="body">
-      <div class="modal-overlay" v-if="showCashPaymentModal" @click.self="closeCashPaymentModal">
-        <div class="modal-container cash-payment-modal">
-          <div class="modal-header">
-            <h3>Thanh toán tiền mặt</h3>
-          </div>
-          <div class="modal-body cash-payment-body">
-            <div class="payment-details">
-              <div class="payment-row">
-                <span class="payment-label">Tổng tiền thanh toán:</span>
-                <span class="payment-value total-amount">{{ getTotalPrice() }}₫</span>
-              </div>
-              <div class="payment-row">
-                <span class="payment-label">Tiền khách đưa:</span>
-                <div class="payment-input">
-                  <input
-                    type="number"
-                    v-model.number="cashReceived"
-                    @input="calculateChange"
-                    placeholder="Nhập số tiền khách đưa"
-                    min="0"
-                    step="10000"
-                    class="cash-input"
-                  />
-                  <span class="currency">₫</span>
-                </div>
-              </div>
-              <div class="payment-row">
-                <span class="payment-label">Tiền thối lại:</span>
-                <span class="payment-value change-amount" :class="{ negative: changeAmount < 0 }">
-                  {{ formattedChangeAmount }}
-                </span>
-              </div>
-              <div class="quick-amounts">
-                <p class="quick-title">Chọn nhanh số tiền:</p>
-                <div class="quick-buttons">
-                  <button
-                    v-for="(amount, index) in quickAmounts"
-                    :key="index"
-                    @click="setQuickAmount(amount)"
-                    class="quick-button"
-                  >
-                    {{ formatCurrency(amount) }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer cash-payment-footer">
-            <button class="btn btn-secondary" @click="closeCashPaymentModal">
-              <i class="fas fa-times"></i> Hủy
-            </button>
-            <button class="btn btn-primary" @click="confirmCashPayment" :disabled="!isValidPayment">
-              <i class="fas fa-check-circle"></i> Xác nhận thanh toán
-            </button>
-          </div>
-        </div>
-      </div>
-    </teleport>
   </div>
 </template>
 
@@ -988,10 +928,6 @@ export default {
       abortController: null, // AbortController để hủy request đang chờ
       showPaymentConfirm: false,
       paymentOption: 'ThanhToanToanBo', // Mặc định là thanh toán toàn bộ
-      showCashPaymentModal: false,
-      cashReceived: null,
-      changeAmount: 0,
-      quickAmounts: [],
     }
   },
   computed: {
@@ -1034,14 +970,6 @@ export default {
         default:
           return this.selectedPayment === 'cash' ? 'Chưa thanh toán' : 'Đang chờ xử lý'
       }
-    },
-    formattedChangeAmount() {
-      return this.changeAmount.toLocaleString('vi-VN') + '₫'
-    },
-    isValidPayment() {
-      if (this.cashReceived === null) return false
-      const totalAmount = this.calculateTotalAmount()
-      return this.cashReceived >= totalAmount
     },
   },
   methods: {
@@ -1190,8 +1118,8 @@ export default {
             // Nếu là chuyển khoản, hiển thị modal xác nhận
             this.showPaymentConfirm = true
           } else if (this.selectedPayment === 'cash') {
-            // Nếu là tiền mặt, mở form tính tiền thối
-            this.prepareCashPaymentModal()
+            // Nếu là tiền mặt, tiến hành đặt phòng ngay
+            this.submitBooking()
           } else {
             // Nếu không chọn phương thức, tiếp tục quy trình đặt phòng thông thường
             this.submitBooking()
@@ -1228,7 +1156,7 @@ export default {
     },
 
     // Gửi dữ liệu đặt phòng tới API
-    async submitBooking(tienDaNhan, tienTraLai) {
+    async submitBooking() {
       if (!this.selectedPayment) {
         // Sử dụng notification utility để hiển thị thông báo
         notification.error('Vui lòng chọn phương thức thanh toán')
@@ -1267,6 +1195,7 @@ export default {
           ngayTraPhong: this.checkOutDate,
           tongTien: this.calculateTotalAmount(),
           tongTienDichVu: this.getTotalServicePrice() || 0,
+          soTienGiam: this.calculateDiscountAmount() || 0,
           noiDungYeuCau: this.customerInfo.specialRequests
             ? this.customerInfo.specialRequests.trim()
             : 'Không có yêu cầu đặc biệt',
@@ -1330,8 +1259,7 @@ export default {
           }
         } else {
           // Nếu là tiền mặt, sử dụng API đặt phòng thông thường với trạng thái "DaXacNhan"
-          // và thông tin về tiền đã nhận và tiền thối
-          response = await createDatHome(bookingData, tienDaNhan, tienTraLai)
+          response = await createDatHome(bookingData)
           console.log('Đặt phòng với phương thức tiền mặt:', response.data)
 
           if (response && response.data) {
@@ -2088,64 +2016,9 @@ export default {
       }
     },
 
-    // Phương thức chuẩn bị modal thanh toán tiền mặt
-    prepareCashPaymentModal() {
-      // Tính toán số tiền và thiết lập các nút chọn nhanh
-      const totalAmount = this.calculateTotalAmount()
-
-      // Tạo các giá trị chọn nhanh (làm tròn lên 10,000₫, 50,000₫, 100,000₫, 500,000₫)
-      this.quickAmounts = [
-        Math.ceil(totalAmount / 10000) * 10000,
-        Math.ceil(totalAmount / 50000) * 50000,
-        Math.ceil(totalAmount / 100000) * 100000,
-        Math.ceil(totalAmount / 500000) * 500000,
-      ]
-
-      // Reset các giá trị
-      this.cashReceived = null
-      this.changeAmount = 0
-
-      // Hiển thị modal
-      this.showCashPaymentModal = true
-    },
-
-    // Đóng modal thanh toán tiền mặt
-    closeCashPaymentModal() {
-      this.showCashPaymentModal = false
-    },
-
-    // Tính tiền thối
-    calculateChange() {
-      const totalAmount = this.calculateTotalAmount()
-
-      if (this.cashReceived === null || isNaN(this.cashReceived)) {
-        this.changeAmount = 0
-      } else {
-        this.changeAmount = this.cashReceived - totalAmount
-      }
-    },
-
-    // Chọn nhanh số tiền
-    setQuickAmount(amount) {
-      this.cashReceived = amount
-      this.calculateChange()
-    },
-
     // Format số tiền dạng tiền tệ
     formatCurrency(amount) {
       return amount.toLocaleString('vi-VN') + '₫'
-    },
-
-    // Xác nhận thanh toán tiền mặt
-    confirmCashPayment() {
-      if (!this.isValidPayment) {
-        notification.error('Số tiền khách đưa không đủ!')
-        return
-      }
-
-      // Đóng modal và tiến hành đặt phòng với thông tin tiền mặt
-      this.closeCashPaymentModal()
-      this.submitBooking(this.cashReceived, this.changeAmount)
     },
     async fetchGiamGia(homestayId) {
       try {
@@ -2173,6 +2046,19 @@ export default {
       } finally {
         this.isLoadingGiamGia = false
       }
+    },
+    isCheckInToday() {
+      // Kiểm tra xem ngày nhận phòng có phải là ngày hiện tại không
+      if (!this.checkInDate) return false
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Đặt thời gian về 00:00:00 để so sánh ngày
+
+      const checkInDate = new Date(this.checkInDate)
+      checkInDate.setHours(0, 0, 0, 0)
+
+      // So sánh ngày
+      return checkInDate.getTime() === today.getTime()
     },
   },
             // Gọi API khi component được khởi tạo

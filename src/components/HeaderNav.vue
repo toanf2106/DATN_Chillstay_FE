@@ -9,26 +9,17 @@
       </div>
       <ul class="nav-links">
         <li>
-          <router-link to="/" :class="{ 'active-link': currentPath === '/' }"
-            >Trang Chủ</router-link
-          >
+          <router-link to="/" :class="{ 'active-link': currentPath === '/' }">Trang Chủ</router-link>
         </li>
         <li>
-          <router-link
-            to="/all-homestays"
-            :class="{ 'active-link': currentPath === '/all-homestays' }"
-            >Tìm Homestay</router-link
-          >
+          <router-link to="/all-homestays" :class="{ 'active-link': currentPath === '/all-homestays' }">Tìm
+            Homestay</router-link>
         </li>
         <li>
-          <router-link to="/tin-tuc" :class="{ 'active-link': currentPath === '/tin-tuc' }"
-            >Tin Tức</router-link
-          >
+          <router-link to="/tin-tuc" :class="{ 'active-link': currentPath === '/tin-tuc' }">Tin Tức</router-link>
         </li>
         <li>
-          <router-link to="/danh-gia" :class="{ 'active-link': currentPath === '/danh-gia' }"
-            >Đánh Giá</router-link
-          >
+          <router-link to="/danh-gia" :class="{ 'active-link': currentPath === '/danh-gia' }">Đánh Giá</router-link>
         </li>
       </ul>
 
@@ -42,12 +33,7 @@
       <div v-else class="user-profile">
         <!-- Nút hiển thị thông tin người dùng -->
         <div @click="toggleUserMenu" class="user-info">
-          <img
-            :src="currentUserData?.Anh || defaultAvatarUrl"
-            alt="User Avatar"
-            class="user-avatar"
-            @error="handleAvatarError"
-          />
+          <img :src="getUserAvatarUrl()" alt="User Avatar" class="user-avatar" @error="handleAvatarError" />
           <span class="username">Xin chào, {{ currentUserData?.username || 'Không có tên' }}</span>
           <i class="fas fa-caret-down"></i>
         </div>
@@ -73,30 +59,16 @@
         <span class="close-button" @click="closeModalIfNotProcessing">&times;</span>
         <div class="form-container">
           <!-- Login Form -->
-          <div
-            class="auth-form"
-            :class="{ 'form-active': activeForm === 'login' }"
-            v-show="activeForm === 'login'"
-          >
+          <div class="auth-form" :class="{ 'form-active': activeForm === 'login' }" v-show="activeForm === 'login'">
             <h2>Đăng Nhập</h2>
             <form @submit.prevent="loginUser">
               <div class="input-container">
-                <input
-                  type="text"
-                  v-model="loginForm.username"
-                  placeholder=" "
-                  required
-                  ref="loginUsernameInput"
-                />
+                <input type="text" v-model="loginForm.username" placeholder=" " required ref="loginUsernameInput" />
                 <label>Tên đăng nhập</label>
               </div>
               <div class="input-container">
-                <input
-                  :type="passwordVisible ? 'text' : 'password'"
-                  v-model="loginForm.password"
-                  placeholder=" "
-                  required
-                />
+                <input :type="passwordVisible ? 'text' : 'password'" v-model="loginForm.password" placeholder=" "
+                  required />
                 <label>Mật khẩu</label>
                 <span class="toggle-password" @click.stop.prevent="togglePasswordVisibility">
                   <i class="fas" :class="passwordVisible ? 'fa-eye-slash' : 'fa-eye'"></i>
@@ -119,11 +91,7 @@
           </div>
 
           <!-- Signup Form -->
-          <div
-            class="auth-form"
-            :class="{ 'form-active': activeForm === 'signup' }"
-            v-show="activeForm === 'signup'"
-          >
+          <div class="auth-form" :class="{ 'form-active': activeForm === 'signup' }" v-show="activeForm === 'signup'">
             <h2>Đăng Ký</h2>
             <form @submit.prevent="signupUser">
               <div class="input-container">
@@ -135,24 +103,16 @@
                 <label>Email</label>
               </div>
               <div class="input-container">
-                <input
-                  :type="signupPasswordVisible ? 'text' : 'password'"
-                  v-model="signupForm.password"
-                  placeholder=" "
-                  required
-                />
+                <input :type="signupPasswordVisible ? 'text' : 'password'" v-model="signupForm.password" placeholder=" "
+                  required />
                 <label>Mật khẩu</label>
                 <span class="toggle-password" @click.stop.prevent="toggleSignupPasswordVisibility">
                   <i class="fas" :class="signupPasswordVisible ? 'fa-eye-slash' : 'fa-eye'"></i>
                 </span>
               </div>
               <div class="input-container">
-                <input
-                  :type="confirmPasswordVisible ? 'text' : 'password'"
-                  v-model="signupForm.confirmPassword"
-                  placeholder=" "
-                  required
-                />
+                <input :type="confirmPasswordVisible ? 'text' : 'password'" v-model="signupForm.confirmPassword"
+                  placeholder=" " required />
                 <label>Xác nhận mật khẩu</label>
                 <span class="toggle-password" @click.stop.prevent="toggleConfirmPasswordVisibility">
                   <i class="fas" :class="confirmPasswordVisible ? 'fa-eye-slash' : 'fa-eye'"></i>
@@ -173,22 +133,13 @@
           </div>
 
           <!-- Forgot Password Form -->
-          <div
-            class="auth-form"
-            :class="{ 'form-active': activeForm === 'forgot' }"
-            v-show="activeForm === 'forgot'"
-          >
+          <div class="auth-form" :class="{ 'form-active': activeForm === 'forgot' }" v-show="activeForm === 'forgot'">
             <h2>Quên mật khẩu</h2>
             <p class="instruction">Nhập email của bạn để nhận hướng dẫn khôi phục mật khẩu</p>
             <form @submit.prevent="forgotPasswordRequest">
               <div class="input-container">
-                <input
-                  type="email"
-                  v-model="forgotPasswordForm.email"
-                  placeholder=" "
-                  required
-                  :disabled="isEmailProcessing"
-                />
+                <input type="email" v-model="forgotPasswordForm.email" placeholder=" " required
+                  :disabled="isEmailProcessing" />
                 <label>Email</label>
               </div>
               <div v-if="forgotPasswordError" class="form-error">{{ forgotPasswordError }}</div>
@@ -206,22 +157,14 @@
           </div>
 
           <!-- Email Verification Form -->
-          <div
-            class="auth-form"
-            :class="{ 'form-active': activeForm === 'verification' }"
-            v-show="activeForm === 'verification'"
-          >
+          <div class="auth-form" :class="{ 'form-active': activeForm === 'verification' }"
+            v-show="activeForm === 'verification'">
             <h2>Xác nhận email</h2>
             <p class="instruction">Nhập email của bạn để nhận hướng dẫn xác nhận email</p>
             <form @submit.prevent="resendVerificationEmail">
               <div class="input-container">
-                <input
-                  type="email"
-                  v-model="verificationForm.email"
-                  placeholder=" "
-                  required
-                  :disabled="isVerificationEmailProcessing"
-                />
+                <input type="email" v-model="verificationForm.email" placeholder=" " required
+                  :disabled="isVerificationEmailProcessing" />
                 <label>Email</label>
               </div>
               <div v-if="verificationEmailError" class="form-error">
@@ -249,7 +192,7 @@
 import { useAuthStore } from '@/stores/authStore'
 import notification from '@/utils/notification'
 import api from '@/utils/api'
-// Xóa dòng import avatar mặc định không đúng
+import { getTaiKhoanById } from '@/Service/TaiKhoan'
 
 export default {
   name: 'HeaderNav',
@@ -260,6 +203,10 @@ export default {
       activeForm: 'login',
       showUserMenu: false, // Biến kiểm soát dropdown menu
       defaultAvatarUrl: '/images/default-avatar.png', // Đường dẫn tới thư mục public
+      apiBaseUrl: import.meta.env.VITE_API_URL || '', // Base URL cho API
+      accountData: {
+        anh: null
+      },
       loginForm: {
         username: '',
         password: '',
@@ -327,6 +274,11 @@ export default {
       isLoggedIn: this.isUserLoggedIn,
       user: this.currentUserData,
     })
+
+    // Tải thông tin tài khoản nếu đã đăng nhập
+    if (this.isUserLoggedIn) {
+      this.loadAccountData();
+    }
   },
   beforeUnmount() {
     // Xóa event listener khi component bị hủy
@@ -334,6 +286,55 @@ export default {
     document.removeEventListener('keydown', this.handleEscKey)
   },
   methods: {
+    // Phương thức lấy URL ảnh đại diện từ tài khoản
+    getUserAvatarUrl() {
+      // Ưu tiên sử dụng ảnh từ accountData nếu đã được tải
+      if (this.accountData && this.accountData.anh) {
+        return this.accountData.anh;
+      }
+
+      // Nếu không có trong accountData, kiểm tra từ authStore
+      if (!this.currentUserData) return this.defaultAvatarUrl;
+
+      // Kiểm tra các trường dữ liệu có thể chứa ảnh đại diện
+      const avatarUrl = this.currentUserData.anhDaiDien || this.currentUserData.anh ||
+        this.currentUserData.avatar || this.currentUserData.Anh;
+
+      return avatarUrl || this.defaultAvatarUrl;
+    },
+
+    // Xử lý lỗi khi không tải được avatar
+    handleAvatarError(event) {
+      console.log('Không thể tải ảnh đại diện, sử dụng ảnh mặc định')
+      event.target.src = this.defaultAvatarUrl
+      this.avatarError = true
+    },
+
+    // Tải thông tin tài khoản để lấy ảnh mới nhất
+    async loadAccountData() {
+      try {
+        if (!this.isUserLoggedIn || !this.authStore.user) return;
+
+        // Lấy ID tài khoản từ authStore
+        const userId = this.authStore.user.id || this.authStore.user.userId || this.authStore.user.accountId;
+
+        if (!userId) {
+          console.warn('Không tìm thấy ID tài khoản trong authStore.user');
+          return;
+        }
+
+        console.log('Tải thông tin tài khoản để cập nhật ảnh đại diện...');
+        const response = await getTaiKhoanById(userId);
+
+        if (response.data && response.data.anh) {
+          this.accountData.anh = response.data.anh;
+          console.log('Đã cập nhật ảnh đại diện:', this.accountData.anh);
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải thông tin tài khoản:', error);
+      }
+    },
+
     // Mới: Mở/đóng menu người dùng
     toggleUserMenu(event) {
       // Dừng sự kiện lan tỏa để không kích hoạt document click
@@ -493,6 +494,9 @@ export default {
 
         const userData = result.userData
         console.log('Login successful, user data:', userData)
+
+        // Tải thông tin tài khoản để lấy ảnh đại diện
+        await this.loadAccountData();
 
         // Chuyển hướng sau khi đăng nhập
         setTimeout(() => {
@@ -777,13 +781,6 @@ export default {
       }
     },
 
-    // Xử lý lỗi khi không tải được avatar
-    handleAvatarError(event) {
-      console.log('Không thể tải ảnh đại diện, sử dụng ảnh mặc định')
-      event.target.src = this.defaultAvatarUrl
-      this.avatarError = true
-    },
-
     // Chức năng đăng xuất
     async logoutUser() {
       try {
@@ -807,6 +804,20 @@ export default {
 
     // Giữ nguyên các phương thức còn lại
   },
+  watch: {
+    // Theo dõi sự thay đổi của trạng thái đăng nhập
+    'authStore.isLoggedIn': {
+      handler(newValue) {
+        if (newValue === true) {
+          // Khi đăng nhập thành công, tải thông tin tài khoản
+          this.loadAccountData();
+        } else {
+          // Khi đăng xuất, reset dữ liệu tài khoản
+          this.accountData.anh = null;
+        }
+      }
+    }
+  }
 }
 </script>
 
@@ -1115,6 +1126,7 @@ header {
     opacity: 0;
     transform: translateY(-20px) scale(0.95);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1178,6 +1190,7 @@ header {
   font-family: 'Poppins', sans-serif;
   position: relative;
 }
+
 /*
 .auth-form h2::after {
   content: '';
@@ -1201,10 +1214,12 @@ header {
     width: 30px;
     left: 40%;
   }
+
   50% {
     width: 70px;
     left: 60%;
   }
+
   100% {
     width: 30px;
     left: 40%;
@@ -1216,10 +1231,12 @@ header {
     width: 40px;
     left: 30%;
   }
+
   50% {
     width: 100px;
     left: 70%;
   }
+
   100% {
     width: 40px;
     left: 30%;
@@ -1261,8 +1278,8 @@ header {
   transition: all 0.3s ease;
 }
 
-.input-container input:focus ~ label,
-.input-container input:not(:placeholder-shown) ~ label {
+.input-container input:focus~label,
+.input-container input:not(:placeholder-shown)~label {
   top: -10px;
   left: 15px;
   font-size: 13px;
@@ -1409,6 +1426,7 @@ header {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -1419,6 +1437,7 @@ header {
     transform: translateY(30px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -1430,6 +1449,7 @@ header {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(30px) scale(0.95);
@@ -1441,6 +1461,7 @@ header {
     opacity: 0.5;
     transform: translateY(10px) scale(0.98);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);

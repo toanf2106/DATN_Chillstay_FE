@@ -1,7 +1,39 @@
 <template>
   <div class="home-container">
-    <!-- Phần Hero -->
+    <!-- Cải thiện Hero Section với slideshow -->
     <section class="hero-section">
+      <div class="hero-slideshow">
+        <div class="slide" :class="{ active: currentSlide === 0 }">
+          <img
+            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
+            alt="Chillstay Mộc Châu - Slide 1">
+        </div>
+        <div class="slide" :class="{ active: currentSlide === 1 }">
+          <img
+            src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
+            alt="Chillstay Mộc Châu - Slide 2">
+        </div>
+        <div class="slide" :class="{ active: currentSlide === 2 }">
+          <img
+            src="https://images.unsplash.com/photo-1488462237308-ecaa28b729d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
+            alt="Chillstay Mộc Châu - Slide 3">
+        </div>
+
+        <!-- Nút điều hướng -->
+        <div class="slide-nav prev" @click="prevSlide">
+          <i class="fas fa-chevron-left"></i>
+        </div>
+        <div class="slide-nav next" @click="nextSlide">
+          <i class="fas fa-chevron-right"></i>
+        </div>
+
+        <!-- Chỉ báo slide -->
+        <div class="slide-indicators">
+          <span v-for="(_, index) in 3" :key="index" class="indicator" :class="{ active: currentSlide === index }"
+            @click="setSlide(index)"></span>
+        </div>
+      </div>
+
       <div class="hero-content">
         <div class="hero-text">
           <h1 class="hero-title">ChillStay <span class="highlight">Mộc Châu</span></h1>
@@ -112,15 +144,9 @@
               </p>
               <h3>{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
-                <span v-if="home.loaiHomeStay"
-                  ><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span
-                >
-                <span v-if="home.dienTich"
-                  ><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span
-                >
-                <span v-if="home.sucChua"
-                  ><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span
-                >
+                <span v-if="home.loaiHomeStay"><i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}</span>
+                <span v-if="home.dienTich"><i class="fas fa-ruler"></i> {{ home.dienTich }} m²</span>
+                <span v-if="home.sucChua"><i class="fas fa-bed"></i> {{ home.sucChua }} người/căn</span>
               </div>
 
               <div class="homestay-owner" v-if="home.hotenChuHomestay">
@@ -173,14 +199,30 @@
           </div>
 
           <div class="review-tabs">
-            <button
-              v-for="(review, index) in reviews"
-              :key="index"
-              :class="['tab-button', { active: activeReviewIndex === index }]"
-              @click="activeReviewIndex = index"
-            >
+            <button v-for="(review, index) in reviews" :key="index"
+              :class="['tab-button', { active: activeReviewIndex === index }]" @click="activeReviewIndex = index">
               {{ review.author }}
             </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Phần Câu hỏi thường gặp -->
+    <section class="faq-section">
+      <div class="container">
+        <h2 class="section-title">Câu hỏi thường gặp</h2>
+        <p class="faq-subtitle">Giải đáp thắc mắc của bạn về dịch vụ của chúng tôi</p>
+
+        <div class="faq-container">
+          <div class="faq-item" v-for="(item, index) in faqItems" :key="index">
+            <div class="faq-question" @click="toggleFaq(index)" :class="{ 'active': activeFaq === index }">
+              <h3>{{ item.question }}</h3>
+              <i class="fas" :class="activeFaq === index ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </div>
+            <div class="faq-answer" :class="{ 'show': activeFaq === index }">
+              <p>{{ item.answer }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -223,9 +265,7 @@
             </div>
             <h3 class="news-title">{{ article.tieuDe }}</h3>
             <p class="news-excerpt">{{ article.moTaNgan }}</p>
-            <router-link :to="`/tin-tuc/${article.id}`" class="news-read-more"
-              >Đọc thêm</router-link
-            >
+            <router-link :to="`/tin-tuc/${article.id}`" class="news-read-more">Đọc thêm</router-link>
           </div>
         </div>
       </div>
@@ -236,7 +276,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService'
 import { getAllTinTuc } from '@/Service/TinTucService'
 import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService'
@@ -553,6 +593,89 @@ const fetchNewsData = async () => {
   }
 }
 
+// Biến cho hero slideshow
+const currentSlide = ref(0);
+const slideInterval = ref(null);
+
+// Phương thức cho slideshow
+const nextSlide = () => {
+  currentSlide.value = (currentSlide.value + 1) % 3;
+};
+
+const prevSlide = () => {
+  currentSlide.value = (currentSlide.value - 1 + 3) % 3;
+};
+
+const setSlide = (index) => {
+  currentSlide.value = index;
+};
+
+const startSlideshow = () => {
+  stopSlideshow(); // Clear any existing interval
+  slideInterval.value = setInterval(() => {
+    nextSlide();
+  }, 5000);
+};
+
+const stopSlideshow = () => {
+  if (slideInterval.value) {
+    clearInterval(slideInterval.value);
+    slideInterval.value = null;
+  }
+};
+
+// Biến cho FAQ
+const activeFaq = ref(null);
+const faqItems = ref([
+  {
+    question: "Thời gian nhận và trả phòng?",
+    answer: "Giờ nhận phòng: 14:00, giờ trả phòng: 12:00. Nếu bạn cần nhận phòng sớm hoặc trả phòng muộn, vui lòng liên hệ trước để chúng tôi hỗ trợ."
+  },
+  {
+    question: "Chính sách hủy đặt phòng?",
+    answer: "Miễn phí hủy phòng trước 7 ngày. Hủy trong vòng 3-7 ngày sẽ mất 50% tiền đặt cọc. Hủy trong vòng 3 ngày sẽ không được hoàn tiền đặt cọc."
+  },
+  {
+    question: "Có dịch vụ đưa đón không?",
+    answer: "Có, chúng tôi cung cấp dịch vụ đưa đón từ bến xe Mộc Châu với chi phí bổ sung. Vui lòng đặt trước ít nhất 24 giờ."
+  },
+  {
+    question: "Có chỗ đậu xe không?",
+    answer: "Có, tất cả các homestay của chúng tôi đều có bãi đậu xe miễn phí cho khách."
+  },
+  {
+    question: "Có cho phép mang thú cưng không?",
+    answer: "Một số homestay cho phép mang thú cưng với điều kiện riêng. Vui lòng liên hệ trực tiếp để biết chi tiết."
+  }
+]);
+
+// Phương thức cho FAQ
+const toggleFaq = (index) => {
+  if (activeFaq.value === index) {
+    activeFaq.value = null;
+  } else {
+    activeFaq.value = index;
+  }
+};
+
+// Khởi tạo slideshow khi component được mount
+onMounted(() => {
+  startSlideshow();
+
+  // Tiếp tục các onMounted hiện có
+  fetchHomestayData();
+  fetchNewsData();
+});
+
+// Tạm dừng slideshow khi tab không được focus
+watch(() => document.visibilityState, (newState) => {
+  if (newState === 'visible') {
+    startSlideshow();
+  } else {
+    stopSlideshow();
+  }
+});
+
 onMounted(async () => {
   await fetchHomestayData()
   await fetchNewsData()
@@ -603,14 +726,106 @@ const fixImageUrl = (url) => {
   padding: 0 15px;
 }
 
-/* Phần Hero */
+/* Cải thiện Hero Section với slideshow */
 .hero-section {
-  background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80')
-    no-repeat center/cover;
-  color: #fff;
-  padding: 100px 0;
   position: relative;
+  height: 500px;
   overflow: hidden;
+  color: #fff;
+}
+
+.hero-slideshow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+  z-index: 1;
+}
+
+.slide.active {
+  opacity: 1;
+  z-index: 2;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.slide-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-size: 20px;
+}
+
+.slide-nav:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.slide-nav.prev {
+  left: 20px;
+}
+
+.slide-nav.next {
+  right: 20px;
+}
+
+.slide-indicators {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 10;
+}
+
+.indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator.active {
+  background-color: white;
+  transform: scale(1.2);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
 }
 
 .hero-section::before {
@@ -618,17 +833,15 @@ const fixImageUrl = (url) => {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7));
-  /* Gradient giống Mixivivu */
-  z-index: 1;
+  z-index: 3;
 }
 
-.hero-content {
+.hero-text {
   position: relative;
-  z-index: 2;
-  text-align: center;
+  z-index: 4;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -1319,6 +1532,88 @@ const fixImageUrl = (url) => {
   .news-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Phần Câu hỏi thường gặp */
+.faq-section {
+  padding: 60px 0;
+  background-color: #ffffff;
+}
+
+.faq-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 700px;
+  margin: 15px 0 30px 10px;
+}
+
+.faq-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  margin-bottom: 15px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eaeaea;
+}
+
+.faq-question {
+  background-color: #fff;
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.faq-question:hover {
+  background-color: #f9f9f9;
+}
+
+.faq-question.active {
+  background-color: #f0f9fc;
+  border-left: 4px solid #48cae4;
+}
+
+.faq-question h3 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+  color: #333;
+}
+
+.faq-question i {
+  color: #48cae4;
+  transition: transform 0.3s ease;
+}
+
+.faq-question.active i {
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  background-color: #fff;
+  padding: 0 20px;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.faq-answer.show {
+  max-height: 300px;
+  padding: 20px;
+  border-top: 1px solid #eee;
+}
+
+.faq-answer p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #666;
 }
 
 /* Thiết kế Responsive */

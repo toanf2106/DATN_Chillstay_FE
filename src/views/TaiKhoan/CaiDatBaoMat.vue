@@ -21,16 +21,15 @@
               <h5 class="text-danger mb-3">Xóa tài khoản</h5>
               <div class="alert alert-warning">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Cảnh báo:</strong> Việc xóa tài khoản là không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa
-                vĩnh viễn.
+                <strong>Cảnh báo:</strong> Việc xóa tài khoản sẽ đánh dấu tài khoản của bạn là không hoạt động. Bạn sẽ
+                không thể đăng nhập sau khi xóa.
               </div>
 
-              <p>Khi xóa tài khoản, những thông tin sau sẽ bị xóa:</p>
+              <p>Khi xóa tài khoản, bạn sẽ không thể:</p>
               <ul>
-                <li>Thông tin cá nhân và hồ sơ của bạn</li>
-                <li>Lịch sử đặt phòng</li>
-                <li>Đánh giá và nhận xét</li>
-                <li>Tất cả dữ liệu khác liên quan đến tài khoản của bạn</li>
+                <li>Đăng nhập vào hệ thống</li>
+                <li>Tiếp tục sử dụng các dịch vụ của Chillstay</li>
+                <li>Truy cập vào thông tin tài khoản và lịch sử đặt phòng</li>
               </ul>
 
               <button class="btn btn-outline-danger mt-3" @click="showDeleteConfirmation = true">
@@ -55,7 +54,8 @@
         </div>
         <div class="modal-body">
           <div v-if="!confirmDelete">
-            <p class="mb-3">Bạn có chắc chắn muốn xóa tài khoản của mình? Hành động này không thể hoàn tác.</p>
+            <p class="mb-3">Bạn có chắc chắn muốn xóa tài khoản của mình? Sau khi xóa, bạn sẽ không thể đăng nhập vào hệ
+              thống.</p>
             <p class="mb-4">Để tiếp tục, vui lòng nhấn vào nút "Tôi muốn xóa tài khoản" bên dưới.</p>
             <div class="d-flex justify-content-end">
               <button class="btn btn-secondary me-2" @click="closeDeleteModal">Hủy</button>
@@ -100,8 +100,7 @@ import { ref } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'vue-router';
 import { useToast } from '@/stores/notificationStore';
-import { checkOldPassword } from '@/Service/TaiKhoan';
-import api from '@/utils/api';
+import { checkOldPassword, deleteTaiKhoan } from '@/Service/TaiKhoan';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -152,16 +151,11 @@ const deleteAccount = async () => {
       return;
     }
 
-    // Gọi API xóa tài khoản vĩnh viễn
-    const response = await api.delete(`/api/taiKhoan/permanent-delete/${userId}`, {
-      data: {
-        password: password.value,
-        deleteUserInfo: true
-      }
-    });
+    // Gọi API xóa tài khoản (soft delete)
+    const response = await deleteTaiKhoan(userId);
 
     // Xử lý phản hồi
-    if (response.data && response.data.success) {
+    if (response.data && response.status === 200) {
       // Đóng modal
       closeDeleteModal();
 

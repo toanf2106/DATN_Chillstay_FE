@@ -51,6 +51,30 @@ export function addAnhTinTucWithImage(formData) {
   });
 }
 
+ // Thêm hàm mới để upload ảnh nội dung trực tiếp
+export function uploadContentImage(file, tinTucId = null) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // Nếu có tinTucId, thêm vào formData
+  if (tinTucId && tinTucId !== 'undefined' && tinTucId !== 'null') {
+    formData.append('tinTucId', tinTucId);
+  }
+
+  return api.post('/api/anh-tintuc/upload-content', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    timeout: 60000 // Tăng timeout cho ảnh lớn
+  }).catch(error => {
+    console.error('Lỗi khi upload ảnh nội dung:', error);
+    if (error.response) {
+      console.error('Server responded with:', error.response.data);
+    }
+    throw error;
+  });
+}
+
 // Cập nhật ảnh tin tức
 export function updateAnhTinTucWithImage(id, formData) {
   return api.put(`/api/anh-tintuc/update/${id}`, formData, {

@@ -23,6 +23,7 @@
             <li><a href="/faq">Câu hỏi thường gặp</a></li>
             <li><a href="/privacy">Chính sách bảo mật</a></li>
             <li><a href="/payment">Phương thức thanh toán</a></li>
+            <li><a href="/contact">Liên hệ với chúng tôi</a></li>
           </ul>
         </div>
 

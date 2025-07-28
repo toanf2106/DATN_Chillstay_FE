@@ -1,6 +1,6 @@
 <template>
   <div class="booking-history">
-    <h2>Lịch sử đặt phòng</h2>
+    <h2>Lịch sử đặt Homestay</h2>
     <div v-if="isLoading" class="loading-container">
       <div class="loader"></div>
       <p>Đang tải dữ liệu...</p>

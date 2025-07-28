@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { getTinTucById, getAllTinTuc } from '@/Service/TinTucService';
 import api from '@/utils/api';
@@ -113,6 +113,10 @@ const error = ref(false);
 const errorMessage = ref('');
 const lightboxImage = ref(null);
 const relatedNews = ref([]);
+const refreshInterval = ref(null);
+
+// Thời gian làm mới tin tức liên quan (30 giây)
+const REFRESH_INTERVAL_MS = 30000;
 
 const fixImageUrl = (url) => {
   if (!url) return 'https://placehold.co/100x70/e9ecef/0d6efd?text=ChillStay';
@@ -126,9 +130,15 @@ const fetchAllNews = async () => {
   try {
     const response = await getAllTinTuc();
     if (response && response.data) {
-      relatedNews.value = response.data
-        .filter(item => item.id !== parseInt(route.params.id) && item.trangThai)
-        .slice(0, 5);
+      // Lọc ra các tin tức có trạng thái active và không phải tin tức hiện tại
+      const filteredNews = response.data
+        .filter(item => item.id !== parseInt(route.params.id) && item.trangThai);
+
+      // Xáo trộn mảng tin tức để hiển thị ngẫu nhiên
+      const shuffledNews = [...filteredNews].sort(() => Math.random() - 0.5);
+
+      // Lấy tối đa 5 tin tức
+      relatedNews.value = shuffledNews.slice(0, 5);
     }
   } catch (err) {
     console.error('Error fetching all news:', err);
@@ -175,6 +185,16 @@ const formatDate = (dateString) => {
 onMounted(async () => {
   await fetchNewsDetail(route.params.id);
   await fetchAllNews();
+
+  // Thiết lập interval để làm mới tin tức liên quan
+  refreshInterval.value = setInterval(fetchAllNews, REFRESH_INTERVAL_MS);
+});
+
+onBeforeUnmount(() => {
+  // Xóa interval khi component unmount
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value);
+  }
 });
 
 watch(() => route.params.id, async (newId) => {
@@ -182,6 +202,12 @@ watch(() => route.params.id, async (newId) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     await fetchNewsDetail(newId);
     await fetchAllNews();
+
+    // Reset interval khi chuyển tin tức
+    if (refreshInterval.value) {
+      clearInterval(refreshInterval.value);
+    }
+    refreshInterval.value = setInterval(fetchAllNews, REFRESH_INTERVAL_MS);
   }
 });
 
@@ -190,8 +216,10 @@ const processedContent = computed(() => {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = news.value.noiDung;
 
+  // Xóa các nút xóa ảnh
   tempDiv.querySelectorAll('.image-delete-btn, button[class*="btn-danger"]').forEach(el => el.remove());
 
+  // Xử lý tất cả các ảnh
   const images = tempDiv.querySelectorAll('img');
   images.forEach(img => {
     const src = img.getAttribute('src');
@@ -199,8 +227,30 @@ const processedContent = computed(() => {
       img.setAttribute('src', fixImageUrl(src));
       img.style.cursor = 'pointer';
       img.onclick = () => openLightbox(img.src);
+
+      // Vô hiệu hóa việc nhập chú thích ảnh
+      img.setAttribute('title', '');
+      img.setAttribute('alt', news.value.tieuDe || '');
+
+      // Xóa các trường nhập liệu chú thích nếu có
+      const parent = img.parentNode;
+      if (parent) {
+        const captionInputs = parent.querySelectorAll('input[type="text"], textarea');
+        captionInputs.forEach(input => {
+          input.setAttribute('disabled', 'disabled');
+          input.style.display = 'none';
+        });
+      }
     }
   });
+
+  // Vô hiệu hóa tất cả các trường nhập chú thích
+  tempDiv.querySelectorAll('.caption-input, .image-caption, [contenteditable="true"]').forEach(el => {
+    el.setAttribute('contenteditable', 'false');
+    el.style.pointerEvents = 'none';
+    el.style.userSelect = 'none';
+  });
+
   return tempDiv.innerHTML;
 });
 

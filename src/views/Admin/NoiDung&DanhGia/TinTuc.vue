@@ -7,9 +7,9 @@
       <div class="search-box">
         <div class="search-control-group">
           <div class="search-input-wrapper">
-            <i class="fas fa-search search-icon"></i>
             <input type="text" v-model="searchQuery" placeholder="Tìm kiếm tin tức..." class="search-input"
               @input="handleSearch" />
+            <i class="fas fa-search search-icon"></i>
             <button v-if="searchQuery" @click="searchQuery = ''; loadTinTuc()" class="clear-search-btn">
               <i class="fas fa-times"></i>
             </button>
@@ -172,7 +172,11 @@
             <div class="col-md-8">
               <div class="mb-3">
                 <label class="form-label">Tiêu đề <span class="text-danger">*</span></label>
-                <input v-model="form.tieuDe" class="form-control" required maxlength="200" />
+                <input type="text" v-model="form.tieuDe" class="form-control" required maxlength="100"
+                  placeholder="Nhập tiêu đề tin tức (tối đa 100 ký tự)" @input="handleTitleChange"
+                  @paste="handleTitlePaste" />
+                <small class="form-text text-muted">Tối đa 100 ký tự. Còn lại: {{ 100 - form.tieuDe.length }} ký
+                  tự</small>
               </div>
               <div class="mb-3">
                 <label class="form-label">Nội dung <span class="text-danger">*</span></label>
@@ -201,7 +205,8 @@
                       <i class="fas fa-align-justify"></i>
                     </button>
                     <div class="toolbar-divider"></div>
-                    <button type="button" @click="insertImage" class="toolbar-button" title="Chèn ảnh">
+                    <button type="button" @click="insertImage" class="toolbar-button image-button"
+                      title="Chèn ảnh (chỉ cho nội dung)">
                       <i class="fas fa-image"></i>
                     </button>
                     <button type="button" @click="insertParagraph" class="toolbar-button" title="Chèn đoạn văn">
@@ -404,7 +409,8 @@ export default {
       tinTucs: [],
       isEditing: false,
       isSubmitting: false,
-      isFullscreen: false, // Add this line for fullscreen state
+      isFullscreen: false,
+      currentRange: null, // Thêm biến để lưu vị trí con trỏ
       form: {
         id: null,
         maTinTuc: '',
@@ -640,11 +646,35 @@ export default {
 
     // Chèn ảnh từ máy tính
     insertImage() {
+      // Đảm bảo focus vào editor nội dung trước khi chèn ảnh
+      this.$refs.contentEditor.focus();
+
+      // Lưu vị trí con trỏ hiện tại trong editor nội dung
+      this.saveCurrentSelection();
+
+      // Kích hoạt input file để chọn ảnh
       this.$refs.imageInput.click();
     },
 
+    // Lưu vị trí con trỏ hiện tại
+    saveCurrentSelection() {
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        this.currentRange = selection.getRangeAt(0).cloneRange();
+      }
+    },
+
+    // Khôi phục vị trí con trỏ đã lưu
+    restoreSelection() {
+      if (this.currentRange) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(this.currentRange);
+      }
+    },
+
     // Xử lý khi ảnh được chọn
-    async handleImageSelected(event) {
+    handleImageSelected(event) {
       const file = event.target.files[0];
       if (!file) return;
 
@@ -654,6 +684,16 @@ export default {
       }
       if (file.size > 5 * 1024 * 1024) { // 5MB
         alert('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+
+      // Khôi phục vị trí con trỏ trong editor nội dung
+      this.restoreSelection();
+
+      // Kiểm tra xem con trỏ có trong editor nội dung không
+      const isInContentEditor = this.isSelectionInContentEditor();
+      if (!isInContentEditor) {
+        alert('Vui lòng đặt con trỏ vào phần nội dung trước khi chèn ảnh');
         return;
       }
 
@@ -732,6 +772,17 @@ export default {
       }
     },
 
+    // Kiểm tra xem con trỏ có trong editor nội dung không
+    isSelectionInContentEditor() {
+      const selection = window.getSelection();
+      if (!selection.rangeCount) return false;
+
+      const range = selection.getRangeAt(0);
+      const contentEditor = this.$refs.contentEditor;
+
+      return contentEditor && contentEditor.contains(range.commonAncestorContainer);
+    },
+
     // Xóa định dạng
     clearFormatting() {
       document.execCommand('removeFormat', false, null);
@@ -756,6 +807,34 @@ export default {
     // Xử lý khi nội dung thay đổi
     handleContentChange() {
       this.updateContentValue();
+    },
+
+    // Xử lý thay đổi tiêu đề để loại bỏ HTML và ảnh
+    handleTitleChange() {
+      // Loại bỏ tất cả các thẻ HTML khỏi tiêu đề
+      if (this.form.tieuDe) {
+        // Tạo một div tạm thời để xử lý HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = this.form.tieuDe;
+
+        // Xóa tất cả các thẻ img
+        const images = tempDiv.querySelectorAll('img');
+        images.forEach(img => img.remove());
+
+        // Lấy văn bản thuần túy
+        let plainText = tempDiv.textContent || tempDiv.innerText || '';
+
+        // Loại bỏ các ký tự đặc biệt và HTML
+        plainText = plainText.replace(/<[^>]*>/g, '');
+
+        // Cập nhật tiêu đề
+        this.form.tieuDe = plainText;
+
+        // Đảm bảo không vượt quá 100 ký tự
+        if (this.form.tieuDe.length > 100) {
+          this.form.tieuDe = this.form.tieuDe.substring(0, 100);
+        }
+      }
     },
 
     // Hiện/ẩn xem trước
@@ -970,8 +1049,16 @@ export default {
         alert('Vui lòng thêm ảnh bìa!');
         return;
       }
-      if (this.isEditing && !this.form.anhBia && !this.form.anhBiaFile) {
-        alert('Vui lòng thêm ảnh bìa!');
+
+      // Kiểm tra tiêu đề không chứa HTML hoặc ảnh
+      if (this.form.tieuDe.includes('<img') || this.form.tieuDe.includes('<iframe') || this.form.tieuDe.includes('src=')) {
+        alert('Tiêu đề không được chứa hình ảnh hoặc mã HTML!');
+        return;
+      }
+
+      // Kiểm tra độ dài tiêu đề
+      if (this.form.tieuDe.length > 100) {
+        alert('Tiêu đề không được vượt quá 100 ký tự!');
         return;
       }
 
@@ -1242,6 +1329,20 @@ export default {
         this.$refs.contentEditor.removeEventListener('click', this.handleEditorClick);
       }
     },
+    // Xử lý khi dán nội dung vào tiêu đề
+    handleTitlePaste(event) {
+      // Ngăn chặn hành động dán mặc định
+      event.preventDefault();
+
+      // Lấy văn bản thuần túy từ clipboard
+      const text = event.clipboardData.getData('text/plain');
+
+      // Loại bỏ các ký tự HTML và giới hạn độ dài
+      const cleanText = text.replace(/<[^>]*>/g, '').substring(0, 100);
+
+      // Chèn văn bản đã làm sạch vào vị trí con trỏ
+      document.execCommand('insertText', false, cleanText);
+    },
   }
 }
 </script>
@@ -1290,23 +1391,24 @@ export default {
 
 .search-icon {
   position: absolute;
-  left: 10px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: #060606;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 35px;
-  border-radius: 30px;
+  padding: 10px 35px 10px 15px;
+  border-radius: 10px;
   border: 1px solid #5c5d5e;
-
 }
 
 .clear-search-btn {
   position: absolute;
-  right: 10px;
+  right: 35px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -1458,19 +1560,19 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
 }
 
 .modal-editor {
-  width: 900px;
-  max-width: 900px;
-  margin: auto;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-  height: 80vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .modal-header {
@@ -1500,8 +1602,15 @@ export default {
 .modal-body {
   flex: 1;
   padding: 20px;
-  overflow-y: auto;
+  overflow-y: hidden;
+  /* Loại bỏ thanh cuộn ở giữa */
   background-color: white;
+}
+
+.modal-body form {
+  height: 100%;
+  overflow-y: hidden;
+  /* Loại bỏ thanh cuộn ở form */
 }
 
 .homestay-details-modal .modal-body {
@@ -2034,12 +2143,12 @@ export default {
 .content-editor {
   min-height: 250px;
   max-height: 400px;
-  /* Thêm chiều cao tối đa */
   padding: 15px;
   background-color: white;
   border: none;
   outline: none;
   overflow-y: auto;
+  /* Giữ thanh cuộn cho phần nội dung */
   line-height: 1.6;
   cursor: text;
   user-select: text !important;
@@ -2157,10 +2266,12 @@ export default {
 
 /* Add full-width image style for the editor */
 .content-editor img {
-  max-width: 100%;
-  height: auto;
-  margin: 10px auto;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 20px auto;
   display: block;
+  border-radius: 8px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
 .image-caption {
@@ -2360,8 +2471,9 @@ export default {
 
 .gallery-img {
   width: 100%;
-  height: 100%;
+  height: 200px;
   object-fit: cover;
+  border-radius: 8px;
 }
 
 .cover-image {
@@ -2533,12 +2645,12 @@ body.gallery-open {
 }
 
 .content-preview-html img {
-  max-width: 100%;
-  height: auto;
-  margin: 1rem auto;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 20px auto;
   display: block;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
 .content-editable {
@@ -2614,10 +2726,7 @@ body.gallery-open {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-wrap: break-word;
-  white-space: normal;
-  max-height: 60px;
-  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .news-title-display {
@@ -2677,4 +2786,128 @@ body.gallery-open {
 
 /* Fullscreen mode styles */
 /* ... existing code ... */
+
+/* Tăng kích thước ảnh trong article-image */
+.article-image img {
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 20px auto;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Đảm bảo container đủ rộng */
+.content-editor-container {
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  width: 100%;
+}
+
+/* Đảm bảo tiêu đề không bị tràn */
+input[type="text"] {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 16px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* Đảm bảo ảnh trong tiêu đề không hiển thị */
+.news-title-preview img,
+.news-title-display img,
+h4 img {
+  display: none !important;
+}
+
+/* Sửa lại form để không bị tràn */
+.modal-body form {
+  max-height: calc(90vh - 60px);
+  overflow-y: auto;
+}
+
+/* Đảm bảo phần xem trước tiêu đề không bị tràn */
+.news-title-preview,
+.news-title-display,
+h4.text-center {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Đảm bảo tiêu đề trong bảng không bị tràn */
+td.text-center {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tùy chỉnh nút chèn ảnh */
+.image-button {
+  background-color: #e3f2fd;
+  position: relative;
+}
+
+.image-button:after {
+  content: "Chỉ cho nội dung";
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 5px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.image-button:hover:after {
+  opacity: 1;
+}
+
+/* Hiển thị thông báo khi chọn ảnh ngoài vùng nội dung */
+.alert-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  animation: fadeIn 0.3s, fadeOut 0.3s 2.7s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
 </style>

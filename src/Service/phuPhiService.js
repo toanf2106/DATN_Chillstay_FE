@@ -66,6 +66,17 @@ export const searchPhuPhi = async (keyword) => {
   }
 };
 
+// Lấy tất cả phụ phí phát sinh đang hoạt động
+export const getAllPhuPhiPhatSinhActive = async () => {
+  try {
+    const response = await api.get('/api/phuPhi/all-phat-sinh');
+    return response;
+  } catch (error) {
+    console.error('Error fetching active phat sinh phu phi:', error);
+    throw error;
+  }
+};
+
 export function getPhuPhiChiTietByDatHomeId(datHomeId) {
     return api.get(`/phu-phi-chi-tiet/dat-home/${datHomeId}`);
 }

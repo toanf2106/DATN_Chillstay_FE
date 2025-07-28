@@ -166,7 +166,12 @@
 <script setup>
 
 import { ref, computed, onMounted, watch } from 'vue';
-import { getAllHomeStay, getLoaiHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
+import {
+  getAllHomeStay,
+  getLoaiHomeStay,
+  getAnhHomeStayByHomestayId,
+  getAvailableHomestay // Thêm import API mới
+} from '@/Service/HomeStayService';
 import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
@@ -382,8 +387,8 @@ const fetchHomestayData = async () => {
     console.log('Đang tải dữ liệu homestay...')
 
     try {
-      // Gọi API để lấy dữ liệu homestay
-      const res = await getAllHomeStay()
+      // Sử dụng API mới để lấy danh sách homestay khả dụng (đã loại bỏ các homestay đang bị khóa)
+      const res = await getAvailableHomestay()
       console.log('Dữ liệu homestay từ API:', res.data)
 
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
@@ -608,7 +613,7 @@ watch(currentPage, (newPage) => {
   padding-right: 40px;
 }
 
-.search-icon { 
+.search-icon {
   position: absolute;
   top: 50%;
   left: 16px;

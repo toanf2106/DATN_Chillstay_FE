@@ -336,7 +336,7 @@
                         Giảm giá ({{ selectedBooking.tenGiamGia }}):
                       </span>
                       <span class="payment-value discount"
-                        >- {{ formatCurrency(selectedBooking.soTienGiam) }}</span
+                        >- {{ formatCurrency(calculateActualDiscount()) }}</span
                       >
                     </div>
                     <div class="payment-item">
@@ -1955,6 +1955,33 @@ export default {
           this.checkingPaymentStatus = false
         }
       }
+    },
+
+    calculateActualDiscount() {
+      if (!this.selectedBooking) return 0;
+
+      // Nếu có soTienGiam và khác 0, sử dụng nó
+      if (this.selectedBooking.soTienGiam && this.selectedBooking.soTienGiam > 0) {
+        return this.selectedBooking.soTienGiam;
+      }
+
+      // Nếu không, tính dựa trên giá trị giảm giá và giá homestay
+      if (this.selectedBooking.giaTri && this.selectedBooking.giaCaHomestay) {
+        // Tính số ngày lưu trú
+        const checkin = new Date(this.selectedBooking.ngayNhanPhong);
+        const checkout = new Date(this.selectedBooking.ngayTraPhong);
+        const nights = Math.round((checkout - checkin) / (1000 * 60 * 60 * 24));
+
+        // Tính số tiền giảm
+        const roomPrice = this.selectedBooking.giaCaHomestay * nights;
+        let discount = roomPrice * (this.selectedBooking.giaTri / 100);
+
+        // Kiểm tra giới hạn
+        return Math.min(discount, roomPrice);
+      }
+
+      // Nếu không tính được, hiển thị 0
+      return 0;
     },
   },
 }

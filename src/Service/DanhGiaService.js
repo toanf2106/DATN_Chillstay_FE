@@ -24,6 +24,10 @@ export function updateDanhGia(id, danhGiaDto) {
     return api.put(`/api/danh-gia/update/${id}`, danhGiaDto);
 }
 
+export function updateDanhGiaStatus(id, status) {
+    return api.put(`/api/danh-gia/update-status/${id}`, null, { params: { trangThai: status } });
+}
+
 export function deleteDanhGia(id) {
     return api.delete(`/api/danh-gia/delete/${id}`);
 }

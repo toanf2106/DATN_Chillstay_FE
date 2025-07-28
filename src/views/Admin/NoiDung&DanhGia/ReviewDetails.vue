@@ -56,27 +56,33 @@
               :class="{ 'is-hidden': review.isHidden }"
             >
               <div class="review-header">
-                <div class="user-avatar">
-                  <img src="/public/images/default-avatar.png" alt="User avatar">
-                </div>
-                <div class="user-info">
-                  <div class="username">{{ getReviewCustomerName(review.khachHangId) }}</div>
-                  <div class="rating-stars">
-                    <template v-for="n in 5" :key="n">
-                      <i v-if="Math.floor(review.diemSo) >= n" class="fas fa-star filled"></i>
-                      <i v-else-if="Math.floor(review.diemSo) === n-1 && (review.diemSo % 1) >= 0.5" class="fas fa-star-half-alt filled"></i>
-                      <i v-else class="far fa-star"></i>
-                    </template>
+                <div class="review-header-left">
+                  <div class="user-avatar">
+                    <img src="/public/images/default-avatar.png" alt="User avatar">
+                  </div>
+                  <div class="user-info">
+                    <div class="username">{{ getReviewCustomerName(review.khachHangId) }}</div>
+                    <div class="rating-stars">
+                      <template v-for="n in 5" :key="n">
+                        <i v-if="Math.floor(review.diemSo) >= n" class="fas fa-star filled"></i>
+                        <i v-else-if="Math.floor(review.diemSo) === n-1 && (review.diemSo % 1) >= 0.5" class="fas fa-star-half-alt filled"></i>
+                        <i v-else class="far fa-star"></i>
+                      </template>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="card-top-actions">
-                <div class="review-status-indicator" :class="review.isHidden ? 'status-hidden' : 'status-visible'">
-                  {{ review.isHidden ? 'Đang ẩn' : 'Đang hiện' }}
+                <div class="card-top-actions">
+                  <div class="review-status-indicator" :class="review.isHidden ? 'status-hidden' : 'status-visible'">
+                    {{ review.isHidden ? 'Đang ẩn' : 'Đang hiện' }}
+                  </div>
+                  <button @click="toggleLike(review.id)" class="like-button" :class="{ liked: review.isLiked }">
+                    <i class="fas fa-thumbs-up"></i> Hữu ích ({{ review.likes }})
+                  </button>
+                  <button @click="toggleReviewVisibility(review)" class="action-button hide-button">
+                    <i :class="review.isHidden ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
+                    {{ review.isHidden ? 'Hiện' : 'Ẩn' }}
+                  </button>
                 </div>
-                <button @click="toggleLike(review.id)" class="like-button" :class="{ liked: review.isLiked }">
-                  <i class="fas fa-thumbs-up"></i> Hữu ích ({{ review.likes }})
-                </button>
               </div>
               <div class="review-metadata">
                 <span class="review-date">{{ formatDate(review.thoiGianDanhGia) }}</span>
@@ -110,8 +116,9 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { getHomeStayById } from '@/Service/HomeStayService';
-import { getAllDanhGia } from '@/Service/DanhGiaService';
+import { getAllDanhGia, updateDanhGiaStatus } from '@/Service/DanhGiaService';
 import { getKhachHangById } from '@/Service/khachHangService';
+import { useToast } from '@/stores/notificationStore';
 
 export default {
   name: 'ReviewDetails',
@@ -129,6 +136,7 @@ export default {
     const visibilityFilter = ref('all'); // 'all', 'visible', 'hidden'
     const isImageModalOpen = ref(false);
     const currentModalImage = ref('');
+    const toast = useToast();
 
     const openImageModal = (imageUrl) => {
       currentModalImage.value = imageUrl;
@@ -187,6 +195,27 @@ export default {
       return reviewCustomers.value[customerId] || 'Khách hàng ẩn danh';
     };
 
+    const toggleReviewVisibility = async (review) => {
+      // Logic mới:
+      // newBackendTrangThai sẽ là trạng thái mới được gửi lên server.
+      // Nếu review đang bị ẩn (isHidden = true), thì trạng thái mới sẽ là 'hiện' (true).
+      // Nếu review đang hiện (isHidden = false), thì trạng thái mới sẽ là 'ẩn' (false).
+      const newBackendTrangThai = review.isHidden; // `true` để 'hiện', `false` để 'ẩn'
+
+      try {
+        await updateDanhGiaStatus(review.id, newBackendTrangThai);
+        
+        // Cập nhật trạng thái isHidden ở frontend để giao diện thay đổi ngay lập tức
+        review.isHidden = !review.isHidden;
+
+        const message = newBackendTrangThai ? 'hiện' : 'ẩn';
+        toast.success(`Đã ${message} đánh giá thành công!`);
+      } catch (error) {
+        console.error(`Lỗi khi cập nhật trạng thái đánh giá:`, error);
+        toast.error('Không thể cập nhật trạng thái đánh giá.');
+      }
+    };
+
     const setStarFilter = (stars) => {
       selectedStarFilter.value = stars;
     };
@@ -221,8 +250,14 @@ export default {
       }
 
       if (selectedStarFilter.value !== null) {
-        const minRating = selectedStarFilter.value;
-        return tempReviews.filter(review => review.diemSo >= minRating);
+        const star = selectedStarFilter.value;
+        // Logic for 5 stars remains exact match
+        if (star === 5) {
+            return tempReviews.filter(review => review.diemSo === 5);
+        }
+        // New logic for 1+, 2+, 3+, 4+
+        // This will filter for ratings within the integer range, e.g., 4 will catch 4.0 to 4.9
+        return tempReviews.filter(review => review.diemSo >= star && review.diemSo < (star + 1));
       }
 
       return tempReviews;
@@ -252,6 +287,7 @@ export default {
       currentModalImage,
       openImageModal,
       closeImageModal,
+      toggleReviewVisibility
     };
   }
 }
@@ -586,8 +622,13 @@ export default {
 }
 .review-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 15px;
+}
+.review-header-left {
+  display: flex;
+  align-items: flex-start;
 }
 .user-avatar img {
   width: 50px;
@@ -667,10 +708,9 @@ export default {
 }
 .card-top-actions {
     display: flex;
-    justify-content: flex-end;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    flex-shrink: 0;
 }
 .manage-photos-button:hover {
   background-color: #e0e7ff; /* Light blue */

@@ -19,7 +19,7 @@ import NewsDetailView from '../views/NewsDetailView.vue'
 import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
 import QlyVatTuPhong from '@/views/Admin/Home/QlyVatTuPhong.vue'
 import DanhGiaView from '../views/DanhGiaView.vue'
-import PublicReviewDetails from '../views/Admin/NoiDung&DanhGia/ReviewDetails.vue';
+import PublicReviewDetails from '../views/PublicReviewDetails.vue';
 
 
 import { useAuthStore } from '../stores/authStore'

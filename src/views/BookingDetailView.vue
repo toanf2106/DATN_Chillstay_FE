@@ -85,11 +85,11 @@
             </div>
             <div class="price-item">
               <span class="label">Giảm giá:</span>
-              <span class="value">- {{ formatCurrency(booking.soTienGiam) }}</span>
+              <span class="value">- {{ formatCurrency(calculateActualDiscount()) }}</span>
             </div>
             <div class="price-item total">
               <span class="label">Thanh toán:</span>
-              <span class="value">{{ formatCurrency(booking.tongTien - booking.soTienGiam) }}</span>
+              <span class="value">{{ formatCurrency(booking.tongTien) }}</span>
             </div>
           </div>
         </div>
@@ -194,6 +194,39 @@ const getImageUrl = (imagePath) => {
     return '/images/default-thumbnail.jpg'; // Fallback on error
   }
 }
+
+const calculateActualDiscount = () => {
+  if (!booking.value) return 0;
+
+  // Nếu có soTienGiam và khác 0, sử dụng nó
+  if (booking.value.soTienGiam && booking.value.soTienGiam > 0) {
+    return booking.value.soTienGiam;
+  }
+
+  // Nếu không, tính dựa trên giá trị giảm giá và giá homestay
+  if (booking.value.giaTri && booking.value.giaCaHomestay) {
+    // Tính số ngày lưu trú
+    const checkin = new Date(booking.value.ngayNhanPhong);
+    const checkout = new Date(booking.value.ngayTraPhong);
+    const nights = Math.max(1, Math.round((checkout - checkin) / (1000 * 60 * 60 * 24)));
+
+    // Tính số tiền giảm
+    const roomPrice = booking.value.giaCaHomestay * nights;
+    let discount = roomPrice * (booking.value.giaTri / 100);
+
+    // Kiểm tra giới hạn
+    return Math.min(discount, roomPrice);
+  }
+
+  // Có thể tính từ chênh lệch giá
+  if (booking.value.giaCaHomestay && booking.value.tongTien) {
+    const difference = booking.value.giaCaHomestay - booking.value.tongTien;
+    if (difference > 0) return difference;
+  }
+
+  // Nếu không tính được, hiển thị 0
+  return 0;
+};
 </script>
 
 <style scoped>

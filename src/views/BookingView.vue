@@ -684,7 +684,7 @@
 </template>
 
 <script>
-import { getAllHomeStay, getSoPhongByHomestayId2 } from '@/Service/HomeStayService'
+import { getAllHomeStay, getSoPhongByHomestayId2, getAvailableHomestay, getHomeStayById } from '@/Service/HomeStayService'
 import {
   getTienNghiByIdHomeStay,
   getDichVuByIdHomeStay,
@@ -874,22 +874,39 @@ export default {
     },
     nextStep() {
       if (this.currentStep < this.bookingSteps.length - 1) {
+        // Trường hợp đặc biệt khi đang ở bước 0 (thông tin khách hàng)
+        // và chuẩn bị chuyển sang bước 1 (thanh toán)
         if (this.currentStep === 0) {
           // Validate customer info before moving to payment step
           if (!this.validateCustomerInfo()) {
             return // Stop if validation fails
           }
+
+          // Kiểm tra lại xem homestay có đang bị khóa không trước khi cho phép chuyển bước
+          this.checkHomestayLockStatus().then(canProceed => {
+            if (canProceed) {
+              // Nếu homestay không bị khóa, tiếp tục chuyển bước
+              this.currentStep++;
+            }
+          });
+          return; // Dừng lại để đợi kiểm tra bất đồng bộ hoàn thành
         }
 
         if (this.currentStep === 1) {
-          // Nếu đang ở bước thanh toán, kiểm tra phương thức thanh toán
-          if (this.selectedPayment === 'transfer') {
-            // Nếu là chuyển khoản, hiển thị modal xác nhận
-            this.showPaymentConfirm = true
-          } else {
-            // Tiếp tục quy trình đặt phòng thông thường
-            this.submitBooking()
-          }
+          // Kiểm tra lại xem homestay có đang bị khóa không trước khi cho phép chuyển bước
+          this.checkHomestayLockStatus().then(canProceed => {
+            if (canProceed) {
+              // Nếu đang ở bước thanh toán, kiểm tra phương thức thanh toán
+              if (this.selectedPayment === 'transfer') {
+                // Nếu là chuyển khoản, hiển thị modal xác nhận
+                this.showPaymentConfirm = true
+              } else {
+                // Tiếp tục quy trình đặt phòng thông thường
+                this.submitBooking()
+              }
+            }
+          });
+          return; // Dừng lại để đợi kiểm tra bất đồng bộ hoàn thành
         } else {
           this.currentStep++
         }
@@ -908,6 +925,12 @@ export default {
         // Sử dụng notification utility để hiển thị thông báo
         notification.error('Vui lòng chọn phương thức thanh toán')
         return
+      }
+
+      // Kiểm tra lại xem homestay có đang bị khóa không trước khi đặt
+      const canProceed = await this.checkHomestayLockStatus();
+      if (!canProceed) {
+        return;
       }
 
       try {
@@ -1807,6 +1830,93 @@ export default {
         this.customerCount = 0
       } finally {
         this.isLoadingCustomerCount = false
+      }
+    },
+
+    // Fetch data for selected room
+    async fetchSelectedRoomData() {
+      if (!this.$route.query.id) {
+        notification.error('Không tìm thấy thông tin homestay');
+        this.$router.push('/');
+        return;
+      }
+
+      try {
+        // Trước khi tải thông tin chi tiết, kiểm tra xem homestay có đang bị khóa không
+        const availabilityResponse = await getAvailableHomestay();
+        if (availabilityResponse && availabilityResponse.success) {
+          const homestayData = availabilityResponse.data.find(
+            item => item.homestay && item.homestay.id == this.$route.query.id
+          );
+
+          // Nếu không tìm thấy homestay trong danh sách hoặc đang bị khóa
+          if (!homestayData || homestayData.isLocked) {
+            notification.warning(
+              'Rất tiếc, homestay này hiện đang được đặt tại quầy. Vui lòng chọn homestay khác hoặc thử lại sau.'
+            );
+            this.$router.push('/').then(() => {
+              // Đảm bảo cuộn lên đầu trang sau khi chuyển hướng
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            return;
+          }
+        }
+
+        // Tiếp tục tải thông tin chi tiết nếu homestay không bị khóa
+        const response = await getHomeStayById(this.$route.query.id);
+        if (response.status === 200 && response.data) {
+          this.selectedRoom = response.data.id;
+          this.selectedHomestay = response.data;
+
+          // Load tiện nghi của homestay
+          this.fetchTienNghiData(this.selectedRoom);
+          // Load dịch vụ của homestay
+          this.fetchDichVuData(this.selectedRoom);
+          // Load thông tin giảm giá
+          this.fetchGiamGiaData(this.selectedRoom);
+        } else {
+          notification.error('Không thể tải thông tin homestay');
+        }
+      } catch (error) {
+        console.error('Error fetching room data:', error);
+        notification.error('Lỗi khi tải thông tin homestay');
+      }
+    },
+
+    // Kiểm tra trạng thái khóa của homestay trước khi tiếp tục đặt phòng
+    async checkHomestayLockStatus() {
+      try {
+        // Nếu không có homestay được chọn, không thể tiếp tục
+        if (!this.selectedRoom) {
+          notification.error('Không tìm thấy thông tin homestay');
+          return false;
+        }
+
+        // Kiểm tra trạng thái khóa của homestay
+        const availabilityResponse = await getAvailableHomestay();
+        if (availabilityResponse && availabilityResponse.success) {
+          const homestayData = availabilityResponse.data.find(
+            item => item.homestay && item.homestay.id == this.selectedRoom
+          );
+
+          // Nếu không tìm thấy homestay trong danh sách hoặc đang bị khóa
+          if (!homestayData || homestayData.isLocked) {
+            notification.warning(
+              'Rất tiếc, homestay này vừa được đặt tại quầy. Vui lòng chọn homestay khác hoặc thử lại sau.'
+            );
+            this.$router.push('/').then(() => {
+              // Đảm bảo cuộn lên đầu trang sau khi chuyển hướng
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            return false;
+          }
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra trạng thái homestay:', error);
+        notification.error('Có lỗi xảy ra khi kiểm tra tình trạng homestay');
+        return false;
       }
     },
   },

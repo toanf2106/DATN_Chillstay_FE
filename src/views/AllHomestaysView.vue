@@ -149,7 +149,12 @@
 <script setup>
 
 import { ref, computed, onMounted, watch } from 'vue';
-import { getAllHomeStay, getLoaiHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
+import {
+  getAllHomeStay,
+  getLoaiHomeStay,
+  getAnhHomeStayByHomestayId,
+  getAvailableHomestay // Thêm import API mới
+} from '@/Service/HomeStayService';
 import { useRouter, useRoute } from 'vue-router';
 import api from '@/utils/api';
 
@@ -385,9 +390,12 @@ const fetchHomestayData = async () => {
     console.log('Đang tải dữ liệu homestay...');
 
     try {
-      // Gọi API để lấy dữ liệu homestay
-      const res = await getAllHomeStay();
-      console.log('Dữ liệu homestay từ API:', res.data);
+
+      // Sử dụng API mới để lấy danh sách homestay khả dụng (đã loại bỏ các homestay đang bị khóa)
+      const res = await getAvailableHomestay()
+      console.log('Dữ liệu homestay từ API:', res.data)
+
+  
 
       // In ra dữ liệu để kiểm tra
       console.log('Dữ liệu homestay đầu tiên:', {
@@ -397,6 +405,7 @@ const fetchHomestayData = async () => {
         loai: res.data[0].tenLoaiHomestay || (res.data[0].loaiHomeStay ? res.data[0].loaiHomeStay.tenLoai : undefined),
         allProps: Object.keys(res.data[0])
       });
+
 
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
         homestays.value = await Promise.all(res.data.map(async (homestay) => {

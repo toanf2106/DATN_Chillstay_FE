@@ -620,14 +620,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getHomeStayById, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService';
+import { getHomeStayById, getAnhHomeStayByHomestayId, getAvailableHomestay } from '@/Service/HomeStayService';
 import { getAllTienNghi } from '@/Service/TienNghiService';
 import { getVatTuList } from '@/Service/vatTuService';
 import { getPhongByHomeStayId, getAnhPhongByPhongId } from '@/Service/phongService';
 import { getDichVuByIdHomeStay } from '@/Service/DatHomeService';
-import { useAuthStore } from '@/stores/authStore';
+// import { useAuthStore } from '@/stores/authStore';
 import notification from '@/utils/notification';
-import eventBus from '@/utils/event-bus';
 
 const route = useRoute();
 const router = useRouter();
@@ -1106,50 +1105,39 @@ const goBack = () => {
 };
 
 // Khởi tạo authStore
-const authStore = useAuthStore();
+// const authStore = useAuthStore();
 
 // Hàm để xử lý việc đặt phòng
 const bookNow = async () => {
-  console.log('Đặt phòng cho homestay:', homestay.value?.id);
+  try {
+    // Kiểm tra xem homestay có đang bị khóa không
+    const availabilityResponse = await getAvailableHomestay();
+    if (availabilityResponse && availabilityResponse.success) {
+      const homestayData = availabilityResponse.data.find(
+        item => item.homestay && item.homestay.id === homestay.value.id
+      );
 
-  // Kiểm tra xem người dùng đã đăng nhập chưa
-  if (!authStore.isLoggedIn) {
-    // Hiển thị thông báo yêu cầu đăng nhập
-    notification.warning('Vui lòng đăng nhập để đặt homestay', {
-      position: 'top-right',
-      duration: 5000
-    });
-
-    // Lưu URL hiện tại để quay lại sau khi đăng nhập
-    localStorage.setItem('redirectAfterLogin', router.currentRoute.value.fullPath);
-
-    // Sử dụng event bus để mở modal đăng nhập
-    eventBus.emit('open-login-modal');
-
-    // Fallback nếu event bus không hoạt động
-    setTimeout(() => {
-      const authModal = document.getElementById('authModal');
-      if (authModal) {
-        authModal.style.display = 'block';
-        authModal.classList.add('modal-active');
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-          loginForm.classList.add('form-active');
-        }
+      // Nếu homestay đang bị khóa, hiển thị thông báo và không cho phép đặt
+      if (!homestayData || homestayData.isLocked) {
+                 notification.warning(
+           'Rất tiếc, homestay này hiện đang được đặt tại quầy. Vui lòng chọn homestay khác hoặc thử lại sau.'
+         );
+         router.push('/').then(() => {
+           // Đảm bảo cuộn lên đầu trang sau khi chuyển hướng
+           window.scrollTo({ top: 0, behavior: 'smooth' });
+         });
+         return;
       }
-    }, 100);
+    }
 
-    return;
-  }
-
-  // Nếu đã đăng nhập, chuyển đến trang đặt phòng với ID homestay
-  if (homestay.value?.id) {
-    router.push(`/booking/${homestay.value.id}`);
-  } else {
-    notification.error('Không thể đặt phòng vào lúc này. Vui lòng thử lại sau.', {
-      position: 'top-right',
-      duration: 5000
+    // Nếu homestay không bị khóa, tiếp tục quy trình đặt phòng
+    router.push({
+      name: 'booking',
+      query: { id: homestay.value.id, fromHome: 'true' }
     });
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra trạng thái homestay:', error);
+    notification.error('Có lỗi xảy ra. Vui lòng thử lại sau.');
   }
 };
 

@@ -15,11 +15,14 @@
                     <img :src="reviewData.customer.avatar || '/images/default-avatar.png'" alt="Avatar"
                         class="user-avatar" />
                     <div class="user-details">
-                        <p class="user-name">{{ reviewData.customer.hoTen || 'Khách hàng' }}</p>
+                        <p class="user-name">{{ reviewData.customer.tenKhachHang || reviewData.customer.taiKhoan?.tenTaiKhoan || authStore.user?.tenTaiKhoan }}</p>
                         <div class="star-rating">
                             <span v-for="n in 5" :key="n" class="star"
                                 :class="{ filled: n <= reviewData.review.diemSo }">★</span>
                         </div>
+                        <p v-if="reviewData.homestay" class="homestay-name-review">
+                           {{ reviewData.homestay.tenHomestay || 'Homestay đã đánh giá' }}
+                        </p>
                         <p class="review-meta">
                             {{ new Date(reviewData.review.thoiGianDanhGia).toLocaleString() }}
                         </p>
@@ -36,12 +39,6 @@
                     </div>
                 </div>
 
-                <!-- Product Info Section -->
-                <div v-if="reviewData.homestay" class="product-info">
-                    <img :src="reviewData.homestay.hinhAnh || '/images/default-homestay.png'" alt="Homestay"
-                        class="product-image" />
-                    <p class="product-name">{{ reviewData.homestay.tenHomestay || 'Homestay đã đánh giá' }}</p>
-                </div>
                 <!-- Edit Button -->
                 <div class="review-actions">
                     <button v-if="reviewData.review.lanSua === 0 || reviewData.review.lanSua === null"
@@ -304,6 +301,8 @@ const fetchAndProcessReviews = async () => {
                     const bookingData = bookingResponse.data || {};
                     const customerData = customerResponse.data || {};
 
+                    console.log(`Thông tin khách hàng trả về cho ID ${review.khachHangId}:`, customerData);
+
                     // Ensure all images have full URLs
                     const processedReview = {
                         ...review,
@@ -420,6 +419,13 @@ h1 {
     font-size: 12px;
     color: #888;
     margin: 5px 0;
+}
+
+.homestay-name-review {
+    font-size: 14px;
+    color: #333;
+    margin: 5px 0;
+    font-weight: 500;
 }
 
 .review-content {

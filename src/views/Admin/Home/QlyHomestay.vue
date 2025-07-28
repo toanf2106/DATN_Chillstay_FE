@@ -4,20 +4,15 @@
 
     <div class="controls-container">
       <div class="search-box">
-        <div class="search-control-group">
-          <div class="search-input-wrapper">
-            <i class="fas fa-search search-icon"></i>
-            <input
-              type="text"
-              v-model="searchTerm"
-              placeholder="Tìm kiếm homestay..."
-              class="search-input"
-              @input="handleSearch"
-            />
-            <button v-if="searchTerm" @click="clearSearch" class="clear-search-btn">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            v-model="searchTerm"
+            placeholder="Tìm kiếm homestay..."
+            class="search-input"
+            @input="handleSearch"
+          />
         </div>
       </div>
 
@@ -31,13 +26,25 @@
           <option value="active">Đang hoạt động</option>
           <option value="inactive">Đã khóa</option>
         </select>
-        <button class="btn btn-info loai-homestay-btn" @click="navigateToLoaiHomestay">
+        <button
+          class="btn btn-info loai-homestay-btn"
+          title="Quản lý loại homestay"
+          @click="navigateToLoaiHomestay"
+        >
           <i class="fas fa-tags"></i>
         </button>
-        <button class="btn btn-warning dichvu-homestay-btn" @click="navigateToHomestayDichVu">
+        <button
+          class="btn btn-warning dichvu-homestay-btn"
+          title="Quản lý dịch vụ homestay"
+          @click="navigateToHomestayDichVu"
+        >
           <i class="fas fa-utensils"></i>
         </button>
-        <button class="btn btn-success tiennghi-homestay-btn" @click="navigateToTienNghiHomestay">
+        <button
+          class="btn btn-success tiennghi-homestay-btn"
+          title="Quản lý tiện nghi homestay"
+          @click="navigateToTienNghiHomestay"
+        >
           <i class="fas fa-concierge-bell"></i>
         </button>
         <button class="btn btn-primary add-button" @click="openAddModal">
@@ -726,12 +733,6 @@ export default {
   width: 450px;
 }
 
-.search-control-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .search-input-wrapper {
   position: relative;
   flex-grow: 1;
@@ -777,31 +778,6 @@ export default {
 .search-input:focus {
   border-color: #0d6efd;
   box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0;
-  font-size: 14px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.25s ease;
-}
-
-.clear-search-btn:hover {
-  background-color: #e9ecef;
-  color: #212529;
 }
 
 /* RIGHT SIDE: FILTERS & ADD BUTTON */
@@ -1033,6 +1009,17 @@ export default {
   color: #bd2130;
 }
 
+.btn-info-light {
+  background-color: rgba(13, 202, 240, 0.15);
+  color: #0dcaf0;
+  border: none;
+}
+
+.btn-info-light:hover {
+  background-color: rgba(13, 202, 240, 0.3);
+  color: #0aa2c0;
+}
+
 /* Loading indicator */
 .loading-indicator {
   display: flex;
@@ -1126,61 +1113,5 @@ export default {
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
-}
-
-/* Thêm CSS cho advanced filters */
-.advanced-filters {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.advanced-filters select {
-  min-width: 150px;
-  height: 38px;
-}
-
-.search-btn {
-  height: 38px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.search-input-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px 8px 40px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6c757d;
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-}
-
-.clear-search-btn:hover {
-  color: #dc3545;
 }
 </style>

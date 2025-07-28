@@ -14,10 +14,24 @@ export function getThongTinNguoiDungById(id) {
 export function getThongTinNguoiDungByTaiKhoanId(taiKhoanId) {
   return api.get(`/api/thongTinNguoiDung/taiKhoan/${taiKhoanId}`);
 }
-export function updateThongTinNguoiDung(id, ThongTinNguoiDungDto) {
-  return api.put(`/api/thongTinNguoiDung/update/${id}`, ThongTinNguoiDungDto);
-}
 
-export function updateThongTinNguoiDung1(id, thongTinNguoiDung) {
-  return api.put(`/api/thongTinNguoiDung/update1/${id}`, thongTinNguoiDung);
+// Cập nhật hoặc tạo mới thông tin người dùng
+export function updateThongTinNguoiDung(id, thongTinNguoiDungDto) {
+  // Nếu id là null, đây là tạo mới
+  if (id === null) {
+    if (!thongTinNguoiDungDto.taiKhoanId) {
+      throw new Error('Thiếu ID tài khoản khi tạo mới thông tin người dùng');
+    }
+
+    // Sử dụng API add để tạo mới thông tin người dùng
+    return api.post(`/api/thongTinNguoiDung/add`, thongTinNguoiDungDto);
+  }
+
+  // Nếu có flag updateAccountEmail, sử dụng endpoint đặc biệt để cập nhật cả email trong tài khoản
+  if (thongTinNguoiDungDto.email && thongTinNguoiDungDto.updateAccountEmail) {
+    return api.put(`/api/thongTinNguoiDung/updateWithEmail/${id}`, thongTinNguoiDungDto);
+  }
+
+  // Nếu không, sử dụng endpoint thông thường
+  return api.put(`/api/thongTinNguoiDung/update/${id}`, thongTinNguoiDungDto);
 }

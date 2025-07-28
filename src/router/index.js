@@ -18,9 +18,16 @@ import NewsView from '../views/NewsView.vue'
 import NewsDetailView from '../views/NewsDetailView.vue'
 import QlyLoaiPhong from '@/views/Admin/Home/QlyLoaiPhong.vue'
 import QlyVatTuPhong from '@/views/Admin/Home/QlyVatTuPhong.vue'
+import QlyPhong from '@/views/Admin/Home/QlyPhong.vue'
 import DanhGiaView from '../views/DanhGiaView.vue'
 import PublicReviewDetails from '../views/PublicReviewDetails.vue';
 
+// Import các trang footer
+import TermsView from '../views/TermsView.vue'
+import FAQView from '../views/FAQView.vue'
+import PrivacyView from '../views/PrivacyView.vue'
+import PaymentMethodsView from '../views/PaymentMethodsView.vue'
+import ContactView from '../views/ContactView.vue'
 
 import { useAuthStore } from '../stores/authStore'
 
@@ -46,13 +53,17 @@ const router = createRouter({
 
     { path: '/test-thanh-toan', name: 'testThanhToan', component: TestThanhToan },
 
-
     { path: '/homestay/:id', name: 'homestayDetail', component: DetailHome },
 
     { path: '/tin-tuc', name: 'news', component: NewsView },
     { path: '/tin-tuc/:id', name: 'newsDetail', component: NewsDetailView },
 
-
+    // Các trang footer
+    { path: '/terms', name: 'terms', component: TermsView },
+    { path: '/faq', name: 'faq', component: FAQView },
+    { path: '/privacy', name: 'privacy', component: PrivacyView },
+    { path: '/payment', name: 'payment-methods', component: PaymentMethodsView },
+    { path: '/contact', name: 'contact', component: ContactView },
 
     // Route cho quên mật khẩu và đặt lại mật khẩu
     { path: '/quen-mat-khau', name: 'forgot-password', component: ForgotPasswordForm },
@@ -258,7 +269,7 @@ const router = createRouter({
         {
           path: '/admin/phong',
           name: 'admin-phong',
-          component: () => import('../views/Admin/Home/QlyPhong.vue'),
+          component: QlyPhong,
           meta: {
             requiresAuth: true,
             requiresAdmin: true

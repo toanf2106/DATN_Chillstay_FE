@@ -1,5 +1,5 @@
 <template>
-  <div class="news-detail-container" @mousedown.prevent="allowCopyOnly" @contextmenu.prevent>
+  <div class="news-detail-container">
     <!-- Breadcrumb -->
     <div class="breadcrumb-container">
       <div class="container">
@@ -27,35 +27,56 @@
         <div v-else-if="error" class="error-message">
           <i class="fas fa-exclamation-triangle"></i>
           <p>{{ errorMessage }}</p>
-          <button @click="fetchNewsDetail" class="retry-btn">Thử lại</button>
+          <button @click="() => fetchNewsDetail(route.params.id)" class="retry-btn">Thử lại</button>
         </div>
 
         <!-- News Detail Content -->
-        <div v-else-if="news" class="news-detail-content">
-          <div class="row">
-            <div class="col-lg-12 content-main">
-              <h1 class="news-title">{{ news.tieuDe }}</h1>
+        <div v-else-if="news" class="row">
+          <!-- Main Content Column -->
+          <div class="col-lg-8 content-main">
+            <h1 class="news-title">{{ news.tieuDe }}</h1>
 
-              <div class="news-meta">
-                <span class="news-date"><i class="fas fa-calendar-alt"></i> {{ formatDate(news.ngayDang) }}</span>
-                <span class="news-author"><i class="fas fa-user"></i> {{ news.tenTaiKhoan || 'ChillStay' }}</span>
+            <div class="news-meta">
+              <div class="meta-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Ngày đăng: {{ formatDate(news.ngayDang) }}</span>
               </div>
-
-              <div class="news-main-image" v-if="news.anhBia">
-                <img :src="fixImageUrl(news.anhBia)" :alt="news.tieuDe" />
-                <div class="image-caption" v-if="!isSimpleImageId(news.tieuDe) && shouldDisplayCaption(news.tieuDe)">{{
-                  getCustomCaption(news.tieuDe) }}</div>
+              <div v-if="news.ngaySua" class="meta-item">
+                <i class="fas fa-edit"></i>
+                <span>Ngày sửa cuối cùng: {{ formatDate(news.ngaySua) }}</span>
               </div>
-
-              <!-- Article Content with Interspersed Images -->
-              <div class="article-content">
-                <!-- Fallback if no structured content -->
-                <div class="text-block">
-                  <div v-html="processedContent"></div>
-                </div>
+              <div class="meta-item">
+                <i class="fas fa-user"></i>
+                <span>{{ news.tenTaiKhoan || 'Admin' }}</span>
               </div>
             </div>
+
+            <!-- Article Content -->
+            <div class="article-content" v-html="processedContent"></div>
           </div>
+
+          <!-- Related News Sidebar -->
+          <aside class="col-lg-4 sidebar">
+            <div class="related-news-widget">
+              <h3 class="widget-title">Tin tức liên quan</h3>
+              <div v-if="relatedNews.length > 0" class="related-news-list">
+                <router-link v-for="related in relatedNews" :key="related.id" :to="`/tin-tuc/${related.id}`"
+                  class="related-news-item">
+                  <div class="related-news-image">
+                    <img :src="fixImageUrl(related.anhBia)" :alt="related.tieuDe" />
+                  </div>
+                  <div class="related-news-info">
+                    <h4 class="related-news-title">{{ related.tieuDe }}</h4>
+                    <span class="related-news-date"><i class="fas fa-calendar-alt"></i> {{ formatDate(related.ngayDang)
+                    }}</span>
+                  </div>
+                </router-link>
+              </div>
+              <div v-else class="no-related-news">
+                <p>Không có tin tức liên quan.</p>
+              </div>
+            </div>
+          </aside>
         </div>
 
         <!-- Not Found -->
@@ -68,23 +89,6 @@
       </div>
     </section>
 
-    <!-- Image Viewer Modal -->
-    <div class="image-viewer" v-if="showImageViewer" @click="closeImageViewer">
-      <button class="close-button" @click="closeImageViewer">&times;</button>
-      <button class="nav-button prev" @click.stop="prevImage" v-if="newsImages && newsImages.length > 1">
-        <i class="fas fa-chevron-left"></i>
-      </button>
-      <div class="image-container" @click.stop>
-        <img :src="fixImageUrl(currentImage)" :alt="news?.tieuDe" />
-      </div>
-      <button class="nav-button next" @click.stop="nextImage" v-if="newsImages && newsImages.length > 1">
-        <i class="fas fa-chevron-right"></i>
-      </button>
-      <div class="image-counter" v-if="newsImages && newsImages.length > 1">
-        {{ currentImageIndex + 1 }} / {{ newsImages.length }}
-      </div>
-    </div>
-
     <!-- Lightbox for any image -->
     <div class="image-viewer" v-if="lightboxImage" @click="closeLightbox">
       <button class="close-button" @click="closeLightbox">&times;</button>
@@ -96,182 +100,81 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
-import { getTinTucById } from '@/Service/TinTucService';
-import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService';
+import { getTinTucById, getAllTinTuc } from '@/Service/TinTucService';
 import api from '@/utils/api';
 
 const route = useRoute();
+
 const news = ref(null);
 const loading = ref(true);
 const error = ref(false);
 const errorMessage = ref('');
-const showImageViewer = ref(false);
-const currentImageIndex = ref(0);
-const newsImages = ref([]);
-const lightboxImage = ref(null); // For opening any image in lightbox
+const lightboxImage = ref(null);
+const relatedNews = ref([]);
+const refreshInterval = ref(null);
 
-// Prevent editing but allow copying text
-const allowCopyOnly = (event) => {
-  // Allow selection for copying
-  if (event.shiftKey || event.ctrlKey) {
-    // Only allow selection if user is trying to copy (Ctrl or Shift key)
-    return true;
-  }
+// Thời gian làm mới tin tức liên quan (30 giây)
+const REFRESH_INTERVAL_MS = 30000;
 
-  // Prevent all other interactions
-  return false;
-};
-
-// Function to check if a caption is just a simple image identifier (like "anh1", "anh2", etc.)
-const isSimpleImageId = (text) => {
-  if (!text) return false;
-
-  // Check if it's in the format "anhX" where X is a number
-  const simpleImagePattern = /^anh\d+$/i;
-  return simpleImagePattern.test(text);
-};
-
-// Function to check if a specific caption should be displayed
-const shouldDisplayCaption = (caption) => {
-  if (!caption) return false;
-
-  // Check if the caption matches exactly the one we want to hide
-  if (caption === 'Mộc Châu - Điểm đến thiên nhiên hàng đầu thế giới') {
-    return false;
-  }
-
-  return true;
-};
-
-// Function to get custom caption if needed
-const getCustomCaption = (caption) => {
-  if (!caption) return '';
-
-  // Replace specific captions with custom ones
-  if (caption.includes('Mộc Châu - Điểm đến thiên nhiên hàng đầu thế giới')) {
-    return 'Cảnh đẹp Mộc Châu';
-  }
-
-  return caption;
-};
-
-// Function to fix image URLs
 const fixImageUrl = (url) => {
-  if (!url) return '';
-
-  // If it's already an absolute URL, return it as is
-  if (url.startsWith('http')) {
+  if (!url) return 'https://placehold.co/100x70/e9ecef/0d6efd?text=ChillStay';
+  if (url.startsWith('http') || url.startsWith('blob:')) {
     return url;
   }
+  return new URL(url, api.defaults.baseURL).href;
+};
 
-  // If it's a relative URL
-  if (url.startsWith('/')) {
-    // Add origin
-    return window.location.origin + url;
-  } else {
-    // Add API base URL
-    return api.defaults.baseURL + '/' + url;
+const fetchAllNews = async () => {
+  try {
+    const response = await getAllTinTuc();
+    if (response && response.data) {
+      // Lọc ra các tin tức có trạng thái active và không phải tin tức hiện tại
+      const filteredNews = response.data
+        .filter(item => item.id !== parseInt(route.params.id) && item.trangThai);
+
+      // Xáo trộn mảng tin tức để hiển thị ngẫu nhiên
+      const shuffledNews = [...filteredNews].sort(() => Math.random() - 0.5);
+
+      // Lấy tối đa 5 tin tức
+      relatedNews.value = shuffledNews.slice(0, 5);
+    }
+  } catch (err) {
+    console.error('Error fetching all news:', err);
   }
 };
 
-// Lấy chi tiết tin tức theo ID
-const fetchNewsDetail = async () => {
-  const id = route.params.id;
-  if (!id) {
+const fetchNewsDetail = async (id) => {
+  if (!id || isNaN(id)) {
     error.value = true;
-    errorMessage.value = 'ID tin tức không hợp lệ';
+    errorMessage.value = 'ID tin tức không hợp lệ.';
     loading.value = false;
     return;
   }
-
+  loading.value = true;
+  error.value = false;
   try {
-    loading.value = true;
-    error.value = false;
-
     const response = await getTinTucById(id);
     if (response && response.data) {
       news.value = response.data;
-      // Sau khi có thông tin tin tức, lấy danh sách ảnh
-      await fetchNewsImages(id);
-
-      // Also extract images from HTML content
-      if (news.value.noiDung && news.value.noiDung.includes('<img')) {
-        const contentImages = extractImagesFromHtml(news.value.noiDung);
-        if (contentImages.length > 0) {
-          // Add these images to newsImages if they're not already there
-          contentImages.forEach(imgUrl => {
-            if (!newsImages.value.some(img => img.duongDanAnh === imgUrl)) {
-              newsImages.value.push({
-                duongDanAnh: imgUrl,
-                tinTucId: id
-              });
-            }
-          });
-        }
-      }
     } else {
-      throw new Error('Không tìm thấy tin tức');
+      throw new Error('Không tìm thấy tin tức.');
     }
   } catch (err) {
     error.value = true;
-    errorMessage.value = err.message || 'Đã xảy ra lỗi khi tải tin tức';
-    console.error('Error fetching news detail:', err);
+    errorMessage.value = err.message || 'Đã xảy ra lỗi khi tải tin tức.';
+    console.error(`Error fetching news detail for ID ${id}:`, err);
+    news.value = null;
   } finally {
     loading.value = false;
   }
 };
 
-// Lấy danh sách ảnh của tin tức
-const fetchNewsImages = async (id) => {
-  try {
-    const response = await getAnhTinTucByTinTucId(id);
-    if (response && response.data) {
-      newsImages.value = response.data;
-    }
-  } catch (err) {
-    console.error('Error fetching news images:', err);
-  }
-};
-
-// Hình ảnh hiện tại trong image viewer
-const currentImage = computed(() => {
-  if (!newsImages.value || newsImages.value.length === 0) {
-    return '';
-  }
-  return newsImages.value[currentImageIndex.value].duongDanAnh;
-});
-
-// Đóng image viewer
-const closeImageViewer = () => {
-  showImageViewer.value = false;
-  document.body.style.overflow = ''; // Restore scrolling
-};
-
-// Hình ảnh trước
-const prevImage = () => {
-  if (!newsImages.value || newsImages.value.length === 0) {
-    return;
-  }
-  currentImageIndex.value = (currentImageIndex.value - 1 + newsImages.value.length) % newsImages.value.length;
-};
-
-// Hình ảnh tiếp theo
-const nextImage = () => {
-  if (!newsImages.value || newsImages.value.length === 0) {
-    return;
-  }
-  currentImageIndex.value = (currentImageIndex.value + 1) % newsImages.value.length;
-};
-
-// Định dạng ngày
 const formatDate = (dateString) => {
   if (!dateString) return 'Không xác định';
-
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return 'Không xác định';
-
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
@@ -279,457 +182,291 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
-// Lấy dữ liệu khi component được tạo
-onMounted(() => {
-  fetchNewsDetail();
+onMounted(async () => {
+  await fetchNewsDetail(route.params.id);
+  await fetchAllNews();
 
-  // Make all content non-editable
-  document.addEventListener('selectstart', (e) => {
-    // Only allow selection if Ctrl key is pressed (for copying)
-    if (!e.ctrlKey) {
-      e.preventDefault();
-    }
-  });
-
-  // Prevent paste events
-  document.addEventListener('paste', (e) => {
-    if (e.target.closest('.news-detail-container')) {
-      e.preventDefault();
-    }
-  });
-
-  // Prevent drag events
-  document.addEventListener('dragstart', (e) => {
-    if (e.target.closest('.news-detail-container')) {
-      e.preventDefault();
-    }
-  });
-
-  // Prevent input events
-  document.addEventListener('beforeinput', (e) => {
-    if (e.target.closest('.news-detail-container')) {
-      e.preventDefault();
-    }
-  });
+  // Thiết lập interval để làm mới tin tức liên quan
+  refreshInterval.value = setInterval(fetchAllNews, REFRESH_INTERVAL_MS);
 });
 
-// Processed content with fixed image URLs
+onBeforeUnmount(() => {
+  // Xóa interval khi component unmount
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value);
+  }
+});
+
+watch(() => route.params.id, async (newId) => {
+  if (newId) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    await fetchNewsDetail(newId);
+    await fetchAllNews();
+
+    // Reset interval khi chuyển tin tức
+    if (refreshInterval.value) {
+      clearInterval(refreshInterval.value);
+    }
+    refreshInterval.value = setInterval(fetchAllNews, REFRESH_INTERVAL_MS);
+  }
+});
+
 const processedContent = computed(() => {
   if (!news.value || !news.value.noiDung) return '';
-
-  // Process the content to fix image URLs
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = news.value.noiDung;
 
-  // Remove all delete buttons and controls
-  const deleteButtons = tempDiv.querySelectorAll('.image-delete-btn, .btn-danger, button[class*="btn-danger"], [data-image-id], button[style*="background-color: #dc3545"]');
-  deleteButtons.forEach(el => el.remove());
+  // Xóa các nút xóa ảnh
+  tempDiv.querySelectorAll('.image-delete-btn, button[class*="btn-danger"]').forEach(el => el.remove());
 
-  // Remove any red buttons or elements
-  const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], .fa-trash, [style*="background-color: red"]');
-  redElements.forEach(el => el.remove());
-
-  // Remove any elements with class containing "btn" that might be delete buttons
-  const btnElements = tempDiv.querySelectorAll('[class*="btn"]');
-  btnElements.forEach(btn => {
-    if (btn.classList.contains('btn-danger') ||
-      (btn.style && btn.style.backgroundColor &&
-        (btn.style.backgroundColor.includes('red') || btn.style.backgroundColor.includes('#dc3545'))) ||
-      btn.closest('.article-image')) {
-      btn.remove();
-    }
-  });
-
-  // Fix image URLs
+  // Xử lý tất cả các ảnh
   const images = tempDiv.querySelectorAll('img');
   images.forEach(img => {
     const src = img.getAttribute('src');
     if (src && !src.startsWith('data:')) {
-      // Fix image URL using our helper function
-      const fixedSrc = fixImageUrl(src);
-      img.setAttribute('src', fixedSrc);
-
-      // Add click handler for lightbox
+      img.setAttribute('src', fixImageUrl(src));
       img.style.cursor = 'pointer';
-      img.addEventListener('click', () => openLightbox(fixedSrc));
+      img.onclick = () => openLightbox(img.src);
+
+      // Vô hiệu hóa việc nhập chú thích ảnh
+      img.setAttribute('title', '');
+      img.setAttribute('alt', news.value.tieuDe || '');
+
+      // Xóa các trường nhập liệu chú thích nếu có
+      const parent = img.parentNode;
+      if (parent) {
+        const captionInputs = parent.querySelectorAll('input[type="text"], textarea');
+        captionInputs.forEach(input => {
+          input.setAttribute('disabled', 'disabled');
+          input.style.display = 'none';
+        });
+      }
     }
+  });
+
+  // Vô hiệu hóa tất cả các trường nhập chú thích
+  tempDiv.querySelectorAll('.caption-input, .image-caption, [contenteditable="true"]').forEach(el => {
+    el.setAttribute('contenteditable', 'false');
+    el.style.pointerEvents = 'none';
+    el.style.userSelect = 'none';
   });
 
   return tempDiv.innerHTML;
 });
 
-// Open any image in lightbox
 const openLightbox = (src) => {
   lightboxImage.value = src;
   document.body.style.overflow = 'hidden';
 };
 
-// Close lightbox
 const closeLightbox = () => {
   lightboxImage.value = null;
   document.body.style.overflow = '';
 };
 
-// Extract images from HTML content
-const extractImagesFromHtml = (htmlContent) => {
-  if (!htmlContent) return [];
-
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
-
-  // Remove any delete buttons and controls
-  const deleteButtons = tempDiv.querySelectorAll('.image-delete-btn, .btn-danger, button[class*="btn-danger"], [data-image-id]');
-  deleteButtons.forEach(el => el.remove());
-
-  // Remove any elements with red background or red square icons
-  const redElements = tempDiv.querySelectorAll('button[style*="background-color: red"], .fa-trash, [style*="background-color: red"]');
-  redElements.forEach(el => el.remove());
-
-  // Also remove any square elements with class containing "btn" that might be red icons
-  const squareButtons = tempDiv.querySelectorAll('button[class*="btn"]');
-  squareButtons.forEach(btn => {
-    // Remove all buttons in the image container that could be delete buttons
-    if (btn.closest('.article-image')) {
-      btn.remove();
-    }
-  });
-
-  // Get all image sources
-  const images = tempDiv.querySelectorAll('img');
-  const sources = [];
-  images.forEach(img => {
-    const src = img.getAttribute('src');
-    if (src && !src.startsWith('data:')) {
-      sources.push(src);
-    }
-  });
-
-  return sources;
-};
 </script>
 
 <style scoped>
-/* News Detail Page Styles */
 .news-detail-container {
-  background-color: #f8f9fa;
+  background-color: #fff;
   font-family: 'Roboto', sans-serif;
   color: #333;
-  min-height: 100vh;
-  padding-bottom: 40px;
-  user-select: text;
-  /* Allow text selection but not editing */
-}
-
-.news-detail-container img,
-.news-detail-container .image-block,
-.news-detail-container .news-main-image {
-  pointer-events: auto;
-  /* Allow clicking on images for lightbox */
-  user-select: none;
-  /* Prevent image selection */
-}
-
-/* Strengthened styles to prevent editing */
-.news-detail-container {
-  user-select: none;
-  /* Prevent selection by default */
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  pointer-events: auto;
-  /* Allow clicking for navigation */
-  cursor: default;
-}
-
-/* Allow selection only when pressing Ctrl for copying */
-.news-detail-container.allow-select {
-  user-select: text;
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-}
-
-.news-detail-container [contenteditable] {
-  -webkit-user-modify: read-only;
-  -moz-user-modify: read-only;
-  user-modify: read-only;
-  cursor: default;
-}
-
-.news-detail-container * {
-  -webkit-user-modify: read-only !important;
-  -moz-user-modify: read-only !important;
-  user-modify: read-only !important;
-}
-
-.text-block {
-  cursor: default !important;
-  pointer-events: none;
-}
-
-.text-block a,
-.breadcrumb a,
-.back-btn {
-  pointer-events: auto;
-  /* Allow clicking links */
-}
-
-.news-detail-container input,
-.news-detail-container textarea {
-  pointer-events: none !important;
 }
 
 /* Breadcrumb */
 .breadcrumb-container {
-  background-color: #fff;
-  border-bottom: 1px solid #eaeaea;
-  padding: 10px 0;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  background-color: #f8f9fa;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 15px;
 }
 
 .breadcrumb {
   display: flex;
-  flex-wrap: wrap;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.85rem;
+  align-items: center;
+  font-size: 14px;
 }
 
 .breadcrumb a {
-  color: #0096c7;
+  color: #007bff;
   text-decoration: none;
-  transition: color 0.3s ease;
 }
 
 .breadcrumb a:hover {
-  color: #ff6200;
+  text-decoration: underline;
 }
 
-.separator {
-  color: #adb5bd;
+.breadcrumb .separator {
   margin: 0 8px;
+  color: #6c757d;
 }
 
-.current {
-  color: #6c757d;
+.breadcrumb .current {
+  color: #343a40;
   font-weight: 500;
 }
 
 /* Content Section */
 .news-content-section {
-  padding: 15px 0 30px;
+  padding: 40px 0;
 }
 
-.container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 15px;
-}
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  margin-right: -15px;
-  margin-left: -15px;
-}
-
-.col-lg-12 {
-  position: relative;
-  width: 100%;
-  padding-right: 15px;
-  padding-left: 15px;
-}
-
-@media (min-width: 992px) {
-  .col-lg-12 {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-}
-
-.news-detail-content {
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* Main Content */
 .content-main {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  /* padding-right: 30px; */
+  /* Đã xóa để làm rộng khu vực nội dung */
 }
 
 .news-title {
-  font-size: 1.6rem;
-  color: #2c3e50;
-  margin-bottom: 12px;
-  line-height: 1.3;
+  font-size: 2.25rem;
   font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  line-height: 1.3;
 }
 
 .news-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.85rem;
+  gap: 20px;
+  font-size: 0.9rem;
   color: #6c757d;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 10px;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.news-date,
-.news-author {
+.meta-item {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
 
-.news-date i,
-.news-author i {
-  color: #0096c7;
+.meta-item i {
+  color: #007bff;
 }
 
-.news-main-image {
-  margin: 0 -20px 20px;
-  position: relative;
-}
-
-.news-main-image img {
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  max-height: 400px;
-}
-
-.image-caption {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  padding: 8px 20px;
-  font-size: 0.85rem;
-}
-
-/* Article Content */
 .article-content {
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #34495e;
 }
 
-.text-block {
-  margin-bottom: 15px;
+:deep(.article-content p) {
+  margin-bottom: 1.5rem;
 }
 
-.text-block p {
-  margin-bottom: 15px;
-}
-
-.image-block {
-  margin: 15px 0;
-  position: relative;
-}
-
-.image-block img {
-  width: 100%;
-  border-radius: 6px;
+:deep(.article-content img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  /* Tăng độ bo tròn */
+  margin: 2.5rem auto;
+  display: block;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+  /* Tăng cường hiệu ứng đổ bóng */
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.image-block img:hover {
-  transform: scale(1.01);
+:deep(.article-content img:hover) {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.15);
+  /* Hiệu ứng hover rõ nét hơn */
 }
 
-/* Image Gallery */
-.news-gallery {
-  margin-top: 40px;
-}
-
-.gallery-title {
-  font-size: 1.5rem;
-  color: #2c3e50;
-  margin-bottom: 20px;
+:deep(.article-content h2),
+:deep(.article-content h3) {
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
   font-weight: 600;
 }
 
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+/* Sidebar */
+.sidebar {
+  padding-left: 20px;
+  border-left: 1px solid #e9ecef;
+}
+
+@media (max-width: 991px) {
+  .sidebar {
+    padding-left: 0;
+    border-left: none;
+    margin-top: 40px;
+    padding-top: 40px;
+    border-top: 1px solid #e9ecef;
+  }
+}
+
+.related-news-widget {
+  position: sticky;
+  top: 20px;
+}
+
+.widget-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #007bff;
+  display: inline-block;
+}
+
+.related-news-item {
+  display: flex;
   gap: 15px;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 20px;
+  transition: all 0.2s ease-in-out;
 }
 
-@media (max-width: 768px) {
-  .gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.related-news-item:hover .related-news-title {
+  color: #007bff;
 }
 
-@media (max-width: 480px) {
-  .gallery-grid {
-    grid-template-columns: 1fr;
-  }
+.related-news-item:hover .related-news-image img {
+  transform: scale(1.05);
 }
 
-.gallery-item {
-  position: relative;
+.related-news-image {
+  flex-shrink: 0;
+  width: 100px;
+  height: 70px;
   border-radius: 8px;
   overflow: hidden;
-  height: 180px;
 }
 
-.gallery-item img {
+.related-news-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
 }
 
-.image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.related-news-title {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.gallery-item:hover .image-overlay {
-  opacity: 1;
+.related-news-date {
+  font-size: 0.8rem;
+  color: #6c757d;
 }
 
-.gallery-item:hover img {
-  transform: scale(1.1);
-}
-
-.view-image-btn {
-  background: none;
-  border: 2px solid white;
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.view-image-btn:hover {
-  background: white;
-  color: #0096c7;
+.related-news-date i {
+  margin-right: 5px;
 }
 
 /* Loading and Error States */
@@ -737,83 +474,12 @@ const extractImagesFromHtml = (htmlContent) => {
 .error-message,
 .not-found {
   text-align: center;
-  padding: 50px 0;
+  padding: 60px 0;
 }
 
-.loading-indicator .spinner-border {
-  width: 3rem;
-  height: 3rem;
-  color: #0096c7;
-}
-
-.error-message {
-  color: #ff6200;
-  padding: 50px 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-}
-
-.error-message i {
-  font-size: 2.5rem;
-  margin-bottom: 15px;
-}
-
-.retry-btn {
-  background: #ff6200;
-  color: white;
-  border: none;
-  padding: 10px 25px;
-  border-radius: 50px;
-  margin-top: 15px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.retry-btn:hover {
-  background: #0096c7;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
+.error-message,
 .not-found {
   color: #6c757d;
-  padding: 50px 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-}
-
-.not-found i {
-  font-size: 3.5rem;
-  margin-bottom: 15px;
-  opacity: 0.5;
-  color: #0096c7;
-}
-
-.not-found h2 {
-  font-size: 1.8rem;
-  margin-bottom: 15px;
-  color: #2c3e50;
-}
-
-.back-btn {
-  display: inline-block;
-  background: #ff6200;
-  color: white;
-  padding: 10px 25px;
-  border-radius: 50px;
-  text-decoration: none;
-  margin-top: 20px;
-  transition: all 0.3s;
-  font-weight: 500;
-}
-
-.back-btn:hover {
-  background: #0096c7;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Image Viewer */
@@ -823,126 +489,27 @@ const extractImagesFromHtml = (htmlContent) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1050;
 }
 
 .close-button {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 15px;
+  right: 25px;
+  font-size: 2.5rem;
+  color: #fff;
+  opacity: 0.8;
   background: none;
   border: none;
-  color: white;
-  font-size: 2.5rem;
   cursor: pointer;
-  z-index: 1010;
-  opacity: 0.7;
-  transition: opacity 0.3s;
-}
-
-.close-button:hover {
-  opacity: 1;
-}
-
-.image-container {
-  max-width: 90%;
-  max-height: 90%;
-  position: relative;
 }
 
 .image-container img {
-  max-width: 100%;
+  max-width: 90vw;
   max-height: 90vh;
-  object-fit: contain;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.nav-button {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: none;
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 1010;
-  transition: all 0.3s ease;
-}
-
-.nav-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.prev {
-  left: 20px;
-}
-
-.next {
-  right: 20px;
-}
-
-.image-counter {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 5px 15px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .content-main {
-    padding: 15px;
-  }
-
-  .news-title {
-    font-size: 1.4rem;
-  }
-
-  .news-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .news-main-image {
-    margin: 0 -15px 15px;
-  }
-
-  .gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 576px) {
-  .news-title {
-    font-size: 1.3rem;
-  }
-
-  .gallery-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .nav-button {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-  }
 }
 </style>

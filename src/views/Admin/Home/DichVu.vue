@@ -1,16 +1,33 @@
 <template>
-  <div class="dich-vu-container">
+  <div class="phong-container">
     <h1 class="page-title">Quản Lý Dịch Vụ</h1>
 
     <div class="controls-container">
       <div class="search-box">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" v-model="searchText" placeholder="Tìm kiếm dịch vụ..." class="search-input"
-          @input="onSearchChange" />
+        <div class="search-control-group">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              v-model="searchText"
+              placeholder="Tìm kiếm dịch vụ..."
+              class="search-input"
+              @input="onSearchChange"
+            />
+            <button v-if="searchText" @click="clearSearch" class="clear-search-btn">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="right-controls">
-        <select class="form-select status-filter" v-model="filterStatus" @change="filterByStatus">
+        <select
+          class="form-select status-filter"
+          v-model="filterStatus"
+          @change="handleStatusChange(filterStatus)"
+        >
+          <option value="all">Tất cả trạng thái</option>
           <option value="true">Đang hoạt động</option>
           <option value="false">Ngừng hoạt động</option>
         </select>
@@ -18,6 +35,13 @@
           <i class="fas fa-plus-circle"></i>
         </button>
       </div>
+    </div>
+
+    <!-- API Error Alert -->
+    <div v-if="apiError" class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <strong>Lưu ý:</strong> {{ apiErrorMessage }}
+      <button type="button" class="btn-close float-end" @click="apiError = false"></button>
     </div>
 
     <!-- Loading indicator -->
@@ -44,8 +68,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in pagedDichVuList" :key="item.id" @dblclick="showDetailModal(item)">
-            <td class="text-center">{{ item.id }}</td>
+          <tr v-for="(item, index) in pagedDichVuList" :key="item.id" @dblclick="showDetailModal(item)">
+            <td class="text-center">{{ calculateIndex(index) }}</td>
             <td class="text-center">{{ item.maDichVu }}</td>
             <td class="text-center">{{ item.tenDichVu }}</td>
             <td class="text-center">{{ formatCurrency(item.gia) }}</td>
@@ -58,16 +82,14 @@
               </span>
             </td>
             <td class="text-center">
-              <div v-if="item.trangThai" class="action-buttons">
+              <div class="action-buttons">
                 <button class="btn btn-icon btn-warning-light" title="Chỉnh sửa" @click="editDichVu(item)">
                   <i class="fas fa-edit"></i>
                 </button>
                 <button class="btn btn-icon btn-danger-light" title="Xóa" @click="deleteDichVu(item.id)">
                   <i class="fas fa-trash"></i>
                 </button>
-              </div>
-              <div v-else class="action-buttons">
-                <button class="btn btn-icon btn-success-light" title="Khôi phục" @click="restoreDichVu(item)">
+                <button v-if="!item.trangThai" class="btn btn-icon btn-success-light" title="Khôi phục" @click="restoreDichVu(item)">
                   <i class="fas fa-reply"></i>
                 </button>
               </div>
@@ -84,7 +106,8 @@
     <!-- Empty state -->
     <div v-if="!loading && pagedDichVuList.length === 0" class="empty-state">
       <i class="fas fa-box-open empty-icon"></i>
-      <p>Không tìm thấy dịch vụ nào.</p>
+      <p v-if="searchText">Không tìm thấy dịch vụ nào phù hợp với từ khóa "{{ searchText }}".</p>
+      <p v-else>Không tìm thấy dịch vụ nào.</p>
     </div>
 
     <!-- Pagination -->
@@ -94,16 +117,24 @@
       </div>
       <nav aria-label="Page navigation">
         <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 0 }">
-            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage)">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
-          <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: currentPage === page - 1 }">
+          <li
+            v-for="page in displayedPages"
+            :key="page"
+            class="page-item"
+            :class="{ active: page === currentPage }"
+          >
             <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
           </li>
-          <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
-            <a class="page-link nav-arrow" href="#" @click.prevent="changePage(currentPage + 2)">
+          <li
+            class="page-item"
+            :class="{ disabled: currentPage === totalPages || totalPages === 0 }"
+          >
+            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
             </a>
           </li>
@@ -299,7 +330,7 @@ const dichVuList = ref([])
 const homestays = ref([])
 const showForm = ref(false)
 const isEdit = ref(false)
-const filterStatus = ref('true')
+const filterStatus = ref('all')
 const searchText = ref('')
 const loading = ref(true)
 const processing = ref(false)
@@ -308,6 +339,8 @@ const showRestoreConfirm = ref(false)
 const selectedDichVuId = ref(null)
 const selectedDichVuToRestore = ref(null)
 const errorsFromBackend = ref({})
+const apiError = ref(false)
+const apiErrorMessage = ref('')
 
 const form = ref({
   id: null,
@@ -323,31 +356,88 @@ const form = ref({
 const showDetail = ref(false)
 const detailDichVu = ref({})
 
-// Phân trang - API sử dụng 0-based, UI sử dụng 1-based
-const currentPage = ref(0) // API page index bắt đầu từ 0
+// Phân trang - UI sử dụng 1-based
+const currentPage = ref(1) // UI page index bắt đầu từ 1
 const pageSize = ref(10)
 const totalItems = ref(0)
 const totalPages = ref(1)
 
 // Tính toán số hàng trống để bảng luôn có kích thước cố định
 const emptyRows = computed(() => {
-  const currentItems = dichVuList.value.length
+  const currentItems = pagedDichVuList.value.length
   return currentItems < pageSize.value ? pageSize.value - currentItems : 0
 })
 
 // Dịch vụ được hiển thị trên bảng
-const pagedDichVuList = computed(() => dichVuList.value)
+const pagedDichVuList = computed(() => {
+  // Áp dụng phân trang client-side
+  const startIndex = (currentPage.value - 1) * pageSize.value
+  const endIndex = startIndex + pageSize.value
+  return dichVuList.value.slice(startIndex, endIndex)
+})
+
+const filteredDichVuList = computed(() => {
+  let filtered = dichVuList.value;
+
+  if (searchText.value) {
+    const lowerCaseSearchTerm = searchText.value.trim().toLowerCase()
+    filtered = filtered.filter(
+      (item) =>
+        (item.tenDichVu && item.tenDichVu.toLowerCase().includes(lowerCaseSearchTerm)) ||
+        (item.maDichVu && item.maDichVu.toLowerCase().includes(lowerCaseSearchTerm))
+    )
+  }
+
+  if (filterStatus.value !== 'all') {
+    const isActive = filterStatus.value === 'true'
+    filtered = filtered.filter((item) => item.trangThai === isActive)
+  }
+
+  return filtered;
+})
 
 // Theo dõi sự thay đổi để load lại dữ liệu
-watch([searchText, filterStatus, currentPage, pageSize], fetchDichVu, { deep: true })
+watch([searchText, filterStatus], () => {
+  currentPage.value = 1; // Reset về trang đầu tiên khi thay đổi lọc
+}, { deep: true })
 
 // Thông tin phân trang hiển thị cho người dùng
-const startItem = computed(() =>
-  totalItems.value > 0 ? currentPage.value * pageSize.value + 1 : 0
-)
+const startItem = computed(() => {
+  if (totalItems.value === 0) return 0;
+  return (currentPage.value - 1) * pageSize.value + 1;
+})
+
 const endItem = computed(() => {
-  const end = (currentPage.value + 1) * pageSize.value
-  return end > totalItems.value ? totalItems.value : end
+  const end = currentPage.value * pageSize.value;
+  return Math.min(end, totalItems.value);
+})
+
+// Phân trang hiển thị
+const displayedPages = computed(() => {
+  const pages = [];
+  const maxPages = 5; // Số trang tối đa hiển thị
+
+  if (totalPages.value <= maxPages) {
+    // Hiển thị tất cả trang nếu tổng số trang ít hơn maxPages
+    for (let i = 1; i <= totalPages.value; i++) {
+      pages.push(i);
+    }
+  } else {
+    // Hiển thị một số trang xung quanh trang hiện tại
+    let startPage = Math.max(1, currentPage.value - Math.floor(maxPages / 2));
+    let endPage = Math.min(totalPages.value, startPage + maxPages - 1);
+
+    // Điều chỉnh nếu không đủ trang ở phía trước
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+  }
+
+  return pages;
 })
 
 // Format giá tiền
@@ -378,32 +468,30 @@ function getHomestayName(id) {
   // Tìm homestay trong danh sách
   const homestay = homestays.value.find(h => h.id === numericId);
 
-  // Log để debug
-  console.log('Tìm homestay với ID:', numericId, 'Kết quả:', homestay ? homestay.tenHomestay : 'Không tìm thấy');
-  console.log('Danh sách homestay có sẵn:', homestays.value.map(h => ({ id: h.id, ten: h.tenHomestay })));
-
   return homestay ? homestay.tenHomestay : `Homestay ID: ${id}`
+}
+
+// Tính toán index cho STT
+function calculateIndex(index) {
+  return (currentPage.value - 1) * pageSize.value + index + 1;
 }
 
 async function fetchDichVu() {
   loading.value = true
+  apiError.value = false
   try {
     // Tải dữ liệu homestay trước
     const homestaysRes = await getAllHomeStay()
-    console.log('Homestay data loaded:', homestaysRes)
     homestays.value = homestaysRes.data || []
 
     // Sau đó tải dữ liệu dịch vụ
     try {
-      console.log('Fetching all dich vu data...')
-
       // Gọi API lấy tất cả dịch vụ
       const response = await getAllDichVu()
 
-      console.log('API response:', response)
-
       if (!response.data) {
-        console.error('Invalid response format:', response)
+        apiError.value = true
+        apiErrorMessage.value = 'Dữ liệu dịch vụ không đúng định dạng'
         notification.error('Dữ liệu dịch vụ không đúng định dạng')
         return
       }
@@ -431,37 +519,43 @@ async function fetchDichVu() {
         }
       })
 
-      // Cập nhật thông tin phân trang
-      totalItems.value = dichVuList.value.length
-      totalPages.value = Math.ceil(totalItems.value / pageSize.value)
+      // Áp dụng lọc trước khi tính toán phân trang
+      let filteredList = dichVuList.value;
 
-      // Filter thêm theo trạng thái và tìm kiếm nếu có
-      dichVuList.value = dichVuList.value.filter(item => {
-        // Lọc theo trạng thái
-        const statusMatch = item.trangThai === (filterStatus.value === 'true')
+      // Lọc theo trạng thái
+      if (filterStatus.value !== 'all') {
+        const isActive = filterStatus.value === 'true'
+        filteredList = filteredList.filter(item => item.trangThai === isActive)
+      }
 
-        // Lọc theo keyword nếu có
+      // Lọc theo từ khóa tìm kiếm
+      if (searchText.value.trim()) {
         const keyword = searchText.value.trim().toLowerCase()
-        const keywordMatch = !keyword ||
-          (item.tenDichVu && item.tenDichVu.toLowerCase().includes(keyword)) ||
-          (item.maDichVu && item.maDichVu.toLowerCase().includes(keyword))
+        filteredList = filteredList.filter(
+          item =>
+            (item.tenDichVu && item.tenDichVu.toLowerCase().includes(keyword)) ||
+            (item.maDichVu && item.maDichVu.toLowerCase().includes(keyword))
+        )
+      }
 
-        return statusMatch && keywordMatch
-      })
+      // Cập nhật thông tin phân trang
+      totalItems.value = filteredList.length
+      totalPages.value = Math.ceil(totalItems.value / pageSize.value) || 1
 
-      // Áp dụng phân trang client-side
-      const startIndex = currentPage.value * pageSize.value
-      const endIndex = startIndex + pageSize.value
-      dichVuList.value = dichVuList.value.slice(startIndex, endIndex)
+      // Kiểm tra và điều chỉnh trang hiện tại nếu vượt quá số trang
+      if (currentPage.value > totalPages.value) {
+        currentPage.value = Math.max(1, totalPages.value)
+      }
 
     } catch (error) {
-      console.error('Error loading dich vu data:', error)
-      if (error.response) {
-        console.log('Error response:', error.response.status, error.response.data)
-      }
+      apiError.value = true
+      apiErrorMessage.value = 'Lỗi khi tải dữ liệu dịch vụ. Vui lòng thử lại.'
       notification.error('Lỗi khi tải dữ liệu dịch vụ. Vui lòng kiểm tra console để biết chi tiết.')
+      console.error('Error loading dich vu data:', error)
     }
   } catch (error) {
+    apiError.value = true
+    apiErrorMessage.value = 'Lỗi khi tải dữ liệu. Vui lòng thử lại.'
     notification.error('Lỗi khi tải dữ liệu')
     console.error('Fetch error:', error)
   } finally {
@@ -473,22 +567,29 @@ onMounted(fetchDichVu)
 
 // Xử lý khi thay đổi tìm kiếm
 function onSearchChange() {
-  currentPage.value = 0 // Reset về trang đầu tiên
+  currentPage.value = 1 // Reset về trang đầu tiên
   fetchDichVu() // Tải lại dữ liệu với từ khóa mới
 }
 
+// Xóa từ khóa tìm kiếm
+function clearSearch() {
+  searchText.value = ''
+  currentPage.value = 1
+  fetchDichVu()
+}
+
 // Xử lý khi thay đổi trạng thái
-function filterByStatus() {
-  currentPage.value = 0 // Reset về trang đầu tiên
+function handleStatusChange(status) {
+  currentPage.value = 1 // Reset về trang đầu tiên
+  filterStatus.value = status // Cập nhật trạng thái lọc
   fetchDichVu() // Tải lại dữ liệu với trạng thái mới
 }
 
 // Thay đổi trang
 function changePage(page) {
-  // UI hiển thị từ 1, nhưng logic bắt đầu từ 0
-  const newPage = page - 1
-  if (newPage < 0 || newPage >= totalPages.value) return
-  currentPage.value = newPage
+  // Kiểm tra trang hợp lệ
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
 
   // Tải lại dữ liệu với trang mới
   fetchDichVu()
@@ -583,7 +684,7 @@ async function confirmRestore() {
 }
 
 // Sử dụng function cũ để tương thích với code hiện tại
-async function restoreDichVu(item) {
+function restoreDichVu(item) {
   showRestoreConfirmModal(item)
 }
 
@@ -677,22 +778,24 @@ async function saveDichVu() {
 
 <style scoped>
 /* Main Container Styling */
-.dich-vu-container {
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-  padding: 25px;
-  margin-bottom: 30px;
+.phong-container {
+  background-color: #f8f9fa;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   min-height: 80vh;
 }
 
 .page-title {
-  color: #2c3e50;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   margin-bottom: 25px;
-  border-bottom: 2px solid #eaeaea;
-  padding-bottom: 10px;
+  color: #343a40;
+  background: linear-gradient(135deg, #0d6efd 20%, #20c997 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Controls Styling */
@@ -701,39 +804,94 @@ async function saveDichVu() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
+  background-color: #ffffff;
+  padding: 20px 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .search-box {
   position: relative;
+  width: 450px;
+}
+
+.search-control-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input-wrapper {
+  position: relative;
   flex-grow: 1;
-  max-width: 400px;
 }
 
 .search-icon {
   position: absolute;
-  left: 15px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: #6c757d;
+  font-size: 16px;
+  transition: color 0.25s ease;
+}
+
+.search-input-wrapper:hover .search-icon {
+  color: #495057;
+}
+
+.search-input:focus ~ .search-icon {
+  color: #0d6efd;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 15px 12px 40px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.25s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
 }
 
 .search-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.clear-search-btn:hover {
+  background-color: #f3f4f6;
+  color: #6b7280;
 }
 
 .right-controls {
@@ -743,84 +901,107 @@ async function saveDichVu() {
 }
 
 .status-filter {
-  padding: 10px 15px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
   min-width: 180px;
+  border-radius: 50px;
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  background-color: #ffffff;
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  padding-right: 42px;
+}
+
+.status-filter:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.status-filter:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+  outline: none;
 }
 
 .add-button {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  height: 48px;
+  min-width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  padding: 0;
+  border-radius: 50px;
+  font-weight: 600;
+  padding: 0 20px;
+  gap: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
   border: none;
-  background-color: #2563eb;
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+  color: white;
 }
 
 .add-button:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
 }
 
-.add-button i {
-  font-size: 20px;
+/* Alert Styling */
+.alert {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.alert-warning {
+  background-color: #fff8e1;
+  color: #f57c00;
+  border-left: 4px solid #f57c00;
+}
+
+.btn-close {
+  font-size: 18px;
+  font-weight: 700;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
 }
 
 /* Table Styling */
-.table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.table-responsive {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   margin-bottom: 20px;
 }
 
-.table th {
-  background-color: #f3f4f6;
-  padding: 12px 15px;
-  text-align: center;
+.table thead th {
+  background-color: #f8f9fa;
+  color: #495057;
   font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid #e9ecef;
+  padding: 15px 10px;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
-.table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #e5e7eb;
+.table tbody td {
+  padding: 15px 10px;
   vertical-align: middle;
-}
-
-.table tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background-color: #f9fafb;
-}
-
-.table .badge {
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-
-.bg-success {
-  background-color: #10b981 !important;
-}
-
-.bg-danger {
-  background-color: #ef4444 !important;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.95rem;
 }
 
 .action-buttons {
@@ -830,179 +1011,124 @@ async function saveDichVu() {
 }
 
 .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: none;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  border: none;
 }
 
 .btn-warning-light {
-  color: #d97706;
-  background-color: #fef3c7;
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.btn-warning-light:hover {
+  background-color: rgba(255, 193, 7, 0.3);
+  color: #e0a800;
 }
 
 .btn-danger-light {
-  color: #dc2626;
-  background-color: #fee2e2;
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+.btn-danger-light:hover {
+  background-color: rgba(220, 53, 69, 0.3);
+  color: #bd2130;
 }
 
 .btn-success-light {
-  color: #059669;
-  background-color: #d1fae5;
+  background-color: rgba(40, 167, 69, 0.15);
+  color: #28a745;
 }
 
-.btn-info-light {
-  color: #0284c7;
-  background-color: #e0f2fe;
+.btn-success-light:hover {
+  background-color: rgba(40, 167, 69, 0.3);
+  color: #218838;
 }
 
-.btn-icon:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.empty-row td {
-  height: 54px;
-  background-color: #f9fafb;
-}
-
-/* Loading Indicator */
 .loading-indicator {
   display: flex;
   justify-content: center;
-  align-items: center;
   padding: 40px 0;
 }
 
-/* Empty State */
 .empty-state {
   text-align: center;
-  padding: 40px 0;
-  color: #6b7280;
+  padding: 50px 0;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
 }
 
 .empty-icon {
-  font-size: 48px;
+  font-size: 3rem;
+  color: #adb5bd;
   margin-bottom: 15px;
 }
 
-/* Pagination */
+.empty-row td {
+  padding: 24.5px !important;
+  border-bottom: none !important;
+}
+
 .pagination-container {
+  padding: 20px 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 0;
-  flex-wrap: wrap;
-  gap: 15px;
+  font-size: 14px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 15px 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  margin-top: 15px;
 }
 
 .pagination-info {
-  color: #6b7280;
-  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
 }
 
 .pagination {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  gap: 8px;
+  margin-bottom: 0;
 }
 
-.page-item {
-  margin: 0;
-}
-
-.page-link {
+.pagination .page-item .page-link {
+  border-radius: 50% !important;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: #4b5563;
-  background-color: #f9fafb;
+  margin: 0 5px;
   border: none;
-  text-decoration: none;
+  color: #495057;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
-.page-link:hover {
-  background-color: #e5e7eb;
-}
-
-.page-item.active .page-link {
-  background-color: #2563eb;
+.pagination .page-item.active .page-link {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
   color: #fff;
+  box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
 }
 
-.page-item.disabled .page-link {
-  color: #d1d5db;
-  pointer-events: none;
-  cursor: default;
-  opacity: 0.6;
-  background-color: #f3f4f6;
+.pagination .page-item:not(.active) .page-link:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
 }
 
-.nav-arrow {
-  color: #6b7280;
-  font-size: 12px;
-  background-color: #f9fafb;
-}
-
-/* Button Styling */
-.btn {
-  padding: 10px 16px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.95rem;
-}
-
-.btn:focus {
-  box-shadow: none;
-}
-
-.btn-primary {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-.btn-primary:hover {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
-}
-
-.btn-secondary {
-  background-color: #6b7280;
-  border-color: #6b7280;
-}
-
-.btn-secondary:hover {
-  background-color: #4b5563;
-  border-color: #4b5563;
-}
-
-.btn-danger {
-  background-color: #dc2626;
-  border-color: #dc2626;
-}
-
-.btn-danger:hover {
-  background-color: #b91c1c;
-  border-color: #b91c1c;
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Modal Styling */
@@ -1083,6 +1209,7 @@ async function saveDichVu() {
   overflow-y: auto;
 }
 
+/* Form styling */
 .dich-vu-form .form-group {
   margin-bottom: 20px;
 }
@@ -1094,11 +1221,32 @@ async function saveDichVu() {
   color: #4b5563;
 }
 
+.dich-vu-form .form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.dich-vu-form .form-control:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  outline: none;
+}
+
 .dich-vu-form .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
   margin-top: 25px;
+}
+
+.dich-vu-form .btn {
+  padding: 10px 16px;
+  font-weight: 500;
+  border-radius: 8px;
 }
 
 /* Detail View Styling */
@@ -1172,51 +1320,6 @@ async function saveDichVu() {
   border-top: 1px solid #e5e7eb;
 }
 
-.form-control {
-  width: 100%;
-  padding: 12px 15px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 16px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-  font-family: 'Roboto', sans-serif !important;
-  font-size: 0.95rem;
-}
-
-.form-control:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  outline: none;
-}
-
-/* Đảm bảo hiển thị tiếng Việt đúng */
-input,
-textarea,
-label,
-span,
-h3,
-h4,
-p,
-button {
-  font-family: 'Roboto', sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-@keyframes modal-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Form validation styling */
 .required {
   color: #dc2626;
@@ -1229,31 +1332,8 @@ button {
   margin-top: 4px;
 }
 
-.dich-vu-form .form-group {
-  margin-bottom: 20px;
-}
-
-.dich-vu-form label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.dich-vu-form .form-control:invalid {
-  border-color: #5e77f1;
-}
-
-.dich-vu-form .form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 25px;
-}
-
-/* Backend validation error styling */
 .is-invalid {
-  border-color: #fbfbfd !important;
+  border-color: #dc2626 !important;
 }
 
 .error-feedback {
@@ -1261,5 +1341,16 @@ button {
   margin-top: 0.25rem;
   font-size: 0.875rem;
   color: #dc2626;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

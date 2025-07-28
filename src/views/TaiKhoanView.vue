@@ -7,20 +7,22 @@
         </div>
         <ul class="sidebar-nav">
           <li class="nav-section-header">Quản lý tài khoản</li>
-          <router-link to="/tai-khoan/thong-tin" tag="li" class="nav-item" active-class="active">
-            <a>Thông tin tài khoản</a>
-          </router-link>
-          <router-link to="/tai-khoan/bao-mat" tag="li" class="nav-item" active-class="active">
-            <a>Cài đặt bảo mật</a>
-          </router-link>
+          <li class="nav-item">
+            <router-link to="/tai-khoan/thong-tin" class="nav-link" active-class="active">Thông tin tài
+              khoản</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/tai-khoan/bao-mat" class="nav-link" active-class="active">Cài đặt bảo mật</router-link>
+          </li>
 
           <li class="nav-section-header">Hoạt động</li>
-          <router-link to="/tai-khoan/lich-su-dat-phong" tag="li" class="nav-item" active-class="active">
-            <a>Lịch sử đặt phòng</a>
-          </router-link>
-          <router-link to="/tai-khoan/danh-gia" tag="li" class="nav-item" active-class="active">
-            <a>Đánh giá của bạn</a>
-          </router-link>
+          <li class="nav-item">
+            <router-link to="/tai-khoan/lich-su-dat-phong" class="nav-link" active-class="active">Lịch sử đặt
+              Homestay</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/tai-khoan/danh-gia" class="nav-link" active-class="active">Đánh giá của bạn</router-link>
+          </li>
         </ul>
       </div>
       <div class="account-content">
@@ -53,7 +55,7 @@ onMounted(() => {
 }
 
 .account-container {
-  max-width: 1200px;
+  /* max-width: 1200px; */
   margin: 0 auto;
   display: flex;
   background-color: #fff;
@@ -91,7 +93,11 @@ onMounted(() => {
   margin-top: 10px;
 }
 
-.nav-item a {
+.nav-item {
+  margin-bottom: 5px;
+}
+
+.nav-link {
   display: block;
   padding: 12px 15px;
   color: #555;
@@ -101,12 +107,12 @@ onMounted(() => {
   transition: background-color 0.3s, color 0.3s;
 }
 
-.nav-item a:hover {
+.nav-link:hover {
   background-color: #f0f0f0;
   color: #007bff;
 }
 
-.nav-item.active a {
+.router-link-active {
   background-color: #007bff;
   color: #fff;
   font-weight: 600;

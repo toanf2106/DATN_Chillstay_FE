@@ -130,3 +130,42 @@ export function searchByKeyword(keyword) {
   return api.get(`/api/homestay/search/keyword?keyword=${encodeURIComponent(keyword)}`);
 
 }
+
+
+// Lấy homestay khả dụng (đã lọc những homestay đang bị khóa)
+export function getAvailableHomestay() {
+  return api.get('/api/homestay/available')
+    .then(response => {
+      if (response.data && response.data.success) {
+        return response.data;
+      } else {
+        return {
+          success: false,
+          message: "Không thể lấy danh sách homestay",
+          data: []
+        };
+      }
+    });
+}
+
+// Khóa homestay cho đặt tại quầy
+export function lockHomestay(homestayId) {
+  return api.post(`/api/homestay/offline-lock/${homestayId}`);
+}
+
+// Mở khóa homestay
+export function unlockHomestay(homestayId) {
+  return api.post(`/api/homestay/offline-unlock/${homestayId}`);
+}
+
+// Kiểm tra trạng thái khóa của homestay
+export function checkHomestayLockStatus(homestayId) {
+  return api.get(`/api/homestay/offline-lock-status/${homestayId}`);
+}
+
+// Lấy danh sách homestay đang bị khóa
+export function getLockedHomestays() {
+  return api.get('/api/homestay/offline-locked');
+}
+
+// ... existing code ...

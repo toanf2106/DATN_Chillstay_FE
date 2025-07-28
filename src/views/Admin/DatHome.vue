@@ -297,7 +297,7 @@
     </div>
 
     <div class="booking-modal" v-if="showModal">
-      <div class="modal-content">
+      <div class="modal-content" style="display: flex; flex-direction: column">
         <div class="modal-header">
           <div class="header-left">
             <h2 class="modal-title">Chi tiết đặt phòng</h2>
@@ -318,54 +318,80 @@
           </div>
         </div>
 
-        <div v-if="selectedBooking" class="booking-details">
-          <div class="modal-columns">
-            <div class="modal-column">
-              <div class="booking-section payment-section">
-                <div class="section-content">
-                  <h3>Thông tin thanh toán</h3>
-                  <div class="payment-summary">
-                    <div class="payment-item">
-                      <span class="payment-label">Giá Homestay:</span>
-                      <span class="payment-value">{{
-                        formatCurrency(selectedBooking.giaCaHomestay)
-                      }}</span>
-                    </div>
-                    <div class="payment-item" v-if="selectedBooking.tenGiamGia">
-                      <span class="payment-label">
-                        Giảm giá ({{ selectedBooking.tenGiamGia }}):
-                      </span>
-                      <span class="payment-value discount"
-                        >- {{ formatCurrency(selectedBooking.soTienGiam) }}</span
-                      >
-                    </div>
-                    <div class="payment-item">
-                      <span class="payment-label">Tổng tiền dịch vụ:</span>
-                      <span class="payment-value">{{
-                        formatCurrency(selectedBooking.tongTienDichVu)
-                      }}</span>
+        <div
+          v-if="selectedBooking"
+          class="booking-details"
+          style="flex: 1; overflow-y: auto; padding-bottom: 20px"
+        >
+          <div class="modal-columns" style="min-height: 400px">
+            <div class="modal-column" style="flex: 7; display: flex; flex-direction: column">
+              <div style="display: flex; gap: 15px; height: 100%; flex: 1">
+                <div
+                  class="booking-section customer-section"
+                  style="flex: 1; height: 100%; display: flex; flex-direction: column"
+                >
+                  <div class="section-content" style="flex: 1">
+                    <h3>Thông tin khách hàng</h3>
+                    <div class="info-item">
+                      <span class="info-label">Tên khách hàng:</span>
+                      <span class="info-value">{{ selectedBooking.tenKhachHang }}</span>
                     </div>
 
-                    <div class="payment-divider"></div>
-                    <div class="payment-item total">
-                      <span class="payment-label">Tổng tiền:</span>
-                      <span class="payment-value total-value">{{
-                        formatCurrency(selectedBooking.tongTien)
-                      }}</span>
-                    </div>
 
-                    <!-- Thêm hiển thị số tiền đã thanh toán -->
-                    <div class="payment-item">
-                      <span class="payment-label">Đã thanh toán:</span>
-                      <span class="payment-value paid">{{
-                        formatCurrency(soTienDaThanhToan)
+                    <div class="info-item">
+                      <span class="info-label">Số điện thoại:</span>
+                      <span class="info-value">{{ selectedBooking.soDienThoai }}</span>
+
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Email:</span>
+                      <span class="info-value">{{ selectedBooking.email }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Yêu cầu đặc biệt:</span>
+                      <span class="info-value">{{
+                        selectedBooking.yeuCauDacBiet || 'Không có'
                       }}</span>
                     </div>
-                    <div class="payment-item" v-if="soTienConLai > 0">
-                      <span class="payment-label">Còn lại phải thanh toán:</span>
-                      <span class="payment-value remaining">{{
-                        formatCurrency(soTienConLai)
-                      }}</span>
+                  </div>
+                </div>
+
+                <div
+                  class="booking-section booking-info-section"
+                  style="flex: 1; height: 100%; display: flex; flex-direction: column"
+                >
+                  <div class="section-content" style="flex: 1">
+                    <h3>Thông tin Homestay</h3>
+                    <div class="info-item">
+                      <span class="info-label">Homestay:</span>
+                      <span class="info-value">{{ selectedBooking.tenHomestay }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Địa chỉ:</span>
+                      <span class="info-value">{{ selectedBooking.diaChi }}</span>
+                    </div>
+                    <div class="date-box">
+                      <div class="info-item date-item">
+                        <span class="info-label">Ngày đặt:</span>
+                        <span class="info-value date-value">{{
+                          formatDate(selectedBooking.ngayDat, 'dateOnly')
+                        }}</span>
+                      </div>
+                      <div class="date-range-box">
+                        <div class="date-range-item">
+                          <span class="range-label">Check-in (13:00 - 14:00)</span>
+                          <span class="range-value">{{
+                            formatDate(selectedBooking.ngayNhanPhong, 'dateOnly')
+                          }}</span>
+                        </div>
+                        <div class="date-arrow">→</div>
+                        <div class="date-range-item">
+                          <span class="range-label">Check-out (9:30 - 11:00)</span>
+                          <span class="range-value">{{
+                            formatDate(selectedBooking.ngayTraPhong, 'dateOnly')
+                          }}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -415,124 +441,133 @@
                 </div>
               </div>
             </div>
-            <div class="modal-column">
-              <div class="booking-section customer-section">
-                <div class="section-content">
-                  <h3>Thông tin khách hàng</h3>
-                  <div class="info-item">
-                    <span class="info-label">Tên khách hàng:</span>
-                    <span class="info-value">{{ selectedBooking.tenKhachHang }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Số điện thoại:</span>
-                    <span class="info-value">{{ selectedBooking.soDienThoai }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">{{ selectedBooking.email }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="booking-section booking-info-section">
-                <div class="section-content">
-                  <h3>Thông tin Homestay</h3>
-                  <div class="info-item">
-                    <span class="info-label">Homestay:</span>
-                    <span class="info-value">{{ selectedBooking.tenHomestay }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Địa chỉ:</span>
-                    <span class="info-value">{{ selectedBooking.diaChi }}</span>
-                  </div>
-                  <div class="date-box">
-                    <div class="info-item date-item">
-                      <span class="info-label">Ngày đặt:</span>
-                      <span class="info-value date-value">{{
-                        formatDate(selectedBooking.ngayDat, 'dateOnly')
+            <div class="modal-column" style="flex: 5; display: flex; flex-direction: column">
+              <div
+                class="booking-section payment-section"
+                style="height: 100%; display: flex; flex-direction: column"
+              >
+                <div class="section-content" style="flex: 1">
+                  <h3>Thông tin thanh toán</h3>
+                  <div class="payment-summary">
+                    <div class="payment-item">
+                      <span class="payment-label">Giá Homestay:</span>
+                      <span class="payment-value">{{
+                        formatCurrency(selectedBooking.giaCaHomestay)
                       }}</span>
                     </div>
-                    <div class="date-range-box">
-                      <div class="date-range-item">
-                        <span class="range-label">Check-in (13:00 - 14:00)</span>
-                        <span class="range-value">{{
-                          formatDate(selectedBooking.ngayNhanPhong, 'dateOnly')
-                        }}</span>
-                      </div>
-                      <div class="date-arrow">→</div>
-                      <div class="date-range-item">
-                        <span class="range-label">Check-out (9:30 - 11:00)</span>
-                        <span class="range-value">{{
-                          formatDate(selectedBooking.ngayTraPhong, 'dateOnly')
-                        }}</span>
-                      </div>
+                   <div class="payment-item" v-if="selectedBooking.tenGiamGia">
+                      <span class="payment-label">
+                        Giảm giá ({{ selectedBooking.tenGiamGia }}):
+                      </span>
+                      <span class="payment-value discount"
+                        >- {{ formatCurrency(calculateActualDiscount()) }}</span
+                      >
+                    </div>
+                    <div class="payment-item">
+                      <span class="payment-label">Tổng tiền dịch vụ:</span>
+                      <span class="payment-value">{{
+                        formatCurrency(selectedBooking.tongTienDichVu)
+                      }}</span>
+                    </div>
+
+                    <div class="payment-divider"></div>
+                    <div class="payment-item total">
+                      <span class="payment-label">Tổng tiền:</span>
+                      <span class="payment-value total-value">{{
+                        formatCurrency(selectedBooking.tongTien)
+                      }}</span>
+                    </div>
+
+                    <!-- Thêm hiển thị số tiền đã thanh toán -->
+                    <div class="payment-item">
+                      <span class="payment-label">Đã thanh toán:</span>
+                      <span class="payment-value paid">{{
+                        formatCurrency(soTienDaThanhToan)
+                      }}</span>
+                    </div>
+                    <div class="payment-item" v-if="soTienConLai > 0">
+                      <span class="payment-label">Còn lại phải thanh toán:</span>
+                      <span class="payment-value remaining">{{
+                        formatCurrency(soTienConLai)
+                      }}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div class="booking-actions">
-                <button
-                  v-if="selectedBooking.trangThai === 'ChoXacNhan'"
-                  class="action-button cancel-btn"
-                  @click="updateBookingStatus(selectedBooking.id, 'DaHuy')"
-                >
-                  Hủy đặt phòng
-                </button>
-                <button
-                  v-if="selectedBooking.trangThai === 'ChoXacNhan'"
-                  class="action-button confirm-btn"
-                  @click="updateBookingStatus(selectedBooking.id, 'DaXacNhan')"
-                >
-                  Xác nhận đặt phòng
-                </button>
-                <button
-                  v-if="selectedBooking.trangThai === 'DaXacNhan'"
-                  class="action-button confirm-btn"
-                  @click="handleCheckIn(selectedBooking.id)"
-                >
-                  Check-in
-                </button>
-                <button
-                  v-if="selectedBooking.trangThai === 'DaCheckIn'"
-                  class="action-button confirm-btn"
-                  @click="handleCheckOut(selectedBooking.id)"
-                  :disabled="soTienConLai > 0 && paymentStatus !== 'ThanhCong'"
-                  :class="{ 'disabled-btn': soTienConLai > 0 && paymentStatus !== 'ThanhCong' }"
-                >
-                  Check-out
-                  <span
-                    v-if="soTienConLai > 0 && paymentStatus !== 'ThanhCong'"
-                    class="payment-required-text"
-                  >
-                    (Cần thanh toán số tiền còn lại)
-                  </span>
-                </button>
-                <!-- Sửa nút thanh toán ngay để hiển thị số tiền còn lại -->
-                <button
-                  v-if="
-                    soTienConLai > 0 &&
-                    paymentStatus !== 'ThanhCong' &&
-                    selectedBooking.trangThai === 'DaCheckIn'
-                  "
-                  class="action-button payment-btn"
-                  @click="createPaymentForRemaining"
-                  :disabled="isLoadingPayment"
-                >
-                  {{ isLoadingPayment ? 'Đang xử lý...' : 'Thanh toán ngay' }} ({{
-                    formatCurrency(soTienConLai)
-                  }})
-                </button>
-                <button
-                  v-if="selectedBooking.trangThai === 'DaCheckOut'"
-                  class="action-button confirm-btn"
-                  @click="updateBookingStatus(selectedBooking.id, 'HoanThanh')"
-                >
-                  Hoàn thành
-                </button>
               </div>
             </div>
           </div>
+        </div>
+        <div
+          class="modal-footer"
+          style="
+            border-top: 1px solid #eee;
+            padding: 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background-color: #f8f9fa;
+            border-radius: 0 0 18px 18px;
+          "
+        >
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'ChoXacNhan'"
+            class="action-button cancel-btn"
+            @click="updateBookingStatus(selectedBooking.id, 'DaHuy')"
+          >
+            Hủy đặt phòng
+          </button>
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'ChoXacNhan'"
+            class="action-button confirm-btn"
+            @click="updateBookingStatus(selectedBooking.id, 'DaXacNhan')"
+          >
+            Xác nhận đặt phòng
+          </button>
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+            class="action-button confirm-btn"
+            @click="handleCheckIn(selectedBooking.id)"
+          >
+            Check-in
+          </button>
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckIn'"
+            class="action-button confirm-btn"
+            @click="handleCheckOut(selectedBooking.id)"
+            :disabled="soTienConLai > 0 && paymentStatus !== 'ThanhCong'"
+            :class="{ 'disabled-btn': soTienConLai > 0 && paymentStatus !== 'ThanhCong' }"
+          >
+            Check-out
+            <span
+              v-if="soTienConLai > 0 && paymentStatus !== 'ThanhCong'"
+              class="payment-required-text"
+            >
+              (Cần thanh toán số tiền còn lại)
+            </span>
+          </button>
+          <!-- Sửa nút thanh toán ngay để hiển thị số tiền còn lại -->
+          <button
+            v-if="
+              selectedBooking &&
+              soTienConLai > 0 &&
+              paymentStatus !== 'ThanhCong' &&
+              selectedBooking.trangThai === 'DaCheckIn'
+            "
+            class="action-button payment-btn"
+            @click="createPaymentForRemaining"
+            :disabled="isLoadingPayment"
+          >
+            {{ isLoadingPayment ? 'Đang xử lý...' : 'Thanh toán ngay' }} ({{
+              formatCurrency(soTienConLai)
+            }})
+          </button>
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckOut'"
+            class="action-button confirm-btn"
+            @click="updateBookingStatus(selectedBooking.id, 'HoanThanh')"
+          >
+            Hoàn thành
+          </button>
         </div>
       </div>
     </div>
@@ -1956,6 +1991,33 @@ export default {
         }
       }
     },
+
+    calculateActualDiscount() {
+      if (!this.selectedBooking) return 0;
+
+      // Nếu có soTienGiam và khác 0, sử dụng nó
+      if (this.selectedBooking.soTienGiam && this.selectedBooking.soTienGiam > 0) {
+        return this.selectedBooking.soTienGiam;
+      }
+
+      // Nếu không, tính dựa trên giá trị giảm giá và giá homestay
+      if (this.selectedBooking.giaTri && this.selectedBooking.giaCaHomestay) {
+        // Tính số ngày lưu trú
+        const checkin = new Date(this.selectedBooking.ngayNhanPhong);
+        const checkout = new Date(this.selectedBooking.ngayTraPhong);
+        const nights = Math.round((checkout - checkin) / (1000 * 60 * 60 * 24));
+
+        // Tính số tiền giảm
+        const roomPrice = this.selectedBooking.giaCaHomestay * nights;
+        let discount = roomPrice * (this.selectedBooking.giaTri / 100);
+
+        // Kiểm tra giới hạn
+        return Math.min(discount, roomPrice);
+      }
+
+      // Nếu không tính được, hiển thị 0
+      return 0;
+    },
   },
 }
 </script>
@@ -2297,8 +2359,7 @@ export default {
   position: relative;
   overflow: hidden;
   z-index: 1;
-  margin-bottom: 12px;
-  margin-right: 12px;
+  margin-right: 8px;
   letter-spacing: 0.5px;
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2351,10 +2412,17 @@ export default {
 .booking-actions {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 20px;
+  margin-top: auto;
+  margin-bottom: 0;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding-top: 20px;
+  padding: 20px;
   animation: fade-in 0.5s ease forwards;
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.05);
 }
 
 @keyframes fade-in {
@@ -2611,6 +2679,14 @@ export default {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
+  padding: 15px;
+  background-color: white;
+  border-top: 1px solid #eee;
+  position: sticky;
+  bottom: 0;
+  right: 0;
+  border-radius: 0 0 18px 18px;
+  z-index: 50;
 }
 
 .action-button {
@@ -2871,7 +2947,6 @@ textarea.form-control {
   justify-content: center;
   z-index: 1000;
   overflow-y: auto;
-  padding: 20px 0;
   transition: all 0.3s ease;
 }
 
@@ -2884,9 +2959,10 @@ textarea.form-control {
   padding: 0;
   border-radius: 18px;
   width: 95%;
-  max-width: 1100px;
+  max-width: 1550px;
   position: relative;
-  max-height: 92vh;
+  height: 95vh;
+  max-height: 95vh;
   overflow-y: auto;
   margin: 20px auto;
   box-shadow:
@@ -3097,7 +3173,7 @@ textarea.form-control {
 /* Two-column layout */
 .modal-columns {
   display: flex;
-  gap: 30px;
+  gap: 15px;
   margin-bottom: 25px;
 }
 

@@ -1,11 +1,14 @@
 <template>
   <div class="review-details-container">
     <div class="page-header">
-      <div style="display: flex; align-items: center; gap: 20px;">
-        <router-link :to="{ name: 'danh-gia' }" class="back-link"><i class="fas fa-arrow-left"></i> Quay lại</router-link>
+      <div style="display: flex; align-items: center; gap: 20px">
+        <router-link :to="{ name: 'danh-gia' }" class="back-link"
+          ><i class="fas fa-arrow-left"></i> Quay lại</router-link
+        >
         <h1 v-if="homestay">Đánh giá cho {{ homestay.tenHomestay }}</h1>
         <h1 v-else>Đang tải...</h1>
       </div>
+
       <!-- Nút thêm đánh giá sẽ được xử lý logic sau -->
       
     </div>
@@ -32,11 +35,13 @@
             <button @click="setStarFilter(2)" :class="{ active: selectedStarFilter === 2 }">2+ Sao</button>
             <button @click="setStarFilter(1)" :class="{ active: selectedStarFilter === 1 }">1+ Sao</button>
         </div>
+
     </div>
 
     <div v-if="loading" class="loading-state">
       <i class="fas fa-spinner fa-spin"></i> Đang tải đánh giá...
     </div>
+
     <div v-else-if="!filteredReviews || filteredReviews.length === 0" class="empty-state">
         <i class="fas fa-comment-slash"></i>
         <p>Chưa có đánh giá nào</p>
@@ -45,6 +50,7 @@
       <div class="danh-gia-card" v-for="review in filteredReviews" :key="review.id">
         <div class="review-header">
           <div class="review-user-info">
+
             <div class="user-avatar">
               <img src="/public/images/default-avatar.png" alt="User avatar">
             </div>
@@ -60,11 +66,13 @@
                 </template>
               </div>
             </div>
+
           </div>
           <div class="review-actions-top">
               <button @click="toggleLike(review)" class="like-button" :class="{ liked: review.isLiked }">
                   <i class="fas fa-thumbs-up"></i> Hữu ích ({{ review.likes || 0 }})
               </button>
+
           </div>
         </div>
         <div class="review-metadata">
@@ -73,9 +81,11 @@
         <div class="review-content">
           {{ review.noiDung }}
         </div>
+
         <div v-if="review.images && review.images.length > 0" class="review-image-gallery">
           <div v-for="image in review.images" :key="image.id" class="gallery-item">
             <img :src="image.duongDanAnh" alt="Ảnh đánh giá"/>
+
           </div>
         </div>
         <div v-else class="no-images-placeholder">
@@ -90,7 +100,10 @@
         <button @click="closeReviewModal" class="close-modal-btn">&times;</button>
         <h3>Viết đánh giá của bạn</h3>
         <form @submit.prevent="submitReview" class="review-form">
+
             <!-- Form content here -->
+
+          
         </form>
       </div>
     </div>
@@ -98,6 +111,7 @@
 </template>
 
 <script>
+
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { getHomeStayById } from '@/Service/HomeStayService';
@@ -105,9 +119,11 @@ import { getAllDanhGia } from '@/Service/DanhGiaService';
 import { getKhachHangById } from '@/Service/khachHangService';
 // Các import khác nếu cần
 
+
 export default {
   name: 'PublicReviewDetails',
   setup() {
+
     const route = useRoute();
     const homestay = ref(null);
     const reviews = ref([]);
@@ -132,30 +148,42 @@ export default {
           isLiked: false,
         }));
 
-        const customerIds = [...new Set(reviews.value.map(r => r.khachHangId))];
-        const customerPromises = customerIds.map(id => {
+
+        const customerIds = [...new Set(reviews.value.map((r) => r.khachHangId))]
+        const customerPromises = customerIds.map((id) => {
           if (!reviewCustomers.value[id]) {
-            return getKhachHangById(id).then(res => {
-              reviewCustomers.value[id] = res.data.tenKhachHang;
-            });
+            return getKhachHangById(id).then((res) => {
+              reviewCustomers.value[id] = res.data.tenKhachHang
+            })
           }
           return Promise.resolve();
         });
         await Promise.all(customerPromises);
+
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu đánh giá:", error);
+        console.error('Lỗi khi tải dữ liệu đánh giá:', error)
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    };
+    }
+
 
     const getReviewCustomerName = (customerId) => reviewCustomers.value[customerId] || 'Khách hàng';
     
+
+
     const formatDate = (dateString) => {
-      if (!dateString) return 'N/A';
-      const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
-      return new Date(dateString).toLocaleDateString('vi-VN', options);
-    };
+      if (!dateString) return 'N/A'
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }
+      return new Date(dateString).toLocaleDateString('vi-VN', options)
+    }
+
 
     const setStarFilter = (stars) => {
       selectedStarFilter.value = stars;
@@ -166,6 +194,7 @@ export default {
       const totalStars = reviews.value.reduce((acc, review) => acc + review.diemSo, 0);
       return (totalStars / reviews.value.length).toFixed(1);
     });
+
 
     const filteredReviews = computed(() => {
       if (selectedStarFilter.value !== null) {
@@ -205,13 +234,16 @@ export default {
       openAddReviewModal,
       closeReviewModal,
       submitReview,
+
       toggleLike,
     };
   }
+
 }
 </script>
 
 <style scoped>
+
 /* Copying styles from the previous clean version */
 .review-details-container { padding: 20px; width: 800px; margin: 40px auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid #eef2f7; padding-bottom: 15px; }
@@ -283,3 +315,4 @@ export default {
 .modal-content { background: white; border-radius: 8px; padding: 20px 30px; width: 90%; max-width: 500px; }
 .close-modal-btn { float: right; font-size: 24px; background: none; border: none; cursor: pointer; }
 </style> 
+

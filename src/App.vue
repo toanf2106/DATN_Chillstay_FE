@@ -1,7 +1,7 @@
 <script>
 import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
-import HeaderChillstay from './components/HeaderChillstay.vue'
+import HeaderNav from './components/HeaderNav.vue'
 import FooterHome from './components/FooterHome.vue'
 import NotificationContainer from './components/notifications/NotificationContainer.vue'
 import { useAuthStore } from './stores/authStore'
@@ -10,7 +10,7 @@ import { useNotificationStore } from './stores/notificationStore'
 export default {
   components: {
     RouterView,
-    HeaderChillstay,
+    HeaderNav,
     FooterHome,
     NotificationContainer,
   },
@@ -45,6 +45,13 @@ export default {
           isAdmin: authStore.isAdmin,
           hasUser: !!authStore.user,
         })
+
+        // Kiểm tra lại trạng thái sau khi khởi tạo để đảm bảo UI phản ánh đúng trạng thái
+        if (authStore.isLoggedIn) {
+          console.log('User is logged in:', authStore.user?.username)
+        } else {
+          console.log('No user is currently logged in')
+        }
 
         // Kiểm tra nếu URL có tham số expired=true
         const urlParams = new URLSearchParams(window.location.search)
@@ -86,7 +93,7 @@ export default {
 </script>
 
 <template>
-  <HeaderChillstay v-if="!isAdminRoute" />
+  <HeaderNav v-if="!isAdminRoute" />
   <RouterView />
   <FooterHome v-if="!isAdminRoute" />
   <NotificationContainer />

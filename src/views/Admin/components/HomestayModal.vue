@@ -229,6 +229,7 @@
                     </button>
                   </div>
 
+
                   <div class="tien-nghi-container">
                     <div v-if="loading" class="text-center py-3">
                       <div class="spinner-border text-primary" role="status">
@@ -236,12 +237,12 @@
                       </div>
                     </div>
 
-                    <div v-else-if="tienNghiList.length === 0" class="text-center py-3 text-muted">
+                    <div v-else-if="filteredTienNghi.length === 0" class="text-center py-3 text-muted">
                       <i class="fas fa-info-circle me-1"></i> Chưa có tiện nghi nào
                     </div>
 
                     <div v-else class="tien-nghi-list">
-                      <div v-for="item in tienNghiList" :key="item.id" class="tien-nghi-item">
+                      <div v-for="item in filteredTienNghi" :key="item.id" class="tien-nghi-item">
                         <div class="form-check">
                           <input
                             class="form-check-input"
@@ -665,12 +666,30 @@ export default {
     const tienNghiList = ref([])
     const selectedTienNghi = ref({})
     const showAddTienNghi = ref(false)
+    const searchTienNghi = ref('')
     const newTienNghi = ref({
       tenTienNghi: '',
       donVi: '',
       moTa: '',
       soLuong: 1,
     })
+
+    // Lọc tiện nghi theo từ khóa tìm kiếm
+    const filteredTienNghi = computed(() => {
+      if (!searchTienNghi.value) return tienNghiList.value
+
+      const searchTerm = searchTienNghi.value.toLowerCase().trim()
+      return tienNghiList.value.filter(item =>
+        item.tenTienNghi.toLowerCase().includes(searchTerm) ||
+        item.donVi.toLowerCase().includes(searchTerm) ||
+        (item.moTa && item.moTa.toLowerCase().includes(searchTerm))
+      )
+    })
+
+    // Hàm lọc tiện nghi
+    const filterTienNghi = () => {
+      // Computed property sẽ tự động cập nhật
+    }
 
     // Danh sách phòng
     const phongList = ref([])
@@ -1117,6 +1136,9 @@ export default {
       loadingTienNghi,
       // Xem vật tư phòng
       viewVatTuPhong,
+      filteredTienNghi,
+      searchTienNghi,
+      filterTienNghi,
     }
   },
 }
@@ -1618,5 +1640,59 @@ export default {
 .table th, .table td {
   padding: 12px 15px;
   vertical-align: middle;
+}
+
+/* CONTROLS CONTAINER */
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+/* SEARCH INPUT */
+.search-box {
+  width: 100%;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex-grow: 1;
+}
+
+.search-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.search-input {
+  width: 100%;
+  border: 2px solid #dee2e6;
+  padding: 14px 18px 14px 48px;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.25s ease;
+  font-size: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #495057;
+  font-weight: 500;
+}
+
+.search-input:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.search-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
 }
 </style>

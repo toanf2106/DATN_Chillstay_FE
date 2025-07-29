@@ -152,8 +152,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import {
   getAllHomeStay,
   getLoaiHomeStay,
-  getAnhHomeStayByHomestayId,
-  getAvailableHomestay // Thêm import API mới
+  getAnhHomeStayByHomestayId
 } from '@/Service/HomeStayService';
 import { useRouter, useRoute } from 'vue-router';
 import api from '@/utils/api';
@@ -390,25 +389,35 @@ const fetchHomestayData = async () => {
     console.log('Đang tải dữ liệu homestay...');
 
     try {
+      // Sử dụng getAllHomeStay thay vì getAvailableHomestay
+      const res = await getAllHomeStay();
+      console.log('Dữ liệu homestay từ API:', res.data);
 
-      // Sử dụng API mới để lấy danh sách homestay khả dụng (đã loại bỏ các homestay đang bị khóa)
-      const res = await getAvailableHomestay()
-      console.log('Dữ liệu homestay từ API:', res.data)
-
-  
-
-      // In ra dữ liệu để kiểm tra
-      console.log('Dữ liệu homestay đầu tiên:', {
-        id: res.data[0].id,
-        ten: res.data[0].tenHomestay,
-        chu: res.data[0].hotenChuHomestay,
-        loai: res.data[0].tenLoaiHomestay || (res.data[0].loaiHomeStay ? res.data[0].loaiHomeStay.tenLoai : undefined),
-        allProps: Object.keys(res.data[0])
-      });
-
-
+      // Kiểm tra và lọc homestay có trạng thái đang hoạt động
       if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-        homestays.value = await Promise.all(res.data.map(async (homestay) => {
+        // Lọc những homestay có trạng thái là đang hoạt động
+        const activeHomestays = res.data.filter(homestay =>
+          homestay.trangThai === true ||
+          homestay.trangThai === 'true' ||
+          homestay.trangThai === 'Hoạt động' ||
+          homestay.trangThai === 'active'
+        );
+
+        console.log(`Tổng số homestay: ${res.data.length}, Số homestay đang hoạt động: ${activeHomestays.length}`);
+
+        // In ra dữ liệu để kiểm tra
+        if (activeHomestays.length > 0) {
+          console.log('Dữ liệu homestay đầu tiên:', {
+            id: activeHomestays[0].id,
+            ten: activeHomestays[0].tenHomestay,
+            chu: activeHomestays[0].hotenChuHomestay,
+            trangThai: activeHomestays[0].trangThai,
+            loai: activeHomestays[0].tenLoaiHomestay || (activeHomestays[0].loaiHomeStay ? activeHomestays[0].loaiHomeStay.tenLoai : undefined),
+            allProps: Object.keys(activeHomestays[0])
+          });
+        }
+
+        homestays.value = await Promise.all(activeHomestays.map(async (homestay) => {
           try {
             // Kiểm tra nếu homestay đã có trường hình ảnh từ dữ liệu trực tiếp
             if (homestay.Hinh_Anh) {
@@ -452,15 +461,22 @@ const fetchHomestayData = async () => {
           return homestay;
         }));
 
+        // Nếu không có homestay nào đang hoạt động
+        if (activeHomestays.length === 0) {
+          hasError.value = true;
+          errorMessage.value = 'Không tìm thấy homestay nào đang hoạt động.';
+          console.warn('Không có homestay nào đang hoạt động');
+          homestays.value = [];
+          return;
+        }
+
         // Nếu không có dữ liệu loại homestay từ API riêng, trích xuất từ dữ liệu homestay
         if (homestayTypes.value.length === 0) {
           // Extract unique homestay types
-
-          homestayTypes.value = [...new Set(homestays.value.map(homestay =>
+          homestayTypes.value = [...new Set(activeHomestays.map(homestay =>
             homestay.tenLoaiHomestay || (homestay.loaiHomeStay ? homestay.loaiHomeStay.tenLoai : undefined)
           ))].filter(type => type);
           console.log('Đã trích xuất loại homestay từ dữ liệu homestay:', homestayTypes.value);
-
         }
       } else {
         hasError.value = true;

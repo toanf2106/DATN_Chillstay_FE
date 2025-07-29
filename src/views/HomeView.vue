@@ -155,24 +155,15 @@
 
               <div class="homestay-price" v-if="home.giaCaHomestay">
                 <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
-
-                <!-- <div class="homestay-price">
-                  <span class="price"
-                    >{{
-                      home.giaCaHomestay ? home.giaCaHomestay.toLocaleString('vi-VN') : '850,000'
-                    }}₫</span
-                  >
-
-                  <span class="price-unit">/đêm</span>
-                </div> -->
                 <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="view-more">
-            <button class="view-more-btn" @click="viewAllHomestays">Xem Tất Cả Homestay</button>
-          </div>
+        <!-- Nút xem tất cả homestay đặt sau lưới -->
+        <div class="view-more" v-if="!isLoading && !hasError">
+          <button class="view-more-btn" @click="viewAllHomestays">Xem Tất Cả Homestay</button>
         </div>
       </div>
     </section>
@@ -1178,6 +1169,9 @@ const fixImageUrl = (url) => {
 .view-more {
   text-align: center;
   margin-top: 35px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .view-more-btn {
@@ -1190,6 +1184,7 @@ const fixImageUrl = (url) => {
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s ease;
+  min-width: 200px;
 }
 
 .view-more-btn:hover {

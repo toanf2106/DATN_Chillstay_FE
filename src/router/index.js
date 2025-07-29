@@ -101,6 +101,7 @@ const router = createRouter({
           path: '',
           name: 'admin-dashboard',
           component: () => import('../views/Admin/ThongKe.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Homestay - Thông tin chung về homestay
@@ -108,6 +109,7 @@ const router = createRouter({
           path: 'homestay',
           name: 'admin-homestay',
           component: () => import('../views/Admin/Home/QlyHomestay.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Loại Homestay
@@ -115,12 +117,14 @@ const router = createRouter({
           path: 'loai-homestay',
           name: 'admin-loai-homestay',
           component: () => import('../views/Admin/Home/QlyLoaiHomestay.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         {
           path: 'qly-loai-phong',
           name: 'admin-qly-loai-phong',
           component: QlyLoaiPhong,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Tiện nghi Homestay
@@ -128,6 +132,7 @@ const router = createRouter({
           path: 'homestay-tien-nghi',
           name: 'admin-homestay-tien-nghi',
           component: () => import('../views/Admin/Home/QlyHomestayTienNghi.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Dịch vụ Homestay
@@ -135,6 +140,7 @@ const router = createRouter({
           path: 'homestay-dich-vu',
           name: 'admin-homestay-dich-vu',
           component: () => import('../views/Admin/Home/QlyHomestayDichVu.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Alias cho URL tien-nghi-homestay
@@ -149,6 +155,7 @@ const router = createRouter({
           path: 'thong-ke',
           name: 'admin-thong-ke',
           component: ThongKe,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Đặt homestay - Quản lý đặt phòng
@@ -156,6 +163,7 @@ const router = createRouter({
           path: 'dat-homestay',
           name: 'admin-dat-homestay',
           component: DatHomestay,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // DatHomeADM - Chi tiết quản lý đặt homestay
@@ -163,6 +171,7 @@ const router = createRouter({
           path: 'dat-homestay-adm',
           name: 'DatHomeADM',
           component: () => import('../views/Admin/DatHomeADM.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Các route quản lý Homestay
@@ -171,6 +180,7 @@ const router = createRouter({
           path: 'homestay/vattu',
           name: 'admin-homestay-vattu',
           component: () => import('../views/Admin/Home/VatTu.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Vật tư Phòng - Thông tin về vật tư trong phòng
@@ -178,6 +188,7 @@ const router = createRouter({
           path: 'homestay/vattu-phong',
           name: 'admin-vattu-phong',
           component: QlyVatTuPhong,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Tiện nghi - Các tiện nghi cung cấp cho khách hàng
@@ -185,6 +196,7 @@ const router = createRouter({
           path: 'homestay/tiennghi',
           name: 'admin-homestay-tiennghi',
           component: () => import('../views/Admin/Home/TienNghi.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Dịch vụ - Các dịch vụ bổ sung trong homestay
@@ -192,6 +204,7 @@ const router = createRouter({
           path: 'homestay/dichvu',
           name: 'admin-homestay-dichvu',
           component: () => import('../views/Admin/Home/DichVu.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Voucher - Các voucher được sử dụng trong homestay
@@ -199,6 +212,7 @@ const router = createRouter({
           path: 'voucher',
           name: 'admin-voucher',
           component: () => import('../views/Admin/QlyVoucher.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Nhân viên - Các nhân viên được sử dụng trong homestay
@@ -206,6 +220,7 @@ const router = createRouter({
           path: 'User/nhanvien',
           name: 'admin-nhan-vien',
           component: () => import('../views/Admin/User/NhanVien.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Khách hàng -U Các khách hàng được sử dụng trong homestay
@@ -213,6 +228,7 @@ const router = createRouter({
           path: 'user/khachhang',
           name: 'admin-khach-hang',
           component: () => import('../views/Admin/User/KhachHang.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Tài khoản - Các tài khoản được sử dụng trong homestay
@@ -220,6 +236,7 @@ const router = createRouter({
           path: 'taikhoan',
           name: 'admin-tai-khoan',
           component: () => import('../views/Admin/AccountT.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Chi tiết tài khoản
@@ -227,7 +244,8 @@ const router = createRouter({
           path: 'taikhoan/:id',
           name: 'admin-account-detail',
           component: () => import('../views/Admin/ChiTietTaiKhoanAdm.vue'),
-          props: true
+          props: true,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Đánh giá - Các đánh giá được sử dụng trong homestay
@@ -235,13 +253,15 @@ const router = createRouter({
           path: 'content/danhgia',
           name: 'admin-danh-gia',
           component: () => import('../views/Admin/NoiDung&DanhGia/DanhGia.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         {
           path: 'danh-gia/:homestayId',
           name: 'ReviewDetails',
           component: () => import('../views/Admin/NoiDung&DanhGia/ReviewDetails.vue'),
-          props: true
+          props: true,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Tin tức - Các tin tức được sử dụng trong homestay
@@ -249,6 +269,7 @@ const router = createRouter({
           path: 'content/tintuc',
           name: 'admin-tin-tuc',
           component: () => import('../views/Admin/NoiDung&DanhGia/TinTuc.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Quản lý Thanh toán - Các thanh toán được sử dụng trong homestay
@@ -256,6 +277,7 @@ const router = createRouter({
           path: 'thanhtoan',
           name: 'admin-thanh-toan',
           component: () => import('../views/Admin/ThanhToan.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Trang test thanh toán
@@ -263,6 +285,7 @@ const router = createRouter({
           path: 'test-thanh-toan',
           name: 'admin-test-thanh-toan',
           component: TestThanhToan,
+          meta: { requiresAuth: true, requiresAdmin: true },
         },
 
         // Thêm route cho QlyPhong trong phần admin routes
@@ -307,29 +330,66 @@ const router = createRouter({
 
 // Navigation guard để bảo vệ route admin
 router.beforeEach((to, from, next) => {
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
-    // Sử dụng authStore thay vì truy cập trực tiếp localStorage
-    const authStore = useAuthStore()
+  const authStore = useAuthStore();
 
-    // Kiểm tra trạng thái đăng nhập từ store
-    if (!authStore.isLoggedIn) {
-      console.log('Chưa đăng nhập, chuyển hướng về trang chủ')
-      next('/')
-      return
-    }
-
-    // Kiểm tra quyền admin từ store
-    if (to.meta.isAdmin && !authStore.hasAdminAccess) {
-      console.log('Không có quyền admin, chuyển hướng về trang chủ')
-      next('/')
-      return
-    }
-
-    // Nếu đã đăng nhập và có quyền phù hợp
-    next()
-  } else {
-    next()
+  // Lưu trang admin cuối nếu đang ở trang admin
+  if (to.path.includes('/admin') && authStore.isLoggedIn && authStore.hasAdminAccess) {
+    authStore.saveLastAdminRoute(to.fullPath);
   }
-})
+
+  // Nếu đã đăng nhập với quyền admin, giới hạn chỉ được truy cập các trang admin
+  if (authStore.isLoggedIn && authStore.hasAdminAccess) {
+    // Nếu đang cố gắng truy cập các trang người dùng (không phải trang admin)
+    if (!to.path.includes('/admin') && !to.path.startsWith('/login') && to.name !== 'admin') {
+      console.log('Admin không được phép truy cập trang người dùng thông thường, chuyển hướng về trang admin');
+      // Sử dụng trang admin cuối nếu có, nếu không thì dùng trang dashboard
+      next(authStore.lastAdminRoute || '/admin');
+      return;
+    }
+  }
+
+  // Kiểm tra nếu đang cố gắng truy cập trang admin
+  if (to.matched.some(record => record.path.includes('/admin') || record.meta.requiresAdmin)) {
+    console.log('Đang truy cập trang admin, kiểm tra quyền...');
+
+    // Kiểm tra nếu trước đó đã đăng xuất từ tài khoản admin
+    const wasAdmin = sessionStorage.getItem('wasAdmin') === 'true';
+    if (wasAdmin && !authStore.hasAdminAccess) {
+      console.log('Đã phát hiện cố gắng truy cập lại trang admin sau khi đăng xuất');
+      next('/');
+      return;
+    }
+
+    // Kiểm tra xem phiên đăng nhập có hợp lệ không
+    if (!authStore.isLoggedIn) {
+      console.log('Chưa đăng nhập, chuyển hướng về trang chủ');
+      next('/');
+      return;
+    }
+
+    // Kiểm tra quyền admin
+    if (!authStore.hasAdminAccess) {
+      console.log('Không có quyền admin, chuyển hướng về trang chủ');
+      next('/');
+      return;
+    }
+
+    // Nếu wasAdmin được đặt và đã là admin, xóa flag này để không ảnh hưởng đến phiên mới
+    if (wasAdmin && authStore.hasAdminAccess) {
+      sessionStorage.removeItem('wasAdmin');
+    }
+  }
+  // Kiểm tra các trang khác yêu cầu đăng nhập
+  else if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (!authStore.isLoggedIn) {
+      console.log('Chưa đăng nhập, chuyển hướng về trang chủ');
+      next('/');
+      return;
+    }
+  }
+
+  // Cho phép chuyển trang bình thường
+  next();
+});
 
 export default router

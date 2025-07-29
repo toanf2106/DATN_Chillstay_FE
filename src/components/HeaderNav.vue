@@ -500,8 +500,9 @@ export default {
 
         // Chuyển hướng sau khi đăng nhập
         setTimeout(() => {
-          if (userData.accountTypeId === 1 || userData.accountTypeId === 2) {
-            this.$router.push('/admin')
+          if (userData.accountTypeId === 2 || userData.accountTypeName?.toUpperCase() === 'ADMIN') {
+            // Sử dụng replace thay vì push để tránh quay lại bằng nút back
+            this.$router.replace('/admin')
           } else {
             const redirectUrl = localStorage.getItem('redirectAfterLogin')
             if (redirectUrl) {
@@ -790,7 +791,14 @@ export default {
           position: 'top-right',
           duration: 2000,
         })
-        if (this.$router.currentRoute.value.path !== '/') {
+
+        // Kiểm tra xem nếu đang ở trang admin thì thay thế lịch sử, ngăn không cho quay lại
+        const currentPath = this.$router.currentRoute.value.path
+        if (currentPath.includes('/admin') || this.$router.currentRoute.value.meta.requiresAdmin) {
+          // Thay thế lịch sử hiện tại bằng trang chủ để ngăn người dùng quay lại
+          this.$router.replace('/')
+        } else if (this.$router.currentRoute.value.path !== '/') {
+          // Đối với các trang khác thì push như bình thường
           this.$router.push('/')
         }
       } catch (error) {

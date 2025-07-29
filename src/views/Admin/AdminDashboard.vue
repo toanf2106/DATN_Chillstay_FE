@@ -564,6 +564,36 @@ export default {
       if (router.currentRoute.value.path === '/admin') {
         router.push({ name: 'admin-welcome' })
       }
+
+      // Ngăn chặn việc quay lại trang người dùng thông thường bằng cách thay thế lịch sử
+      const replaceStateWithAdmin = () => {
+        if (window.history && window.history.replaceState) {
+          // Thay thế lịch sử hiện tại bằng trang admin hiện tại
+          window.history.replaceState({ adminPage: true }, document.title, window.location.href);
+        }
+      };
+
+      // Thực hiện ngay khi trang được tải
+      replaceStateWithAdmin();
+
+      // Thêm một mục mới vào lịch sử để nếu người dùng bấm Back, họ vẫn ở trong trang admin
+      window.history.pushState({ adminPage: true }, document.title, window.location.href);
+
+      // Xử lý sự kiện popstate (khi người dùng bấm nút back)
+      const handlePopState = (event) => {
+        // Nếu không có state hoặc không phải trang admin, thì đẩy lại trang admin vào lịch sử
+        if (!event.state || !event.state.adminPage) {
+          window.history.pushState({ adminPage: true }, document.title, window.location.href);
+        }
+      };
+
+      // Đăng ký sự kiện
+      window.addEventListener('popstate', handlePopState);
+
+      // Dọn dẹp khi component unmount
+      onUnmounted(() => {
+        window.removeEventListener('popstate', handlePopState);
+      });
     })
 
     // Kiểm tra quyền truy cập và chuyển hướng

@@ -5,7 +5,12 @@
     </div>
 
     <div class="filter-controls">
-      <input type="text" v-model="searchQuery" placeholder="Tìm kiếm theo tên, địa chỉ, mã..." class="search-input">
+      <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="Tìm kiếm theo tên, địa chỉ, mã..."
+        class="search-input"
+      />
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -17,9 +22,14 @@
     </div>
 
     <div v-else :class="viewMode === 'grid' ? 'homestay-grid' : 'homestay-list'">
-      <div v-for="homestay in filteredHomestays" :key="homestay.id" class="homestay-card" @click="goToReviewDetails(homestay.id)">
+      <div
+        v-for="homestay in filteredHomestays"
+        :key="homestay.id"
+        class="homestay-card"
+        @click="goToReviewDetails(homestay.id)"
+      >
         <div class="card-image">
-          <img :src="homestay.hinhAnh || '/public/assets/Icon/logo.png'" :alt="homestay.tenHomestay">
+          <img :src="homestay.hinhAnh || '/assets/Icon/logo.png'" :alt="homestay.tenHomestay" />
           <span class="homestay-status" :class="homestay.trangThai ? 'active' : 'inactive'">
             {{ homestay.trangThai ? 'Hoạt động' : 'Ngừng hoạt động' }}
           </span>
@@ -42,48 +52,49 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { getAllHomeStay } from '@/Service/HomeStayService';
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { getAllHomeStay } from '@/Service/HomeStayService'
 
 export default {
   name: 'HomestayListing',
   setup() {
-    const router = useRouter();
-    const homestays = ref([]);
-    const loading = ref(true);
-    const searchQuery = ref('');
-    const viewMode = ref('grid');
+    const router = useRouter()
+    const homestays = ref([])
+    const loading = ref(true)
+    const searchQuery = ref('')
+    const viewMode = ref('grid')
 
     const fetchHomestays = async () => {
       try {
-        loading.value = true;
-        const response = await getAllHomeStay();
-        homestays.value = response.data;
+        loading.value = true
+        const response = await getAllHomeStay()
+        homestays.value = response.data
       } catch (error) {
-        console.error("Lỗi khi tải danh sách homestay:", error);
+        console.error('Lỗi khi tải danh sách homestay:', error)
       } finally {
-        loading.value = false;
+        loading.value = false
       }
-    };
+    }
 
     const goToReviewDetails = (homestayId) => {
-      router.push({ name: 'ReviewDetails', params: { homestayId } });
-    };
+      router.push({ name: 'ReviewDetails', params: { homestayId } })
+    }
 
     const filteredHomestays = computed(() => {
       if (!searchQuery.value) {
-        return homestays.value;
+        return homestays.value
       }
-      const lowerCaseQuery = searchQuery.value.toLowerCase();
-      return homestays.value.filter(h =>
-        h.tenHomestay.toLowerCase().includes(lowerCaseQuery) ||
-        h.diaChi.toLowerCase().includes(lowerCaseQuery) ||
-        (h.maHomestay && h.maHomestay.toLowerCase().includes(lowerCaseQuery))
-      );
-    });
+      const lowerCaseQuery = searchQuery.value.toLowerCase()
+      return homestays.value.filter(
+        (h) =>
+          h.tenHomestay.toLowerCase().includes(lowerCaseQuery) ||
+          h.diaChi.toLowerCase().includes(lowerCaseQuery) ||
+          (h.maHomestay && h.maHomestay.toLowerCase().includes(lowerCaseQuery)),
+      )
+    })
 
-    onMounted(fetchHomestays);
+    onMounted(fetchHomestays)
 
     return {
       homestays,
@@ -91,9 +102,9 @@ export default {
       searchQuery,
       filteredHomestays,
       viewMode,
-      goToReviewDetails
-    };
-  }
+      goToReviewDetails,
+    }
+  },
 }
 </script>
 
@@ -152,7 +163,8 @@ export default {
   border-bottom-right-radius: 8px;
 }
 
-.loading-state, .empty-state {
+.loading-state,
+.empty-state {
   text-align: center;
   padding: 50px;
   font-size: 18px;
@@ -173,17 +185,19 @@ export default {
 .homestay-card {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   cursor: pointer; /* Add pointer cursor */
 }
 
 .homestay-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
 .card-image {
@@ -212,12 +226,27 @@ export default {
   font-weight: 500;
 }
 
-.homestay-status.active { background-color: rgba(46, 125, 50, 0.8); }
-.homestay-status.inactive { background-color: rgba(198, 40, 40, 0.8); }
+.homestay-status.active {
+  background-color: rgba(46, 125, 50, 0.8);
+}
+.homestay-status.inactive {
+  background-color: rgba(198, 40, 40, 0.8);
+}
 
-.card-content { padding: 20px; flex-grow: 1; }
-.homestay-name { font-size: 20px; font-weight: 600; margin: 0 0 5px 0; }
-.homestay-type { font-size: 14px; color: #666; margin-bottom: 15px; }
+.card-content {
+  padding: 20px;
+  flex-grow: 1;
+}
+.homestay-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+}
+.homestay-type {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 15px;
+}
 
 .info-row {
   display: flex;
@@ -237,8 +266,15 @@ export default {
   border-top: 1px solid #f0f0f0;
 }
 
-.price { font-size: 18px; font-weight: 600; color: #d0021b; }
-.area { font-size: 14px; color: #555; }
+.price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #d0021b;
+}
+.area {
+  font-size: 14px;
+  color: #555;
+}
 
 .card-footer {
   padding: 15px 20px;
@@ -248,11 +284,29 @@ export default {
   align-items: center;
 }
 
-.date-created { font-size: 12px; color: #888; }
+.date-created {
+  font-size: 12px;
+  color: #888;
+}
 
-.homestay-list .homestay-card { flex-direction: row; height: 200px; }
-.homestay-list .card-image { width: 35%; height: 100%; padding-top: 0; flex-shrink: 0; }
-.homestay-list .card-content { display: flex; flex-direction: column; }
-.homestay-list .card-footer { flex-direction: column; justify-content: center; gap: 10px; width: 20%; }
-
+.homestay-list .homestay-card {
+  flex-direction: row;
+  height: 200px;
+}
+.homestay-list .card-image {
+  width: 35%;
+  height: 100%;
+  padding-top: 0;
+  flex-shrink: 0;
+}
+.homestay-list .card-content {
+  display: flex;
+  flex-direction: column;
+}
+.homestay-list .card-footer {
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  width: 20%;
+}
 </style>

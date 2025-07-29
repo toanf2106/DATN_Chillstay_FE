@@ -44,7 +44,7 @@
     <div class="content-section">
       <!-- Step content based on current step -->
       <div class="step-content">
-                <!-- Step 1: Quản lý đặt tại quầy -->
+        <!-- Step 1: Quản lý đặt tại quầy -->
         <div v-if="currentStep === 0 && !fromCounter" class="select-room">
           <h2 class="content-title">Quản lý đặt tại quầy</h2>
 
@@ -52,8 +52,15 @@
           <div class="row mb-3">
             <div class="col-md-4">
               <div class="input-group">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo tên homestay..." v-model="searchTerm">
-                <button class="btn btn-primary" @click="tìmKiếm"><i class="fas fa-search"></i></button>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Tìm kiếm theo tên homestay..."
+                  v-model="searchTerm"
+                />
+                <button class="btn btn-primary" @click="tìmKiếm">
+                  <i class="fas fa-search"></i>
+                </button>
               </div>
             </div>
             <div class="col-md-2 ms-auto">
@@ -86,7 +93,11 @@
               @click="selectRoom(homestay)"
             >
               <div class="homestay-image">
-                <img :src="homestay.hinhAnh || '/images/default-homestay.png'" class="card-img-top" style="height: 200px; object-fit: cover;">
+                <img
+                  :src="homestay.hinhAnh || '/images/default-homestay.png'"
+                  class="card-img-top"
+                  style="height: 200px; object-fit: cover"
+                />
                 <span class="homestay-status">Hoạt động</span>
               </div>
               <div class="homestay-content">
@@ -95,13 +106,20 @@
                   <i class="fas fa-map-marker-alt"></i>
                   {{ homestay.diaChi || 'Không có địa chỉ' }}
                 </p>
-                                  <div class="homestay-price">
-                    <span class="price">{{ homestay.giaCaHomestay ? homestay.giaCaHomestay.toLocaleString('vi-VN') : '0' }}</span>
-                    <span class="price-unit">₫/đêm</span>
-                  </div>
+                <div class="homestay-price">
+                  <span class="price">{{
+                    homestay.giaCaHomestay ? homestay.giaCaHomestay.toLocaleString('vi-VN') : '0'
+                  }}</span>
+                  <span class="price-unit">₫/đêm</span>
+                </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                  <span :class="{'badge bg-danger': isLocked(homestay.id), 'badge bg-success': !isLocked(homestay.id)}">
+                  <span
+                    :class="{
+                      'badge bg-danger': isLocked(homestay.id),
+                      'badge bg-success': !isLocked(homestay.id),
+                    }"
+                  >
                     {{ isLocked(homestay.id) ? 'Đang khóa' : 'Khả dụng' }}
                   </span>
                   <span class="ms-2">Thời gian khóa: 5 phút</span>
@@ -111,13 +129,15 @@
                   <button
                     v-if="!isLocked(homestay.id)"
                     @click.stop="khóaHomestay(homestay.id)"
-                    class="btn btn-warning flex-grow-1">
+                    class="btn btn-warning flex-grow-1"
+                  >
                     <i class="fas fa-lock"></i> Khóa để đặt tại quầy
                   </button>
                   <button
                     v-else
                     @click.stop="mởKhóaHomestay(homestay.id)"
-                    class="btn btn-success flex-grow-1">
+                    class="btn btn-success flex-grow-1"
+                  >
                     <i class="fas fa-lock-open"></i> Mở khóa
                   </button>
                 </div>
@@ -153,8 +173,15 @@
           <div v-if="fromCounter" class="row mb-3">
             <div class="col-md-4">
               <div class="input-group">
-                <input type="text" class="form-control" placeholder="Tìm kiếm theo tên homestay..." v-model="searchTerm">
-                <button class="btn btn-primary" @click="tìmKiếm"><i class="fas fa-search"></i></button>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Tìm kiếm theo tên homestay..."
+                  v-model="searchTerm"
+                />
+                <button class="btn btn-primary" @click="tìmKiếm">
+                  <i class="fas fa-search"></i>
+                </button>
               </div>
             </div>
             <div class="col-md-2 ms-auto">
@@ -167,21 +194,36 @@
           <div class="booking-layout">
             <!-- Bên trái: Thông tin homestay đã chọn -->
             <!-- Hiển thị danh sách homestay khi tìm kiếm ở chế độ đặt tại quầy -->
-            <div v-if="fromCounter && searchTerm.trim() && homestays.length > 0" class="homestays-quick-search mb-4">
+            <div
+              v-if="fromCounter && searchTerm.trim() && homestays.length > 0"
+              class="homestays-quick-search mb-4"
+            >
               <h4>Kết quả tìm kiếm</h4>
               <div class="homestays-list">
-                <div v-for="home in displayedHomestays" :key="home.id" class="homestay-quick-item"
-                     :class="{ 'selected': selectedRoom === home.id }" @click="selectRoom(home)">
+                <div
+                  v-for="home in displayedHomestays"
+                  :key="home.id"
+                  class="homestay-quick-item"
+                  :class="{ selected: selectedRoom === home.id }"
+                  @click="selectRoom(home)"
+                >
                   <div class="homestay-quick-image">
-                    <img :src="home.hinhAnh || '/images/default-homestay.png'" alt="Homestay">
+                    <img :src="home.hinhAnh || '/images/default-homestay.png'" alt="Homestay" />
                   </div>
                   <div class="homestay-quick-content">
                     <h5>{{ home.tenHomestay }}</h5>
                     <p class="homestay-quick-address">{{ home.diaChi }}</p>
-                    <p class="homestay-quick-price">{{ formatPrice(home.giaCaHomestay) }} VNĐ/đêm</p>
+                    <p class="homestay-quick-price">
+                      {{ formatPrice(home.giaCaHomestay) }} VNĐ/đêm
+                    </p>
                   </div>
                   <div class="homestay-quick-status">
-                    <span :class="{'badge bg-danger': isLocked(home.id), 'badge bg-success': !isLocked(home.id)}">
+                    <span
+                      :class="{
+                        'badge bg-danger': isLocked(home.id),
+                        'badge bg-success': !isLocked(home.id),
+                      }"
+                    >
                       {{ isLocked(home.id) ? 'Đang khóa' : 'Khả dụng' }}
                     </span>
                   </div>
@@ -207,7 +249,7 @@
                 </p>
                 <div class="property-image">
                   <img
-                    :src="getSelectedHomestay().hinhAnh || 'https://via.placeholder.com/300x200'"
+                    :src="getSelectedHomestay().hinhAnh"
                     :alt="getSelectedHomestay().tenHomestay"
                   />
                 </div>
@@ -215,7 +257,12 @@
                 <!-- Hiển thị trạng thái khóa và nút khóa/mở khóa khi ở chế độ đặt tại quầy -->
                 <div v-if="fromCounter && getSelectedHomestay()" class="mt-3">
                   <div class="d-flex justify-content-between align-items-center">
-                    <span :class="{'badge bg-danger': isLocked(getSelectedHomestay().id), 'badge bg-success': !isLocked(getSelectedHomestay().id)}">
+                    <span
+                      :class="{
+                        'badge bg-danger': isLocked(getSelectedHomestay().id),
+                        'badge bg-success': !isLocked(getSelectedHomestay().id),
+                      }"
+                    >
                       {{ isLocked(getSelectedHomestay().id) ? 'Đang khóa' : 'Khả dụng' }}
                     </span>
                     <span class="ms-2">Thời gian khóa: 5 phút</span>
@@ -225,13 +272,15 @@
                     <button
                       v-if="!isLocked(getSelectedHomestay().id)"
                       @click="khóaHomestay(getSelectedHomestay().id)"
-                      class="btn btn-warning w-100">
+                      class="btn btn-warning w-100"
+                    >
                       <i class="fas fa-lock"></i> Khóa để đặt tại quầy
                     </button>
                     <button
                       v-else
                       @click="mởKhóaHomestay(getSelectedHomestay().id)"
-                      class="btn btn-success w-100">
+                      class="btn btn-success w-100"
+                    >
                       <i class="fas fa-lock-open"></i> Mở khóa
                     </button>
                   </div>
@@ -583,7 +632,7 @@
             <div v-if="getSelectedHomestay()" class="summary-homestay">
               <div class="summary-homestay-card">
                 <img
-                  :src="getSelectedHomestay().hinhAnh || 'https://via.placeholder.com/300x200'"
+                  :src="getSelectedHomestay().hinhAnh"
                   :alt="getSelectedHomestay().tenHomestay"
                 />
                 <div class="summary-homestay-info">
@@ -858,7 +907,13 @@
 </template>
 
 <script>
-import { getAllHomeStay, getSoPhongByHomestayId2, getLockedHomestays, lockHomestay, unlockHomestay } from '@/Service/HomeStayService'
+import {
+  getAllHomeStay,
+  getSoPhongByHomestayId2,
+  getLockedHomestays,
+  lockHomestay,
+  unlockHomestay,
+} from '@/Service/HomeStayService'
 import {
   getTienNghiByIdHomeStay,
   getDichVuByIdHomeStay,
@@ -874,8 +929,8 @@ export default {
   props: {
     fromCounter: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   data() {
     return {
@@ -976,55 +1031,56 @@ export default {
     // Các phương thức từ QlyDatTaiQuay
     async tảiTrạngTháiKhóa() {
       try {
-        const response = await getLockedHomestays();
-        this.lockedHomestays = new Set(response.data.data);
+        const response = await getLockedHomestays()
+        this.lockedHomestays = new Set(response.data.data)
       } catch (error) {
-        console.error('Lỗi khi tải trạng thái khóa:', error);
+        console.error('Lỗi khi tải trạng thái khóa:', error)
       }
     },
 
     isLocked(homestayId) {
-      return this.lockedHomestays.has(homestayId);
+      return this.lockedHomestays.has(homestayId)
     },
 
     async khóaHomestay(homestayId) {
       try {
-        await lockHomestay(homestayId);
-        this.lockedHomestays.add(homestayId);
-        notification.success('Đã khóa homestay để đặt tại quầy');
+        await lockHomestay(homestayId)
+        this.lockedHomestays.add(homestayId)
+        notification.success('Đã khóa homestay để đặt tại quầy')
       } catch (error) {
-        console.error('Lỗi khi khóa homestay:', error);
-        notification.error('Không thể khóa homestay');
+        console.error('Lỗi khi khóa homestay:', error)
+        notification.error('Không thể khóa homestay')
       }
     },
 
     async mởKhóaHomestay(homestayId) {
       try {
-        await unlockHomestay(homestayId);
-        this.lockedHomestays.delete(homestayId);
-        notification.success('Đã mở khóa homestay');
+        await unlockHomestay(homestayId)
+        this.lockedHomestays.delete(homestayId)
+        notification.success('Đã mở khóa homestay')
       } catch (error) {
-        console.error('Lỗi khi mở khóa homestay:', error);
-        notification.error('Không thể mở khóa homestay');
+        console.error('Lỗi khi mở khóa homestay:', error)
+        notification.error('Không thể mở khóa homestay')
       }
     },
 
     tìmKiếm() {
       if (!this.searchTerm.trim()) {
-        this.fetchHomestayData();
-        return;
+        this.fetchHomestayData()
+        return
       }
 
-      this.homestays = this.homestays.filter(homestay =>
-        homestay.tenHomestay.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        homestay.diaChi.toLowerCase().includes(this.searchTerm.toLowerCase())
-      );
+      this.homestays = this.homestays.filter(
+        (homestay) =>
+          homestay.tenHomestay.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+          homestay.diaChi.toLowerCase().includes(this.searchTerm.toLowerCase()),
+      )
     },
 
     tảiLạiDanhSách() {
-      this.searchTerm = '';
-      this.fetchHomestayData();
-      this.tảiTrạngTháiKhóa();
+      this.searchTerm = ''
+      this.fetchHomestayData()
+      this.tảiTrạngTháiKhóa()
     },
 
     handleIframeLoad() {
@@ -1395,7 +1451,7 @@ export default {
       }
     },
 
-            // Không còn cần phương thức selectRoomAndContinue nữa vì chúng ta đã tách chức năng
+    // Không còn cần phương thức selectRoomAndContinue nữa vì chúng ta đã tách chức năng
     selectPayment(method) {
       this.selectedPayment = method
     },
@@ -2061,48 +2117,48 @@ export default {
       return checkInDate.getTime() === today.getTime()
     },
   },
-            // Gọi API khi component được khởi tạo
+  // Gọi API khi component được khởi tạo
   async mounted() {
     // Tải danh sách homestay trước để có dữ liệu
-    await this.fetchHomestayData();
+    await this.fetchHomestayData()
 
     // Kiểm tra nếu đến từ trang đặt tại quầy hoặc qua prop fromCounter
     if (this.$route.query.fromCounter === 'true' || this.fromCounter === true) {
       // Không cần gán lại this.fromCounter vì đã là prop
 
       // Luôn hiển thị step 1 (chi tiết về bạn)
-      this.currentStep = 1;
+      this.currentStep = 1
 
       // Nếu có id homestay trong route, tự động chọn homestay
       if (this.$route.params.id) {
-        const homestayId = parseInt(this.$route.params.id);
+        const homestayId = parseInt(this.$route.params.id)
 
         // Nếu id là 1 (mặc định từ redirect) và có homestay khác, chọn homestay đầu tiên
         if (homestayId === 1 && this.homestays.length > 0) {
-          this.selectedRoom = this.homestays[0].id;
-          this.selectedHomestay = this.homestays[0];
+          this.selectedRoom = this.homestays[0].id
+          this.selectedHomestay = this.homestays[0]
         } else {
-          this.selectedRoom = homestayId;
+          this.selectedRoom = homestayId
           // Tìm homestay trong danh sách
-          const selectedHome = this.homestays.find(h => h.id === this.selectedRoom);
+          const selectedHome = this.homestays.find((h) => h.id === this.selectedRoom)
           if (selectedHome) {
-            this.selectedHomestay = selectedHome;
+            this.selectedHomestay = selectedHome
           }
         }
 
         // Nếu đã chọn homestay, lấy thông tin chi tiết
         if (this.selectedRoom) {
-          this.fetchSelectedHomestayTienNghis(this.selectedRoom);
-          this.fetchSelectedHomestayDichVus(this.selectedRoom);
-          this.fetchGiamGiaByHomestay(this.selectedRoom);
+          this.fetchSelectedHomestayTienNghis(this.selectedRoom)
+          this.fetchSelectedHomestayDichVus(this.selectedRoom)
+          this.fetchGiamGiaByHomestay(this.selectedRoom)
         }
       } else if (this.homestays.length > 0) {
         // Nếu không có id nhưng có homestay, chọn homestay đầu tiên
-        this.selectedRoom = this.homestays[0].id;
-        this.selectedHomestay = this.homestays[0];
-        this.fetchSelectedHomestayTienNghis(this.selectedRoom);
-        this.fetchSelectedHomestayDichVus(this.selectedRoom);
-        this.fetchGiamGiaByHomestay(this.selectedRoom);
+        this.selectedRoom = this.homestays[0].id
+        this.selectedHomestay = this.homestays[0]
+        this.fetchSelectedHomestayTienNghis(this.selectedRoom)
+        this.fetchSelectedHomestayDichVus(this.selectedRoom)
+        this.fetchGiamGiaByHomestay(this.selectedRoom)
       }
     }
 
@@ -2110,7 +2166,7 @@ export default {
 
     // Tải trạng thái khóa của homestay nếu đến từ trang đặt tại quầy
     if (this.fromCounter) {
-      this.tảiTrạngTháiKhóa();
+      this.tảiTrạngTháiKhóa()
     }
 
     // Khởi tạo ngày nhận phòng là hôm nay

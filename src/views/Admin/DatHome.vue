@@ -337,11 +337,9 @@
                       <span class="info-value">{{ selectedBooking.tenKhachHang }}</span>
                     </div>
 
-
                     <div class="info-item">
                       <span class="info-label">Số điện thoại:</span>
                       <span class="info-value">{{ selectedBooking.soDienThoai }}</span>
-
                     </div>
                     <div class="info-item">
                       <span class="info-label">Email:</span>
@@ -397,7 +395,165 @@
                 </div>
               </div>
 
-              <div class="booking-section status-section" v-if="showStatusActions">
+              <!-- Thêm phần hiển thị dịch vụ và phụ phí -->
+              <div class="booking-section service-section" style="margin-top: 15px">
+                <div class="section-content">
+                  <div class="service-header">
+                    <div class="service-tabs">
+                      <div
+                        class="service-tab"
+                        :class="{ active: activeTab === 'dichvu' }"
+                        @click="activeTab = 'dichvu'"
+                      >
+                        <i class="fas fa-concierge-bell"></i> Dịch vụ
+                      </div>
+                      <div
+                        v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckIn'"
+                        class="service-tab"
+                        :class="{ active: activeTab === 'phuphi' }"
+                        @click="activeTab = 'phuphi'"
+                      >
+                        <i class="fas fa-money-bill-wave"></i> Phụ phí
+                      </div>
+                    </div>
+                    <div class="service-action-buttons">
+                      <button
+                        v-if="activeTab === 'dichvu'"
+                        class="btn-add-service"
+                        @click="addService"
+                      >
+                        <i class="fas fa-plus"></i> Thêm dịch vụ
+                      </button>
+                      <button
+                        v-if="
+                          activeTab === 'phuphi' &&
+                          selectedBooking &&
+                          selectedBooking.trangThai === 'DaCheckIn'
+                        "
+                        class="btn-add-surcharge"
+                        @click="addSurcharge"
+                      >
+                        <i class="fas fa-plus"></i> Thêm phụ phí
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Tab dịch vụ -->
+                  <div v-if="activeTab === 'dichvu'" class="service-content">
+                    <!-- Loading state -->
+                    <div class="service-loading" v-if="isLoadingDichVu">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <p>Đang tải dịch vụ...</p>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div
+                      class="service-empty"
+                      v-else-if="!selectedBooking.dichVus || selectedBooking.dichVus.length === 0"
+                    >
+                      <i class="fas fa-concierge-bell"></i>
+                      <p>Chưa có dịch vụ nào được sử dụng</p>
+                    </div>
+
+                    <!-- Service list -->
+                    <div class="service-list" v-else>
+                      <div
+                        class="service-item"
+                        v-for="(service, index) in selectedBooking.dichVus"
+                        :key="index"
+                      >
+                        <div class="service-details">
+                          <span class="service-name">{{ service.tenDichVu }}</span>
+                          <div class="service-info">
+                            <span class="service-price">{{
+                              formatCurrency(service.giaDichVu)
+                            }}</span>
+                          </div>
+                        </div>
+                        <div class="service-actions">
+                          <div class="quantity-controls">
+                            <button class="quantity-btn" @click="decrementServiceQuantity(service)">
+                              <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="quantity-value">{{ service.soLuong }}</span>
+                            <button class="quantity-btn" @click="incrementServiceQuantity(service)">
+                              <i class="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <button class="delete-btn" @click="removeService(service, index)">
+                            <i class="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="service-total-row">
+                        <span class="service-total-label">Tổng tiền dịch vụ:</span>
+                        <span class="service-total-value">{{
+                          formatCurrency(calculateServiceTotal())
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tab phụ phí - chỉ hiển thị khi đang ở trạng thái check-in -->
+                  <div
+                    v-if="
+                      activeTab === 'phuphi' &&
+                      selectedBooking &&
+                      selectedBooking.trangThai === 'DaCheckIn'
+                    "
+                    class="service-content"
+                  >
+                    <!-- Empty state -->
+                    <div
+                      class="service-empty"
+                      v-if="!selectedBooking.phuPhis || selectedBooking.phuPhis.length === 0"
+                    >
+                      <i class="fas fa-money-bill-wave"></i>
+                      <p>Chưa có phụ phí nào được thêm</p>
+                    </div>
+
+                    <!-- Surcharge list -->
+                    <div class="service-list" v-else>
+                      <div
+                        class="service-item"
+                        v-for="(phuPhi, index) in selectedBooking.phuPhis"
+                        :key="index"
+                      >
+                        <div class="service-details">
+                          <span class="service-name">{{ phuPhi.tenPhuPhi }}</span>
+                          <div class="service-info">
+                            <span class="service-price">{{
+                              formatCurrency(phuPhi.giaPhuPhi)
+                            }}</span>
+                          </div>
+                        </div>
+                        <div class="service-actions">
+                          <div class="quantity-controls">
+                            <button class="quantity-btn" @click="decrementPhuPhiQuantity(phuPhi)">
+                              <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="quantity-value">{{ phuPhi.soLuong }}</span>
+                            <button class="quantity-btn" @click="incrementPhuPhiQuantity(phuPhi)">
+                              <i class="fas fa-plus"></i>
+                            </button>
+                          </div>
+                          <button class="delete-btn" @click="removePhuPhi(phuPhi, index)">
+                            <i class="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="service-total-row">
+                        <span class="service-total-label">Tổng tiền phụ phí:</span>
+                        <span class="service-total-value">{{
+                          formatCurrency(calculatePhuPhiTotal())
+                        }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- <div class="booking-section status-section" v-if="showStatusActions">
                 <div class="section-content">
                   <h3>Cập nhật trạng thái</h3>
                   <div
@@ -439,7 +595,7 @@
                     ></textarea>
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
             <div class="modal-column" style="flex: 5; display: flex; flex-direction: column">
               <div
@@ -455,7 +611,7 @@
                         formatCurrency(selectedBooking.giaCaHomestay)
                       }}</span>
                     </div>
-                   <div class="payment-item" v-if="selectedBooking.tenGiamGia">
+                    <div class="payment-item" v-if="selectedBooking.tenGiamGia">
                       <span class="payment-label">
                         Giảm giá ({{ selectedBooking.tenGiamGia }}):
                       </span>
@@ -802,6 +958,7 @@ import notification from '@/utils/notification' // Import notification utility
 import { showCelebration } from '@/utils/fireworks' // Import hiệu ứng pháo hoa
 import PaymentService from '@/Service/PaymentService'
 import ThanhToanService from '@/Service/ThanhToan'
+import dichVuChiTietService from '@/Service/dichVuChiTietService'
 export default {
   name: 'DatHome',
   data() {
@@ -810,10 +967,10 @@ export default {
       bookings: [],
       calendar: null,
       selectedBooking: null,
-      currentView: 'calendar', // 'calendar' or 'detail'
+      currentView: 'calendar',
       fullCalendarLoaded: false,
       isLoading: true,
-      // Thống kê
+
       totalBookings: 0,
       pendingBookings: 0,
       confirmedBookings: 0,
@@ -821,19 +978,14 @@ export default {
       waitingCheckoutBookings: 0,
       depositedBookings: 0,
       completedBookings: 0,
-      // Pagination
       currentPage: 0,
-      itemsPerPage: 5, // Fixed at 5 items per page
-      // Card view
-      visibleBookingsCount: 8, // Số lượng thẻ hiển thị ban đầu
-      loadMoreStep: 8, // Số lượng thẻ hiển thị thêm mỗi lần nhấn nút
-      // Trạng thái mới
+      itemsPerPage: 5,
+      visibleBookingsCount: 8,
+      loadMoreStep: 8,
       statusNote: '',
       showStatusActions: false,
-      // Check-in/out notes
       checkInNote: '',
       checkOutNote: '',
-      // Lịch sử thay đổi
       datHomeLogs: [],
       showLogModal: false,
       currentBookingLogs: [],
@@ -857,6 +1009,10 @@ export default {
 
       // Lựa chọn phương thức thanh toán
       showPaymentMethodModal: false,
+
+      // Tab dịch vụ và phụ phí
+      activeTab: 'dichvu',
+      isLoadingDichVu: false,
 
       // Thanh toán tiền mặt
       showCashPaymentModal: false,
@@ -954,6 +1110,17 @@ export default {
       this.fullCalendarLoaded = true
       this.initializeCalendar()
     })
+  },
+
+  watch: {
+    // Theo dõi trạng thái của booking để chuyển tab khi cần
+    'selectedBooking.trangThai': function (newVal) {
+      // Nếu trạng thái không phải là DaCheckIn và đang ở tab phụ phí
+      if (newVal !== 'DaCheckIn' && this.activeTab === 'phuphi') {
+        // Chuyển về tab dịch vụ
+        this.activeTab = 'dichvu'
+      }
+    },
   },
   methods: {
     createRipple(event) {
@@ -1085,9 +1252,14 @@ export default {
         this.soTienDaThanhToan = 0
         this.soTienConLai = 0
 
+        // Đặt tab mặc định là dịch vụ
+        this.activeTab = 'dichvu'
+
         // Lấy thông tin số tiền đã thanh toán khi mở chi tiết
         if (this.selectedBooking) {
           await this.getTongTienDatHome(this.selectedBooking.id)
+          // Gọi API lấy dịch vụ chi tiết
+          this.fetchDichVuChiTiet()
         }
       } catch (error) {
         console.error('Lỗi khi tải chi tiết đặt phòng:', error)
@@ -1992,31 +2164,279 @@ export default {
       }
     },
 
+    calculateServiceTotal() {
+      if (
+        !this.selectedBooking ||
+        !this.selectedBooking.dichVus ||
+        this.selectedBooking.dichVus.length === 0
+      ) {
+        return 0
+      }
+
+      return this.selectedBooking.dichVus.reduce((total, service) => {
+        return total + Number(service.tongTien || 0)
+      }, 0)
+    },
+
+    calculatePhuPhiTotal() {
+      if (
+        !this.selectedBooking ||
+        !this.selectedBooking.phuPhis ||
+        this.selectedBooking.phuPhis.length === 0
+      ) {
+        return 0
+      }
+
+      return this.selectedBooking.phuPhis.reduce((total, phuPhi) => {
+        return total + phuPhi.soLuong * phuPhi.giaPhuPhi
+      }, 0)
+    },
+
+    // Cập nhật tổng tiền dịch vụ và tổng tiền thanh toán
+    updateTotalServiceAmount() {
+      if (!this.selectedBooking) return
+
+      // Tính tổng tiền dịch vụ
+      const serviceTotal = this.calculateServiceTotal()
+      const phuPhiTotal = this.calculatePhuPhiTotal()
+      const totalServiceAmount = serviceTotal + phuPhiTotal
+
+      // Cập nhật tổng tiền dịch vụ trong selectedBooking
+      this.selectedBooking.tongTienDichVu = totalServiceAmount
+
+      // Tính lại tổng tiền
+      const giaCaHomestay = Number(this.selectedBooking.giaCaHomestay || 0)
+      const giamGia = Number(this.calculateActualDiscount() || 0)
+      const tongTien = giaCaHomestay - giamGia + totalServiceAmount
+
+      // Cập nhật tổng tiền trong selectedBooking
+      this.selectedBooking.tongTien = tongTien
+
+      // Cập nhật số tiền còn lại
+      this.soTienConLai = tongTien - this.soTienDaThanhToan
+
+      console.log('Đã cập nhật tổng tiền:', {
+        tongTienDichVu: totalServiceAmount,
+        tongTien: tongTien,
+        soTienConLai: this.soTienConLai,
+      })
+    },
+
+    // Phương thức xử lý khi nhấn nút thêm dịch vụ
+    addService() {
+      // Xử lý thêm dịch vụ ở đây
+      console.log('Thêm dịch vụ cho booking:', this.selectedBooking.id)
+      // TODO: Hiển thị modal thêm dịch vụ hoặc thực hiện hành động khác
+    },
+
+    // Tăng số lượng dịch vụ
+    incrementServiceQuantity(service) {
+      if (!service) return
+      service.soLuong++
+      service.tongTien = service.soLuong * service.giaDichVu
+      this.updateServiceQuantity(service)
+    },
+
+    // Giảm số lượng dịch vụ
+    decrementServiceQuantity(service) {
+      if (!service || service.soLuong <= 1) return
+      service.soLuong--
+      service.tongTien = service.soLuong * service.giaDichVu
+      this.updateServiceQuantity(service)
+    },
+
+    // Cập nhật số lượng dịch vụ lên server
+    updateServiceQuantity(service) {
+      if (!service || !this.selectedBooking) return
+
+      console.log(`Cập nhật số lượng dịch vụ ${service.tenDichVu}: ${service.soLuong}`)
+
+      dichVuChiTietService
+        .updateQuantity(service.id, service.soLuong)
+        .then((response) => {
+          console.log('Cập nhật số lượng thành công:', response.data)
+          // Cập nhật lại dữ liệu hiển thị
+          service.tongTien = response.data.tongGia
+
+          // Cập nhật tổng tiền dịch vụ trong thông tin thanh toán
+          this.updateTotalServiceAmount()
+
+          // Hiển thị thông báo thành công
+          notification.success('Cập nhật số lượng thành công')
+        })
+        .catch((error) => {
+          console.error('Lỗi khi cập nhật số lượng:', error)
+          notification.error('Cập nhật số lượng thất bại')
+        })
+    },
+
+    // Xóa dịch vụ
+    removeService(service, index) {
+      if (!service || !this.selectedBooking || !this.selectedBooking.dichVus) return
+
+      if (confirm(`Bạn có chắc chắn muốn xóa dịch vụ "${service.tenDichVu}" không?`)) {
+        console.log(`Xóa dịch vụ ${service.tenDichVu}`)
+
+        dichVuChiTietService
+          .deleteDichVuChiTiet(service.id)
+          .then((response) => {
+            console.log('Xóa dịch vụ thành công:', response.data)
+
+            // Xóa khỏi mảng hiển thị
+            this.selectedBooking.dichVus.splice(index, 1)
+
+            // Cập nhật tổng tiền dịch vụ trong thông tin thanh toán
+            this.updateTotalServiceAmount()
+
+            // Hiển thị thông báo thành công
+            notification.success('Xóa dịch vụ thành công')
+          })
+          .catch((error) => {
+            console.error('Lỗi khi xóa dịch vụ:', error)
+            notification.error('Xóa dịch vụ thất bại')
+          })
+      }
+    },
+
+    // Lấy danh sách dịch vụ chi tiết theo idDatHome
+    fetchDichVuChiTiet() {
+      if (!this.selectedBooking || !this.selectedBooking.id) return
+
+      this.isLoadingDichVu = true
+
+      // Đảm bảo có mảng dichVus trống nếu không có dữ liệu
+      if (!this.selectedBooking.dichVus) {
+        this.selectedBooking.dichVus = []
+      }
+
+      dichVuChiTietService
+        .getAllDichVuChiTietByIdDatHome(this.selectedBooking.id)
+        .then((response) => {
+          console.log('API response:', response.data)
+          if (response && response.data && response.data.length > 0) {
+            // Cập nhật dữ liệu dịch vụ vào selectedBooking
+            this.selectedBooking.dichVus = response.data.map((item) => {
+              // Đảm bảo các giá trị số đều được chuyển đổi đúng
+              const gia = Number(item.dichVu.gia || 0)
+              const soLuong = Number(item.soLuong || 0)
+              const tongGia = Number(item.tongGia || 0)
+
+              console.log(
+                `Dịch vụ: ${item.dichVu.tenDichVu}, Giá: ${gia}, Số lượng: ${soLuong}, Tổng: ${tongGia}`,
+              )
+
+              return {
+                id: item.id,
+                tenDichVu: item.dichVu.tenDichVu,
+                giaDichVu: gia,
+                soLuong: soLuong,
+                tongTien: tongGia,
+              }
+            })
+            console.log('Dịch vụ chi tiết sau khi map:', this.selectedBooking.dichVus)
+          } else {
+            // Nếu không có dữ liệu, gán mảng rỗng
+            this.selectedBooking.dichVus = []
+            console.log('Không có dịch vụ chi tiết')
+          }
+        })
+        .catch((error) => {
+          console.error('Lỗi khi lấy dịch vụ chi tiết:', error)
+          // Gán mảng rỗng nếu có lỗi
+          this.selectedBooking.dichVus = []
+
+          // Kiểm tra nếu là lỗi 404 thì không hiển thị thông báo lỗi
+          if (error.response && error.response.status === 404) {
+            console.log('Không tìm thấy dịch vụ chi tiết cho đặt phòng này')
+          } else {
+            notification.error('Lỗi khi lấy thông tin dịch vụ')
+          }
+        })
+        .finally(() => {
+          this.isLoadingDichVu = false
+        })
+    },
+
+    // Phương thức xử lý khi nhấn nút thêm phụ phí
+    addSurcharge() {
+      // Xử lý thêm phụ phí ở đây
+      console.log('Thêm phụ phí cho booking:', this.selectedBooking.id)
+      // TODO: Hiển thị modal thêm phụ phí hoặc thực hiện hành động khác
+    },
+
+    // Tăng số lượng phụ phí
+    incrementPhuPhiQuantity(phuPhi) {
+      if (!phuPhi) return
+      phuPhi.soLuong++
+      this.updatePhuPhiQuantity(phuPhi)
+    },
+
+    // Giảm số lượng phụ phí
+    decrementPhuPhiQuantity(phuPhi) {
+      if (!phuPhi || phuPhi.soLuong <= 1) return
+      phuPhi.soLuong--
+      this.updatePhuPhiQuantity(phuPhi)
+    },
+
+    // Cập nhật số lượng phụ phí
+    updatePhuPhiQuantity(phuPhi) {
+      if (!phuPhi || !this.selectedBooking) return
+
+      console.log(`Cập nhật số lượng phụ phí ${phuPhi.tenPhuPhi}: ${phuPhi.soLuong}`)
+
+      // Tính lại tổng tiền cho phụ phí
+      phuPhi.tongTien = phuPhi.soLuong * phuPhi.giaPhuPhi
+
+      // Cập nhật tổng tiền dịch vụ trong thông tin thanh toán
+      this.updateTotalServiceAmount()
+
+      // Hiển thị thông báo thành công
+      notification.success('Cập nhật số lượng phụ phí thành công')
+    },
+
+    // Xóa phụ phí
+    removePhuPhi(phuPhi, index) {
+      if (!phuPhi || !this.selectedBooking || !this.selectedBooking.phuPhis) return
+
+      if (confirm(`Bạn có chắc chắn muốn xóa phụ phí "${phuPhi.tenPhuPhi}" không?`)) {
+        console.log(`Xóa phụ phí ${phuPhi.tenPhuPhi}`)
+
+        // Xóa khỏi mảng hiển thị
+        this.selectedBooking.phuPhis.splice(index, 1)
+
+        // Cập nhật tổng tiền dịch vụ trong thông tin thanh toán
+        this.updateTotalServiceAmount()
+
+        // Hiển thị thông báo thành công
+        notification.success('Xóa phụ phí thành công')
+      }
+    },
+
     calculateActualDiscount() {
-      if (!this.selectedBooking) return 0;
+      if (!this.selectedBooking) return 0
 
       // Nếu có soTienGiam và khác 0, sử dụng nó
       if (this.selectedBooking.soTienGiam && this.selectedBooking.soTienGiam > 0) {
-        return this.selectedBooking.soTienGiam;
+        return this.selectedBooking.soTienGiam
       }
 
       // Nếu không, tính dựa trên giá trị giảm giá và giá homestay
       if (this.selectedBooking.giaTri && this.selectedBooking.giaCaHomestay) {
         // Tính số ngày lưu trú
-        const checkin = new Date(this.selectedBooking.ngayNhanPhong);
-        const checkout = new Date(this.selectedBooking.ngayTraPhong);
-        const nights = Math.round((checkout - checkin) / (1000 * 60 * 60 * 24));
+        const checkin = new Date(this.selectedBooking.ngayNhanPhong)
+        const checkout = new Date(this.selectedBooking.ngayTraPhong)
+        const nights = Math.round((checkout - checkin) / (1000 * 60 * 60 * 24))
 
         // Tính số tiền giảm
-        const roomPrice = this.selectedBooking.giaCaHomestay * nights;
-        let discount = roomPrice * (this.selectedBooking.giaTri / 100);
+        const roomPrice = this.selectedBooking.giaCaHomestay * nights
+        let discount = roomPrice * (this.selectedBooking.giaTri / 100)
 
         // Kiểm tra giới hạn
-        return Math.min(discount, roomPrice);
+        return Math.min(discount, roomPrice)
       }
 
       // Nếu không tính được, hiển thị 0
-      return 0;
+      return 0
     },
   },
 }
@@ -3437,6 +3857,303 @@ textarea.form-control {
 .total-value {
   color: #4e73df;
   font-size: 1.1rem;
+}
+
+/* Styles cho phần dịch vụ */
+.service-section {
+  margin-top: 15px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow:
+    rgba(50, 50, 93, 0.1) 0px 13px 27px -5px,
+    rgba(0, 0, 0, 0.05) 0px 8px 16px -8px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: section-fade-in 0.6s ease-out forwards;
+  animation-delay: 0.35s;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.service-section h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  position: relative;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.service-loading,
+.service-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  color: #6c757d;
+  gap: 10px;
+  border: 1px dashed #dee2e6;
+}
+
+.service-loading i {
+  font-size: 2.5rem;
+  color: #4e73df;
+  margin-bottom: 5px;
+}
+
+.service-empty i {
+  font-size: 2.5rem;
+  color: #adb5bd;
+}
+
+.service-empty p {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.service-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.service-item:hover {
+  background-color: #f0f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  border-color: rgba(78, 115, 223, 0.2);
+}
+
+.service-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.service-name {
+  font-weight: 600;
+  color: #344054;
+  font-size: 1rem;
+}
+
+.service-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.service-quantity {
+  font-weight: 500;
+}
+
+.service-price {
+  color: #0071c2;
+}
+
+.service-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f0f7ff;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.quantity-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background-color: white;
+  color: #4e73df;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.quantity-btn:hover {
+  background-color: #4e73df;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.quantity-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.quantity-value {
+  font-weight: 600;
+  color: #344054;
+  min-width: 20px;
+  text-align: center;
+}
+
+.delete-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: #fff0f0;
+  color: #e74a3b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  background-color: #e74a3b;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.service-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #e7f5ff;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.service-total-label {
+  font-weight: 600;
+  color: #344054;
+}
+
+.service-total-value {
+  font-weight: 700;
+  color: #0071c2;
+  font-size: 1.2rem;
+}
+
+/* Styles cho header service */
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+/* Styles cho tabs */
+.service-tabs {
+  display: flex;
+  gap: 5px;
+}
+
+.service-tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #6c757d;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.service-tab i {
+  font-size: 1.1rem;
+}
+
+.service-tab:hover {
+  color: #4e73df;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.service-tab.active {
+  color: #4e73df;
+  border-bottom-color: #4e73df;
+}
+
+.service-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #4e73df;
+  border-radius: 3px 3px 0 0;
+}
+
+/* Styles cho nút thêm */
+.service-action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-add-service,
+.btn-add-surcharge {
+  background-color: #4e73df;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-add-service:hover,
+.btn-add-surcharge:hover {
+  background-color: #375bcb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-add-service:active,
+.btn-add-surcharge:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-add-service i,
+.btn-add-surcharge i {
+  font-size: 0.85rem;
 }
 
 .page-item.disabled .page-link {

@@ -633,6 +633,7 @@ import {
   searchTaiKhoan,
 } from '@/Service/TaiKhoan'
 import notification from '@/utils/notification'
+import '@/Styles/CSS/Admin.css'
 
 export default {
   name: 'AccountT',

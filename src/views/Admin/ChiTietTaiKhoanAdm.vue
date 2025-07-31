@@ -436,6 +436,7 @@ import {
 } from '../../Service/TaiKhoan'
 import { useToast } from '../../stores/notificationStore'
 import { getNhanVienByTaiKhoanId, updateNhanVien } from '../../Service/NhanVienService'
+import '@/Styles/CSS/Admin.css'
 
 export default {
   name: 'ChiTietTaiKhoanAdm',

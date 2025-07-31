@@ -250,12 +250,7 @@
                       </span>
                       <span v-else>
                         Phụ phí
-                        <span v-if="isNgayLe(checkOutDate) && phuPhiNgayLe">
-                          ({{ phuPhiNgayLe.tenPhuPhi }}: {{ phuPhiNgayLe.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                        </span>
-                        <span v-else-if="isCuoiTuan(checkOutDate) && phuPhiCuoiTuan">
-                          (Cuối tuần: {{ phuPhiCuoiTuan.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                        </span>
+
                       </span>
                     </span>
                     <span>{{ getSurchargeDisplayText() }}</span>
@@ -513,12 +508,7 @@
                   </span>
                   <span v-else>
                     Phụ phí
-                    <span v-if="isNgayLe(checkOutDate) && phuPhiNgayLe">
-                      (Ngày lễ: {{ phuPhiNgayLe.tenPhuPhi }} - áp dụng 1 lần)
-                    </span>
-                    <span v-else-if="isCuoiTuan(checkOutDate) && phuPhiCuoiTuan">
-                      (Cuối tuần - áp dụng 1 lần)
-                    </span>
+
                   </span>
                 </div>
                 <div class="item-value surcharge-value">{{ getSurchargeDisplayText() }}</div>
@@ -1652,9 +1642,17 @@ export default {
     // Lấy chuỗi hiển thị phụ phí
     getSurchargeDisplayText() {
       const surchargeAmount = this.calculateSurchargeAmount();
+      let tenPhuPhi = '';
+
+      // Xác định tên phụ phí
+      if (this.isNgayLe(this.checkOutDate) && this.phuPhiNgayLe) {
+        tenPhuPhi = this.phuPhiNgayLe.tenPhuPhi;
+      } else if (this.isCuoiTuan(this.checkOutDate) && this.phuPhiCuoiTuan) {
+        tenPhuPhi = 'Phụ phí cuối tuần';
+      }
 
       if (surchargeAmount > 0) {
-        return `+${surchargeAmount.toLocaleString('vi-VN')}₫`;
+        return tenPhuPhi ? `${tenPhuPhi}: +${surchargeAmount.toLocaleString('vi-VN')}₫` : `+${surchargeAmount.toLocaleString('vi-VN')}₫`;
       }
       return '0₫';
     },

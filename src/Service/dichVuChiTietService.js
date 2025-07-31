@@ -11,5 +11,9 @@ export default {
 
   deleteDichVuChiTiet(id) {
     return api.get(`/api/dich-vu-chi-tiet/delete/${id}`)
+  },
+
+  addDichVuChiTiet(data) {
+    return api.post('/api/dich-vu-chi-tiet/add', data)
   }
 }

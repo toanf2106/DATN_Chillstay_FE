@@ -961,6 +961,7 @@ import { useAuthStore } from '@/stores/authStore'
 import notification from '@/utils/notification'
 import PaymentService from '@/Service/PaymentService'
 import { getPhuPhiCuoiTuan, getAllNgayLe } from '@/Service/phuPhiService'
+import '@/Styles/CSS/Admin.css'
 
 export default {
   name: 'DatHomeADM',

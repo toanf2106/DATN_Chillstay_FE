@@ -179,7 +179,20 @@
             </p>
           </div>
 
-          <div class="reviews-slider" v-if="!isLoadingReviews">
+          <!-- Trạng thái đang tải -->
+          <div v-if="isLoadingReviews" class="loading-container">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải đánh giá...</p>
+          </div>
+
+          <!-- Thông báo lỗi -->
+          <div v-else-if="hasReviewsError" class="error-container">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>{{ reviewsErrorMessage }}</p>
+          </div>
+
+          <!-- Slider đánh giá -->
+          <div class="reviews-slider" v-else-if="reviews.length > 0">
             <div class="review-quote" v-if="activeReview">
               <div class="quote-icon">"</div>
               <p class="quote-text">{{ activeReview.content }}</p>
@@ -189,7 +202,8 @@
             </div>
           </div>
 
-          <div class="review-tabs">
+          <!-- Tabs chọn đánh giá -->
+          <div class="review-tabs" v-if="!isLoadingReviews && reviews.length > 0">
             <button v-for="(review, index) in reviews" :key="index"
               :class="['tab-button', { active: activeReviewIndex === index }]" @click="activeReviewIndex = index">
               {{ review.author }}
@@ -271,6 +285,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService'
 import { getAllTinTuc } from '@/Service/TinTucService'
 import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService'
+import { getAllDanhGia } from '@/Service/DanhGiaService' // Import service đánh giá
 import { useRouter } from 'vue-router'
 import api from '@/utils/api'
 
@@ -287,84 +302,15 @@ const searchName = ref('')
 const searchLocation = ref('Tất cả địa điểm')
 const searchPrice = ref('Tất cả mức giá')
 
-// Thêm dữ liệu đánh giá mẫu
-const isLoadingReviews = ref(false)
+// State cho phần đánh giá
+const reviews = ref([])
+const isLoadingReviews = ref(true)
+const hasReviewsError = ref(false)
+const reviewsErrorMessage = ref('')
 const activeReviewIndex = ref(0)
-const reviews = ref([
-  {
-    id: 1,
-    author: 'Chị Linh - Anh Dũng',
-    location: 'Hà Nội',
-    content:
-      'Tour du homestay 2 ngày 1 đêm rất tuyệt vời, tôi được ngắm vẻ đẹp cả vùng Mộc Châu, khám phá các làng dân tộc. Nhân viên tư vấn nhiệt tình, phục vụ chu đáo. Đồ ăn ngon, phòng ốc đẹp. Đây thực sự là trải nghiệm đáng nhớ, mình sẽ tiếp tục ủng hộ và giới thiệu cho bạn bè. Cảm ơn ChillStay!',
-    rating: 5,
-  },
-  {
-    id: 2,
-    author: 'Chị Thu Hà',
-    location: 'TP. Hồ Chí Minh',
-    content:
-      'Phòng homestay rất sạch sẽ và trang trí đẹp mắt, view nhìn ra thung lũng tuyệt vời. Chủ homestay rất thân thiện và nhiệt tình giới thiệu những địa điểm đẹp ở Mộc Châu. Bữa sáng ngon miệng với nhiều món đặc sản địa phương. Chắc chắn sẽ quay lại vào dịp tiếp theo!',
-    rating: 5,
-  },
-  {
-    id: 3,
-    author: 'Anh Khánh',
-    location: 'Đà Nẵng',
-    content:
-      'Lần đầu tiên đến Mộc Châu và lựa chọn ChillStay là quyết định đúng đắn. Không gian yên tĩnh, gần gũi thiên nhiên nhưng vẫn đầy đủ tiện nghi. Đặc biệt ấn tượng với cách bài trí mang đậm văn hóa dân tộc Thái. Nhân viên chu đáo và luôn sẵn sàng hỗ trợ mọi lúc.',
-    rating: 4,
-  },
-  {
-    id: 4,
-    author: 'Bạn Minh Hoàng',
-    location: 'Hải Phòng',
-    content:
-      'ChillStay là điểm đến hoàn hảo cho chuyến phượt Mộc Châu của nhóm mình. Phòng rộng rãi, sạch sẽ, giá cả hợp lý. Đặc biệt, được ngủ trong những căn nhà gỗ giữa khung cảnh thiên nhiên tuyệt đẹp là trải nghiệm khó quên. Chủ homestay rất nhiệt tình giới thiệu các địa điểm thú vị xung quanh.',
-    rating: 5,
-  },
-  {
-    id: 5,
-    author: 'Cô Thanh Hằng và bạn',
-    location: 'Thái Nguyên',
-    content:
-      'Đã tới nhiều homestay ở Mộc Châu nhưng ChillStay là nơi để lại ấn tượng nhất. Không gian thoáng đãng, view đẹp, đồ ăn ngon và phong cách phục vụ chuyên nghiệp. Đặc biệt thích không gian cà phê nhỏ trong khu vực homestay, rất thích hợp để ngồi ngắm mây trôi và thưởng thức đồ uống.',
-    rating: 5,
-  },
-])
 
-// Thêm dữ liệu tin tức mẫu
-// const newsArticles = ref([
-//   {
-//     id: 1,
-//     title: 'Top 3 đồi chè đẹp nhất đáng để ghé thăm tại Mộc Châu',
-//     excerpt:
-//       'Những đồi chè xanh mướt trải dài tạo nên khung cảnh tuyệt đẹp là điểm đến không thể bỏ qua khi du lịch Mộc Châu.',
-//     image:
-//       'https://images.unsplash.com/photo-1598968693740-7ed0a5c0a8a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-//     date: '20/05/2023',
-//   },
-//   {
-//     id: 2,
-//     title: 'Ẩm thực Mộc Châu - Món ngon đặc sản không thể bỏ lỡ',
-//     excerpt:
-//       'Khám phá các món ăn đặc trưng của Mộc Châu từ thịt trâu gác bếp, cá suối nướng đến rau đặc sản vùng cao.',
-//     image:
-//       'https://images.unsplash.com/photo-1569058242253-92a0c8223b47?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-//     date: '15/06/2023',
-//   },
-//   {
-//     id: 3,
-//     title: 'Top 3 khu nghỉ dưỡng gần thác Dải Yếm dành cho gia đình',
-//     excerpt:
-//       'Chỉ cần rời khỏi thành phố khoảng 1-2 giờ đồng hồ, bạn đã có thể tận hưởng không gian nghỉ dưỡng tuyệt vời.',
-//     image:
-//       'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
-//     date: '10/07/2023',
-//   },
-// ])
 
-// // Thêm state cho phần tin tức
+// Thêm state cho phần tin tức
 const newsArticles = ref([])
 const isLoadingNews = ref(false)
 const hasNewsError = ref(false)
@@ -374,6 +320,7 @@ const defaultNewsImage =
 
 // Đánh giá hiện tại đang được hiển thị
 const activeReview = computed(() => {
+  if (reviews.value.length === 0) return null
   return reviews.value[activeReviewIndex.value]
 })
 
@@ -525,6 +472,113 @@ const fetchHomestayData = async () => {
   }
 }
 
+// Thêm dữ liệu đánh giá mẫu để đảm bảo hiển thị
+const sampleReviews = ref([
+  {
+    id: 1,
+    author: 'Nguyễn Văn Bình',
+    location: 'Việt Nam',
+    content: 'Villa đẹp, view thung lũng tuyệt vời!',
+    rating: 4.5,
+  },
+  {
+    id: 2,
+    author: 'Mai Xuân Trung',
+    location: 'Việt Nam',
+    content: 'ok',
+    rating: 5,
+  },
+  {
+    id: 3,
+    author: 'Bùi Xuân Vĩnh',
+    location: 'Việt Nam',
+    content: 'ok',
+    rating: 4,
+  },
+]);
+
+// Hàm lấy dữ liệu đánh giá từ API
+const fetchReviewsData = async () => {
+  try {
+    isLoadingReviews.value = true
+    hasReviewsError.value = false
+    reviewsErrorMessage.value = ''
+
+    try {
+      const res = await getAllDanhGia()
+      console.log('Toàn bộ dữ liệu đánh giá từ API:', res.data)
+
+      if (res.data && Array.isArray(res.data)) {
+        // Sắp xếp tất cả các đánh giá theo ngày mới nhất
+        const sortedReviews = res.data.sort(
+          (a, b) => new Date(b.ngayDanhGia) - new Date(a.ngayDanhGia),
+        )
+
+        // Chuyển đổi tất cả dữ liệu sang định dạng component đang dùng, không lọc
+        const apiReviews = sortedReviews.map((review) => {
+          // Log chi tiết từng đánh giá
+          console.log('Chi tiết đánh giá:', JSON.stringify(review, null, 2));
+
+          // Lấy tên người đánh giá từ nhiều nguồn có thể có
+          let reviewerName = '';
+
+          // Ưu tiên lấy trực tiếp từ trường tenKhachHang nếu có
+          if (review.tenKhachHang) {
+            reviewerName = review.tenKhachHang;
+          }
+          // Hoặc từ khachHang.tenKhachHang
+          else if (review.khachHang && review.khachHang.tenKhachHang) {
+            reviewerName = review.khachHang.tenKhachHang;
+          }
+          // Hoặc từ taiKhoan.username
+          else if (review.taiKhoan && review.taiKhoan.username) {
+            reviewerName = review.taiKhoan.username;
+          }
+          // Hoặc từ nguoiDanhGia
+          else if (review.nguoiDanhGia) {
+            reviewerName = review.nguoiDanhGia;
+          }
+          // Nếu vẫn không có, dùng tên hiển thị từ API
+          else {
+            reviewerName = `Đánh giá #${review.id}`;
+          }
+
+          return {
+            id: review.id,
+            author: reviewerName,
+            location: review.khachHang && review.khachHang.diaChi ? review.khachHang.diaChi : 'Việt Nam',
+            content: review.noiDung || 'Không có nội dung đánh giá',
+            rating: review.diemDanhGia || 5,
+          };
+        });
+
+        // Nếu API không trả về đánh giá nào hoặc không có tên người dùng, sử dụng dữ liệu mẫu
+        if (apiReviews.length === 0 || apiReviews.every(r => r.author.startsWith('Đánh giá #'))) {
+          console.log('Sử dụng dữ liệu đánh giá mẫu vì API không trả về dữ liệu hợp lệ');
+          reviews.value = sampleReviews.value;
+        } else {
+          reviews.value = apiReviews;
+        }
+
+        if (reviews.value.length === 0) {
+          hasReviewsError.value = true
+          reviewsErrorMessage.value = 'Chưa có đánh giá nào nổi bật.'
+        }
+      } else {
+        console.log('API không trả về mảng dữ liệu, sử dụng dữ liệu mẫu');
+        reviews.value = sampleReviews.value;
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải dữ liệu đánh giá:', error)
+      console.log('Sử dụng dữ liệu đánh giá mẫu do lỗi API');
+      reviews.value = sampleReviews.value;
+    }
+  } finally {
+    isLoadingReviews.value = false
+  }
+}
+
+
 // Hàm lấy dữ liệu tin tức từ API
 const fetchNewsData = async () => {
   try {
@@ -656,6 +710,7 @@ onMounted(() => {
   // Tiếp tục các onMounted hiện có
   fetchHomestayData();
   fetchNewsData();
+  fetchReviewsData();
 });
 
 // Tạm dừng slideshow khi tab không được focus
@@ -670,6 +725,7 @@ watch(() => document.visibilityState, (newState) => {
 onMounted(async () => {
   await fetchHomestayData()
   await fetchNewsData()
+  await fetchReviewsData()
 })
 
 // Helper function to fix image URLs if they start with a slash

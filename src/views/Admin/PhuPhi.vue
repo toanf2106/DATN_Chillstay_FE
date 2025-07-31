@@ -565,6 +565,7 @@ import {
   createPhuPhi,
 } from '@/Service/phuPhiService'
 import notification from '@/utils/notification'
+import '@/Styles/CSS/Admin.css'
 
 export default {
   name: 'PhuPhi',

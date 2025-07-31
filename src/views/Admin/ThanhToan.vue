@@ -305,6 +305,8 @@ export default {
         TienMat: 'Tiền mặt',
         ChuyenKhoan: 'Chuyển khoản',
         VietQR: 'VietQR',
+        DangCho: 'Đang chờ',
+        DANGCHO: 'Đang chờ',
         NULL: 'Không có',
         'null': 'Không có'
       };
@@ -322,6 +324,8 @@ export default {
         TienMat: 'status-cash',
         ChuyenKhoan: 'status-transfer',
         VietQR: 'status-vietqr',
+        DangCho: 'status-waiting',
+        DANGCHO: 'status-waiting',
       };
       return classMap[status] || 'status-unknown';
     },
@@ -347,76 +351,164 @@ export default {
 </script>
 
 <style scoped>
+/* Main container styling inspired by BookingView */
 .dathome-container {
-  padding: 2rem;
-  background-color: #f4f6fb;
+  padding: 2.5rem;
+  background-color: #f8f9fa; /* Light gray background */
+  font-family: 'Roboto', sans-serif;
 }
 
+/* Section title with a modern touch */
 .section-title {
   font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: 2rem;
+  color: #2c3e50;
+  position: relative;
+  padding-bottom: 1rem;
 }
 
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 70px;
+  height: 4px;
+  background: linear-gradient(135deg, #4e73df 0%, #3a57c2 100%);
+  border-radius: 2px;
+}
+
+/* Stat cards with improved design */
 .stats-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.8rem;
+  margin-bottom: 2.5rem;
 }
 
 .stat-card {
   background: #fff;
-  border-radius: 10px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
   text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
+  position: relative;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .stat-icon {
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   margin-bottom: 1rem;
-  color: #3cb371;
+  color: #4e73df;
+}
+
+/* Custom colors for each stat card */
+.stat-card:nth-child(1) .stat-icon {
+  color: #f39c12;
+}
+
+.stat-card:nth-child(2) .stat-icon {
+  color: #27ae60;
+}
+
+.stat-card:nth-child(3) .stat-icon {
+  color: #e74c3c;
 }
 
 .stat-card h2 {
   font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.8rem;
+  color: #6c757d;
 }
 
 .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #206243;
+  color: #2c3e50;
 }
 
+/* Content section styling */
+.content-section {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+}
+
+.bookings-detail-view h2 {
+  font-size: 1.5rem;
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* Filter buttons with a modern look */
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.8rem;
+}
+
+.filter-btn {
+  padding: 0.7rem 1.5rem;
+  border-radius: 50px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.filter-btn:hover {
+  background-color: #e9ecef;
+  border-color: #4e73df;
+  color: #4e73df;
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #4e73df 0%, #3a57c2 100%);
+  color: white;
+  border-color: #4e73df;
+  box-shadow: 0 2px 8px rgba(78, 115, 223, 0.3);
+}
+
+/* Table styling */
 .table-container {
-  background: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
 }
 
 .bookings-table {
   width: 100%;
   border-collapse: collapse;
+  border-spacing: 0;
 }
 
 .bookings-table th,
 .bookings-table td {
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.2rem;
   text-align: left;
   border-bottom: 1px solid #e9ecef;
+  white-space: nowrap;
 }
 
 .bookings-table th {
   background-color: #f8f9fa;
   font-weight: 600;
   font-size: 0.85rem;
-  text-transform: uppercase;
   color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .payment-row {
@@ -425,56 +517,43 @@ export default {
 }
 
 .payment-row:hover {
-  background-color: #f8f9fa;
+  background-color: #f1f3f5;
 }
 
+/* Status badges */
 .status-badge {
-  padding: 0.4em 0.8em;
+  padding: 0.4em 0.9em;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
+  display: inline-block;
+  text-transform: capitalize;
 }
-
 .status-paid {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: rgba(39, 174, 96, 0.1);
+  color: #27ae60;
 }
-
 .status-unpaid {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
 }
-
 .status-deposited {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+.status-waiting {
+  background-color: rgba(243, 156, 18, 0.1);
+  color: #f39c12;
 }
 
-.status-unknown {
-  background-color: #e2e3e5;
-  color: #383d41;
-}
-
-.status-cash {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
-.status-transfer {
-  background-color: #cce5ff;
-  color: #004085;
-}
-
-.status-vietqr {
-  background-color: #e2f4e8;
-  color: #0f5132;
-}
-
+/* Pagination */
 .pagination-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
 }
 
 .pagination-info {
@@ -490,56 +569,48 @@ export default {
 }
 
 .page-item .page-link {
-  padding: 0.5rem 0.75rem;
-  margin: 0 2px;
-  border-radius: 5px;
-  color: #3cb371;
+  padding: 0.6rem 1rem;
+  margin: 0 4px;
+  border-radius: 8px;
+  color: #4e73df;
   text-decoration: none;
   border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
 }
 
 .page-item.active .page-link {
-  background-color: #3cb371;
+  background-color: #4e73df;
   color: white;
-  border-color: #3cb371;
+  border-color: #4e73df;
 }
 
-.page-item.disabled .page-link {
-  color: #6c757d;
-  pointer-events: none;
-  background-color: #fff;
-  border-color: #dee2e6;
-}
-
-/* Modal styles - Updated from TienNghi.vue */
+/* Modal styling */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 15px;
+  backdrop-filter: blur(5px);
 }
 
 .staff-details-modal {
-  position: relative;
   background-color: #fff;
-  border-radius: 16px;
-  width: 550px;
+  border-radius: 12px;
+  width: 600px;
   max-width: 95%;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modal-fade-in 0.3s ease;
-  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  animation: modal-fade-in 0.3s ease-out;
 }
 
 .modal-header {
-  padding: 20px 25px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 1.2rem 1.8rem;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -547,124 +618,42 @@ export default {
 
 .modal-header h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: 1.3rem;
   font-weight: 600;
-  color: #111827;
+  color: #2c3e50;
 }
 
 .close-button {
   background: none;
   border: none;
-  font-size: 24px;
-  color: #6b7280;
+  font-size: 1.8rem;
+  color: #6c757d;
   cursor: pointer;
-  line-height: 1;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.close-button:hover {
-  background-color: #f3f4f6;
-  color: #111827;
 }
 
 .modal-body {
-  padding: 25px;
+  padding: 1.8rem;
   max-height: 70vh;
   overflow-y: auto;
 }
 
-.detail-content {
-  padding: 5px 0;
-}
-
 .detail-item {
-  display: flex;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 8px;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f3f5;
 }
 
 .detail-label {
-  font-weight: 500;
-  color: #4b5563;
-  width: 150px;
-  flex-shrink: 0;
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 0.9rem;
 }
 
 .detail-value {
-  flex-grow: 1;
-  color: #111827;
-}
-
-/* Button styling from TienNghi.vue */
-.btn-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-
-.btn-info-light {
-  color: #0284c7;
-  background-color: #e0f2fe;
-}
-
-.btn-icon:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Filter buttons */
-.filter-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.filter-btn {
-  padding: 8px 16px;
-  border-radius: 20px;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  color: #495057;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-  background-color: #e9ecef;
-}
-
-.filter-btn.active {
-  background-color: #3cb371;
-  color: white;
-  border-color: #3cb371;
-}
-
-@keyframes modal-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  color: #2c3e50;
+  font-size: 0.9rem;
 }
 </style>

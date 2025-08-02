@@ -997,7 +997,6 @@
                               <span class="unit">/ {{ service.unit }}</span>
                             </div>
                           </div>
-                          <!-- Quantity controls - hiển thị cùng hàng với tên và giá -->
                           <div class="service-quantity-controls" v-if="service.selected">
                             <div class="quantity-controls">
                               <button
@@ -1024,11 +1023,6 @@
                               >
                                 <i class="fas fa-plus"></i>
                               </button>
-                            </div>
-                            <div class="subtotal">
-                              <strong>{{
-                                formatCurrency(service.price * service.quantity)
-                              }}</strong>
                             </div>
                           </div>
                         </div>
@@ -1066,7 +1060,11 @@
               <button class="btn btn-secondary" @click="closeAddServiceModal">
                 <i class="fas fa-times"></i> Hủy
               </button>
-              <button class="btn btn-primary" :disabled="selectedServiceIds.length === 0">
+              <button
+                class="btn btn-primary"
+                :disabled="selectedServiceIds.length === 0"
+                @click="addSelectedServices"
+              >
                 <i class="fas fa-plus-circle"></i> Thêm dịch vụ ({{ selectedServiceIds.length }})
               </button>
             </div>
@@ -2609,59 +2607,8 @@ export default {
     fetchDichVuChiTiet() {
       if (!this.selectedBooking || !this.selectedBooking.id) return
 
-      this.isLoadingDichVu = true
-
-      // Đảm bảo có mảng dichVus trống nếu không có dữ liệu
-      if (!this.selectedBooking.dichVus) {
-        this.selectedBooking.dichVus = []
-      }
-
-      dichVuChiTietService
-        .getAllDichVuChiTietByIdDatHome(this.selectedBooking.id)
-        .then((response) => {
-          console.log('API response:', response.data)
-          if (response && response.data && response.data.length > 0) {
-            // Cập nhật dữ liệu dịch vụ vào selectedBooking
-            this.selectedBooking.dichVus = response.data.map((item) => {
-              // Đảm bảo các giá trị số đều được chuyển đổi đúng
-              const gia = Number(item.dichVu.gia || 0)
-              const soLuong = Number(item.soLuong || 0)
-              const tongGia = Number(item.tongGia || 0)
-
-              console.log(
-                `Dịch vụ: ${item.dichVu.tenDichVu}, Giá: ${gia}, Số lượng: ${soLuong}, Tổng: ${tongGia}`,
-              )
-
-              return {
-                id: item.id,
-                tenDichVu: item.dichVu.tenDichVu,
-                giaDichVu: gia,
-                soLuong: soLuong,
-                tongTien: tongGia,
-              }
-            })
-            console.log('Dịch vụ chi tiết sau khi map:', this.selectedBooking.dichVus)
-          } else {
-            // Nếu không có dữ liệu, gán mảng rỗng
-            this.selectedBooking.dichVus = []
-            console.log('Không có dịch vụ chi tiết')
-          }
-        })
-        .catch((error) => {
-          console.error('Lỗi khi lấy dịch vụ chi tiết:', error)
-          // Gán mảng rỗng nếu có lỗi
-          this.selectedBooking.dichVus = []
-
-          // Kiểm tra nếu là lỗi 404 thì không hiển thị thông báo lỗi
-          if (error.response && error.response.status === 404) {
-            console.log('Không tìm thấy dịch vụ chi tiết cho đặt phòng này')
-          } else {
-            notification.error('Lỗi khi lấy thông tin dịch vụ')
-          }
-        })
-        .finally(() => {
-          this.isLoadingDichVu = false
-        })
+      // Sử dụng phương thức loadDichVuChiTiet để thống nhất việc lấy dịch vụ chi tiết
+      this.loadDichVuChiTiet(this.selectedBooking.id)
     },
 
     // Phương thức xử lý khi nhấn nút thêm phụ phí
@@ -2744,6 +2691,135 @@ export default {
 
       // Nếu không tính được, hiển thị 0
       return 0
+    },
+
+    addSelectedServices() {
+      if (!this.selectedBooking || this.selectedServiceIds.length === 0) return
+
+      // Hiển thị loading
+      this.isLoadingServices = true
+
+      // Kiểm tra các dịch vụ hiện có (nếu có)
+      const existingServices = this.selectedBooking.dichVus || []
+
+      // Mảng lưu các promise để xử lý tuần tự
+      const promises = []
+      // Mảng lưu các dịch vụ mới cần thêm
+      const newServices = []
+
+      // Xử lý từng dịch vụ đã chọn
+      for (const id of this.selectedServiceIds) {
+        const service = this.availableServices.find((s) => s.id === id)
+        const quantity = service.quantity || 1
+
+        // Kiểm tra xem dịch vụ này đã tồn tại chưa bằng mã dịch vụ
+        const existingService = existingServices.find(
+          (es) =>
+            es.dichVuId === service.id ||
+            (service.originalData && es.tenDichVu === service.originalData.tenDichVu),
+        )
+
+        if (existingService) {
+          // Nếu đã tồn tại, cập nhật số lượng
+          const promise = dichVuChiTietService.updateQuantity(
+            existingService.id,
+            existingService.soLuong + quantity,
+          )
+          promises.push(promise)
+        } else {
+          // Nếu chưa tồn tại, thêm vào danh sách dịch vụ mới
+          newServices.push({
+            datHomeId: this.selectedBooking.id,
+            dichVuId: service.id,
+            soLuong: quantity,
+            thoiGianSuDung: new Date().toISOString(),
+            tongGia: service.price * quantity,
+            ghiChu: '',
+            trangThai: true,
+          })
+        }
+      }
+
+      // Thêm các dịch vụ mới (nếu có)
+      if (newServices.length > 0) {
+        const addNewServicesPromise = dichVuChiTietService.addMultipleDichVuChiTiet(newServices)
+        promises.push(addNewServicesPromise)
+      }
+
+      // Xử lý tất cả các promise
+      Promise.all(promises)
+        .then(() => {
+          // Hiển thị thông báo thành công
+          if (newServices.length > 0 && promises.length > newServices.length) {
+            notification.success('Đã thêm và cập nhật dịch vụ thành công')
+          } else if (newServices.length > 0) {
+            notification.success('Đã thêm dịch vụ thành công')
+          } else {
+            notification.success('Đã cập nhật số lượng dịch vụ thành công')
+          }
+
+          // Cập nhật lại danh sách dịch vụ chi tiết của đặt home
+          this.loadDichVuChiTiet(this.selectedBooking.id)
+
+          // Đóng modal và reset trạng thái
+          this.closeAddServiceModal()
+        })
+        .catch((error) => {
+          console.error('Lỗi khi xử lý dịch vụ:', error)
+          notification.error('Có lỗi xảy ra khi xử lý dịch vụ')
+        })
+        .finally(() => {
+          this.isLoadingServices = false
+        })
+    },
+
+    // Tải danh sách dịch vụ chi tiết cho đặt home
+    loadDichVuChiTiet(datHomeId) {
+      if (!datHomeId) return
+
+      // Hiển thị loading
+      this.isLoadingServices = true
+
+      // Gọi API lấy danh sách dịch vụ chi tiết
+      dichVuChiTietService
+        .getAllDichVuChiTietByIdDatHome(datHomeId)
+        .then((response) => {
+          if (response && response.data) {
+            // Cập nhật danh sách dịch vụ của đặt home
+            const dichVus = response.data.map((item) => ({
+              id: item.id,
+              dichVuId: item.dichVu.id, // Thêm id của dịch vụ để phục vụ kiểm tra trùng lặp
+              tenDichVu: item.dichVu.tenDichVu,
+              giaDichVu: item.dichVu.gia,
+              soLuong: item.soLuong,
+              tongTien: item.tongGia,
+              ghiChu: item.ghiChu,
+              thoiGianSuDung: item.thoiGianSuDung,
+              trangThai: item.trangThai,
+            }))
+
+            // Cập nhật danh sách dịch vụ cho booking đã chọn
+            if (this.selectedBooking) {
+              this.selectedBooking.dichVus = dichVus
+            }
+
+            // Cập nhật tổng tiền dịch vụ
+            this.updateTotalServiceAmount()
+
+            console.log('Đã tải', dichVus.length, 'dịch vụ chi tiết')
+          }
+        })
+        .catch((error) => {
+          console.error('Lỗi khi tải dịch vụ chi tiết:', error)
+
+          // Đặt danh sách dịch vụ thành mảng rỗng nếu có lỗi
+          if (this.selectedBooking) {
+            this.selectedBooking.dichVus = []
+          }
+        })
+        .finally(() => {
+          this.isLoadingServices = false
+        })
     },
   },
 }

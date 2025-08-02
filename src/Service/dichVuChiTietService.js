@@ -15,5 +15,9 @@ export default {
 
   addDichVuChiTiet(data) {
     return api.post('/api/dich-vu-chi-tiet/add', data)
+  },
+
+  addMultipleDichVuChiTiet(dataList) {
+    return api.post('/api/dich-vu-chi-tiet/add-multiple', dataList)
   }
 }

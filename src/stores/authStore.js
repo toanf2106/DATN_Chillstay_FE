@@ -46,8 +46,11 @@ export const useAuthStore = defineStore('auth', {
         this.user = userData
         this.token = token
         this.isLoggedIn = true
-        // ID 2 cho Admin từ cơ sở dữ liệu
-        this.isAdmin = userData.accountTypeId === 2 || userData.accountTypeName?.toUpperCase() === 'ADMIN'
+        // ID 2 cho Admin và ID 1 cho NhanVien từ cơ sở dữ liệu
+        this.isAdmin = userData.accountTypeId === 2 ||
+                       userData.accountTypeId === 1 ||
+                       userData.accountTypeName?.toUpperCase() === 'ADMIN' ||
+                       userData.accountTypeName?.toUpperCase() === 'NHANVIEN'
 
         // Làm mới sessionStorage để đảm bảo phiên mới hoàn toàn sạch
         sessionStorage.removeItem('wasAdmin');
@@ -169,8 +172,9 @@ export const useAuthStore = defineStore('auth', {
             this.isLoggedIn = true
 
             this.isAdmin = user.accountTypeId === 2 ||
+                           user.accountTypeId === 1 ||
                            user.accountTypeName?.toUpperCase() === 'ADMIN' ||
-                           user.accountTypeName === 'Admin'
+                           user.accountTypeName?.toUpperCase() === 'NHANVIEN'
 
             console.log('Đã khôi phục trạng thái đăng nhập từ localStorage cho phiên hiện tại')
             console.log('Trạng thái đăng nhập:', {
@@ -201,12 +205,13 @@ export const useAuthStore = defineStore('auth', {
     checkAdminAccess() {
       // Cập nhật điều kiện kiểm tra quyền admin
       this.isAdmin = this.user && (
-        // ID 2 cho Admin từ cơ sở dữ liệu
+        // ID 2 cho Admin và ID 1 cho NhanVien từ cơ sở dữ liệu
         this.user.accountTypeId === 2 ||
+        this.user.accountTypeId === 1 ||
         // Kiểm tra tên loại tài khoản nếu có (không phân biệt hoa thường)
         this.user.accountTypeName?.toUpperCase() === 'ADMIN' ||
-        // Kiểm tra thêm tên loại là 'Admin'
-        this.user.accountTypeName === 'Admin'
+        // Kiểm tra thêm tên loại là 'NhanVien'
+        this.user.accountTypeName?.toUpperCase() === 'NHANVIEN'
       );
       return this.isLoggedIn && this.isAdmin;
     },

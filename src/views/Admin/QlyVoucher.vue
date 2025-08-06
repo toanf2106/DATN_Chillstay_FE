@@ -1,6 +1,6 @@
 <template>
   <div class="voucher-container">
-    <h1 class="page-title">Quản Lý Voucher</h1>
+    <h1 class="page-title">Quản Lý Giảm Giá</h1>
 
     <div class="controls-container">
       <div class="search-box">

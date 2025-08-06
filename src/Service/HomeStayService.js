@@ -58,11 +58,6 @@ export function changeLoaiHomestayStatus(id) {
   return api.put(`/api/loai-homestay/change-status/${id}`);
 }
 
-// Lấy danh sách chủ homestay
-export function getChuHomeStay() {
-  return api.get('/api/chu-home/all');
-}
-
 // Lấy danh sách tiện nghi của homestay
 export function getHomestayTienNghi(homestayId) {
   return api.get(`/api/homestay-tiennghi/by-homestay/${homestayId}`);
@@ -167,5 +162,3 @@ export function checkHomestayLockStatus(homestayId) {
 export function getLockedHomestays() {
   return api.get('/api/homestay/offline-locked');
 }
-
-// ... existing code ...

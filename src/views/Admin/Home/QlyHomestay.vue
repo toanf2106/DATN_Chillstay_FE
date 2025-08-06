@@ -74,7 +74,6 @@
           <tr>
             <th>STT</th>
             <th>Tên Homestay</th>
-            <th>Quản lý Homestay</th>
             <th>Diện tích</th>
             <th>Giá gốc</th>
             <th>Địa chỉ</th>
@@ -93,7 +92,6 @@
           >
             <td class="text-center">{{ calculateIndex(index) }}</td>
             <td class="text-center">{{ hs.tenHomestay }}</td>
-            <td class="text-center">{{ getChuName(hs.idChuHomeStay) }}</td>
             <td class="text-center">{{ hs.dienTich }} m²</td>
             <td class="text-center">{{ formatCurrency(hs.giaCaHomestay) }} đ</td>
             <td class="text-center">{{ hs.diaChi }}</td>
@@ -197,7 +195,6 @@
     v-if="showModal"
     :homestay="selectedHomestay"
     :loaiList="loaiList"
-    :chuList="chuList"
     :isEdit="isEdit"
     :isViewMode="isViewMode"
     @close="closeModal"
@@ -220,7 +217,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import {
   getAllHomeStay,
   getLoaiHomeStay,
-  getChuHomeStay,
   createHomestay,
   updateHomestay,
   deleteHomestayAPI,
@@ -242,7 +238,6 @@ export default {
     const router = useRouter()
     const homestays = ref([])
     const loaiList = ref([])
-    const chuList = ref([])
     const searchTerm = ref('')
     const apiError = ref(false)
     const apiErrorMessage = ref('')
@@ -269,15 +264,13 @@ export default {
     const fetchData = async () => {
       try {
         loading.value = true
-        const [hsRes, loaiRes, chuRes] = await Promise.all([
+        const [hsRes, loaiRes] = await Promise.all([
           getAllHomeStay(),
           getLoaiHomeStay(),
-          getChuHomeStay(),
         ])
         // Đảm bảo homestays luôn là một mảng
         homestays.value = Array.isArray(hsRes.data) ? hsRes.data : []
         loaiList.value = Array.isArray(loaiRes.data) ? loaiRes.data : []
-        chuList.value = Array.isArray(chuRes.data) ? chuRes.data : []
         apiError.value = false
       } catch (e) {
         apiError.value = true
@@ -289,7 +282,7 @@ export default {
         // Kiểm tra lỗi cụ thể để hiển thị thông báo phù hợp
         if (e.response && e.response.status === 404) {
           apiErrorMessage.value =
-            'Không thể kết nối đến API chủ homestay. Vui lòng kiểm tra đường dẫn API hoặc khởi động lại server.'
+            'Không thể kết nối đến API. Vui lòng kiểm tra đường dẫn API hoặc khởi động lại server.'
         } else {
           apiErrorMessage.value = 'Không thể tải dữ liệu. Vui lòng thử lại sau.'
         }
@@ -302,12 +295,6 @@ export default {
     const getLoaiName = (id) => {
       const loai = loaiList.value.find((l) => l.id === id)
       return loai?.tenLoaiHomestay || 'Không xác định'
-    }
-
-    const getChuName = (id) => {
-      const chu = chuList.value.find((c) => c.id === id)
-      if (!chu) return 'Không xác định'
-      return chu.hotenChuHomestay || 'Không xác định'
     }
 
     const formatCurrency = (num) => new Intl.NumberFormat('vi-VN').format(num)
@@ -644,7 +631,6 @@ export default {
       searchTerm,
       filteredHomestays,
       getLoaiName,
-      getChuName,
       formatCurrency,
       getImageUrl,
       handleSearch,
@@ -678,7 +664,6 @@ export default {
       deleteHomestay,
       // Các danh sách để truyền xuống modal
       loaiList,
-      chuList,
       navigateToLoaiHomestay,
       navigateToTienNghiHomestay,
       navigateToHomestayDichVu,

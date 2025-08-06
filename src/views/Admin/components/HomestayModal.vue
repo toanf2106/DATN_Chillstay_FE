@@ -102,29 +102,14 @@
                   </div>
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label for="idChuHomeStay"
-                        >Chủ sở hữu <span class="text-danger">*</span></label
-                      >
-                      <select
-                        id="idChuHomeStay"
-                        v-model="formData.idChuHomeStay"
-                        class="form-select"
-                        :class="{ 'is-invalid': errors.idChuHomeStay }"
-                        required
-                      >
-                        <option value="" disabled selected>Chọn chủ homestay</option>
-                        <option
-                          v-for="chu in chuList"
-                          :key="chu.id"
-                          :value="chu.id"
-                          :disabled="!chu.trangThai"
-                        >
-                          {{ chu.hotenChuHomestay || chu.hoTen }}
-                        </option>
+                      <label for="tinhTrang">Tình trạng</label>
+                      <select id="tinhTrang" v-model="formData.tinhTrang" class="form-select">
+                        <option value="Trống và sạch">Trống và sạch</option>
+                        <option value="Đã có người ở">Đã có người ở</option>
+                        <option value="Trống nhưng bẩn">Trống nhưng bẩn</option>
+                        <option value="Đang sửa chữa">Đang sửa chữa</option>
+                        <option value="Đang dọn dẹp">Đang dọn dẹp</option>
                       </select>
-                      <div v-if="errors.idChuHomeStay" class="invalid-feedback">
-                        {{ errors.idChuHomeStay }}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -188,18 +173,6 @@
                 </div>
 
                 <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="tinhTrang">Tình trạng</label>
-                      <select id="tinhTrang" v-model="formData.tinhTrang" class="form-select">
-                        <option value="Trống và sạch">Trống và sạch</option>
-                        <option value="Đã có người ở">Đã có người ở</option>
-                        <option value="Trống nhưng bẩn">Trống nhưng bẩn</option>
-                        <option value="Đang sửa chữa">Đang sửa chữa</option>
-                        <option value="Đang dọn dẹp">Đang dọn dẹp</option>
-                      </select>
-                    </div>
-                  </div>
                   <div class="col-md-6">
                     <div class="form-group">
                       <label for="trangThai">Trạng thái</label>
@@ -365,11 +338,11 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Quản lý Homestay</label>
+                  <label>Tình trạng</label>
                   <input
                     type="text"
                     class="form-control"
-                    :value="getChuName(formData.idChuHomeStay)"
+                    :value="formData.tinhTrang"
                     readonly
                   />
                 </div>
@@ -410,17 +383,6 @@
                 </div>
 
                 <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Tình trạng</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        :value="formData.tinhTrang"
-                        readonly
-                      />
-                    </div>
-                  </div>
                   <div class="col-md-6">
                     <div class="form-group">
                       <label>Trạng thái</label>
@@ -625,10 +587,6 @@ export default {
       type: Array,
       required: true,
     },
-    chuList: {
-      type: Array,
-      required: true,
-    },
     isEdit: {
       type: Boolean,
       default: false,
@@ -643,7 +601,6 @@ export default {
     const formData = ref({
       tenHomestay: '',
       idLoaiHomeStay: null,
-      idChuHomeStay: null,
       dienTich: 0,
       giaCaHomestay: 0,
       diaChi: '',
@@ -870,8 +827,8 @@ export default {
         newErrors.idLoaiHomeStay = 'Vui lòng chọn loại Homestay'
       }
 
-      if (!formData.value.idChuHomeStay) {
-        newErrors.idChuHomeStay = 'Vui lòng chọn chủ sở hữu'
+      if (!formData.value.diaChi?.trim()) {
+        newErrors.diaChi = 'Địa chỉ không được để trống'
       }
 
       // Kiểm tra diện tích là số hợp lệ và lớn hơn 0
@@ -882,10 +839,6 @@ export default {
 
       if (!formData.value.giaCaHomestay || formData.value.giaCaHomestay <= 0) {
         newErrors.giaCaHomestay = 'Giá phải lớn hơn 0'
-      }
-
-      if (!formData.value.diaChi?.trim()) {
-        newErrors.diaChi = 'Địa chỉ không được để trống'
       }
 
       errors.value = newErrors
@@ -905,11 +858,6 @@ export default {
     const getLoaiName = (id) => {
       const loai = props.loaiList.find((l) => l.id === id)
       return loai ? loai.tenLoaiHomestay || loai.tenLoai : 'Không xác định'
-    }
-
-    const getChuName = (id) => {
-      const chu = props.chuList.find((c) => c.id === id)
-      return chu ? chu.hotenChuHomestay || chu.hoTen : 'Không xác định'
     }
 
     const formatCurrency = (value) => {
@@ -1114,7 +1062,6 @@ export default {
       handleImageError,
       modalTitle,
       getLoaiName,
-      getChuName,
       formatCurrency,
       formatDate,
       viewDetailImages,

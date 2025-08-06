@@ -166,7 +166,7 @@
             >
               <a href="#" @click.prevent="navigateTo('admin-voucher')">
                 <i class="fas fa-ticket-alt"></i>
-                <span>Voucher</span>
+                <span>Giảm giá</span>
               </a>
             </div>
 

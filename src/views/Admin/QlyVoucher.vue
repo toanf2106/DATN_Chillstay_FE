@@ -316,6 +316,7 @@ import { useVoucherManagement } from '@/Styles/JS/Voucher.js'
 import { onMounted, ref, computed } from 'vue'
 import { getAllHomeStay } from '@/Service/HomeStayService.js'
 import notification from '@/utils/notification'
+import '@/Styles/CSS/Admin.css'
 
 export default {
   name: 'QlyVoucher',

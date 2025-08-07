@@ -1,7 +1,7 @@
 import api from '@/utils/api'
 
 // Lấy tất cả đặt phòng
-export function getAllDatHome() {
+export function getAllDatHomes() {
   return api.get('/api/datHome/all')
 }
 
@@ -36,7 +36,7 @@ export function extendCheckIn(id, thucHienBoi, ghiChu) {
 }
 
 
-export function getDatHomeByTrangThai(trangThai) {
+export function getAllDatHomesByStatus(trangThai) {
   return api.get(`/api/datHome/trangThai/${trangThai}`)
 }
 

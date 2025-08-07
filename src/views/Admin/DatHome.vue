@@ -389,7 +389,13 @@
                         }}</span>
                       </div>
 
-                      <div class="info-item" v-if="selectedBooking.trangThai === 'DaXacNhan' && selectedBooking.daGiaHanCheckIn">
+                      <div
+                        class="info-item"
+                        v-if="
+                          selectedBooking.trangThai === 'DaXacNhan' &&
+                          selectedBooking.daGiaHanCheckIn
+                        "
+                      >
                         <span class="info-label">Thời hạn check-in:</span>
                         <span class="info-value">
                           {{ formatDateTime(selectedBooking.thoiGianGiaHanCheckIn) }}
@@ -746,43 +752,48 @@
           >
             Hoàn thành
           </button>
-              <!-- Thêm nút gia hạn check-in ngay sau nút check-in -->
-           <button
-              v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
-              class="action-button extend-btn"
-              @click="handleExtendCheckIn(selectedBooking.id)"
-            >
-              Gia hạn Check-in
-           </button>
+          <!-- Thêm nút gia hạn check-in ngay sau nút check-in -->
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+            class="action-button extend-btn"
+            @click="handleExtendCheckIn(selectedBooking.id)"
+          >
+            Gia hạn Check-in
+          </button>
 
-           <div class="extension-container" v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'">
-             <!-- Hiển thị thông tin gia hạn -->
-             <div class="extension-info-container" v-if="extensionInfo && extensionInfo.success">
-               <div class="extension-info-item">
-                 <span class="extension-label">Thời hạn mới:</span>
-                 <span class="extension-value">{{ extensionInfo.hanCheckIn ? formatDateTime(extensionInfo.hanCheckIn) : 'N/A' }}</span>
-               </div>
-               <div class="extension-info-item">
-                 <span class="extension-label">Đã gia hạn:</span>
-                 <span class="extension-value">{{ extensionInfo.soLanGiaHan }}/3 lần</span>
-               </div>
-               <div class="extension-info-item">
-                 <span class="extension-label">Còn lại:</span>
-                 <span class="extension-value">{{ extensionInfo.soLanGiaHanConLai }} lần</span>
-               </div>
-               <div class="extension-info-item" v-if="extensionInfo.timeString">
-                 <span class="extension-label">Tổng thời gian gia hạn:</span>
-                 <span class="extension-value">{{ extensionInfo.timeString }}</span>
-               </div>
-             </div>
+          <div
+            class="extension-container"
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+          >
+            <!-- Hiển thị thông tin gia hạn -->
+            <div class="extension-info-container" v-if="extensionInfo && extensionInfo.success">
+              <div class="extension-info-item">
+                <span class="extension-label">Thời hạn mới:</span>
+                <span class="extension-value">{{
+                  extensionInfo.hanCheckIn ? formatDateTime(extensionInfo.hanCheckIn) : 'N/A'
+                }}</span>
+              </div>
+              <div class="extension-info-item">
+                <span class="extension-label">Đã gia hạn:</span>
+                <span class="extension-value">{{ extensionInfo.soLanGiaHan }}/3 lần</span>
+              </div>
+              <div class="extension-info-item">
+                <span class="extension-label">Còn lại:</span>
+                <span class="extension-value">{{ extensionInfo.soLanGiaHanConLai }} lần</span>
+              </div>
+              <div class="extension-info-item" v-if="extensionInfo.timeString">
+                <span class="extension-label">Tổng thời gian gia hạn:</span>
+                <span class="extension-value">{{ extensionInfo.timeString }}</span>
+              </div>
+            </div>
 
-             <!-- Hiển thị thông báo lỗi -->
-             <div class="extension-error" v-if="extensionInfo && !extensionInfo.success">
-               {{ extensionInfo.error }}
-             </div>
-           </div>
+            <!-- Hiển thị thông báo lỗi -->
+            <div class="extension-error" v-if="extensionInfo && !extensionInfo.success">
+              {{ extensionInfo.error }}
+            </div>
+          </div>
 
-            <!-- Thêm cảnh báo về việc không hoàn tiền cọc -->
+          <!-- Thêm cảnh báo về việc không hoàn tiền cọc -->
           <div
             v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
             class="auto-cancel-warning"
@@ -1286,7 +1297,7 @@ import {
   checkIn,
   checkOut,
   extendCheckIn,
-  getDatHomeById
+  getDatHomeById,
 } from '@/Service/DatHomeService'
 import axios from 'axios' // Used for fetching booking logs
 import { useAuthStore } from '@/stores/authStore'
@@ -1366,7 +1377,6 @@ export default {
 
       extensionInfo: null, // Thêm biến để lưu thông tin gia hạn
 
-
       // Modal thêm phụ phí
       showAddSurchargeModal: false,
       availableSurcharges: [], // Danh sách phụ phí có sẵn
@@ -1377,7 +1387,6 @@ export default {
       searchQuery: '',
       statusFilter: '',
       historySearchQuery: '',
-
     }
   },
   computed: {
@@ -3171,8 +3180,7 @@ export default {
         })
     },
 
-
-            // Thêm phương thức xử lý gia hạn check-in
+    // Thêm phương thức xử lý gia hạn check-in
     async handleExtendCheckIn(bookingId) {
       if (!this.currentUser) {
         notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
@@ -3181,7 +3189,7 @@ export default {
 
       try {
         const userId = this.currentUser.id
-        const ghiChu = "Gia hạn thêm 2 giờ để chờ check-in"
+        const ghiChu = 'Gia hạn thêm 2 giờ để chờ check-in'
 
         // Gọi API gia hạn
         const response = await extendCheckIn(bookingId, userId, ghiChu)
@@ -3202,7 +3210,7 @@ export default {
             soLanGiaHan,
             soLanGiaHanConLai,
             tongThoiGianGiaHan: soLanGiaHan * 120,
-            timeString: `${soLanGiaHan * 2} giờ`
+            timeString: `${soLanGiaHan * 2} giờ`,
           }
 
           // Cập nhật danh sách đơn hàng
@@ -3213,13 +3221,13 @@ export default {
         console.error('Lỗi khi gia hạn check-in:', error)
         this.extensionInfo = {
           success: false,
-          error: error.response?.data || 'Đã xảy ra lỗi khi gia hạn check-in'
+          error: error.response?.data || 'Đã xảy ra lỗi khi gia hạn check-in',
         }
         notification.error(error.response?.data || 'Đã xảy ra lỗi khi gia hạn check-in')
       }
     },
 
-        // Format datetime for display
+    // Format datetime for display
     formatDateTime(datetimeString) {
       if (!datetimeString) return 'N/A'
       const datetime = new Date(datetimeString)
@@ -3229,8 +3237,9 @@ export default {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
       })
+    },
 
     closeAddSurchargeModal() {
       this.showAddSurchargeModal = false
@@ -3372,7 +3381,6 @@ export default {
           console.error('Lỗi khi import service:', error)
           this.isLoadingPhuPhi = false
         })
-
     },
   },
 }
@@ -4635,6 +4643,7 @@ textarea.form-control {
   z-index: 2;
   background: linear-gradient(135deg, #4e73df 0%, #3a57c2 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: icon-float 3s ease infinite;
 }
@@ -4647,6 +4656,7 @@ textarea.form-control {
 .customer-section .section-icon i {
   background: linear-gradient(135deg, #1cc88a 0%, #16a678 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -4658,6 +4668,7 @@ textarea.form-control {
 .booking-info-section .section-icon i {
   background: linear-gradient(135deg, #36b9cc 0%, #2a8c9a 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -4669,6 +4680,7 @@ textarea.form-control {
 .payment-section .section-icon i {
   background: linear-gradient(135deg, #f6c23e 0%, #dfa82b 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -4680,6 +4692,7 @@ textarea.form-control {
 .action-section .section-icon i {
   background: linear-gradient(135deg, #4e73df 0%, #3a57c2 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -4691,6 +4704,7 @@ textarea.form-control {
 .status-section .section-icon i {
   background: linear-gradient(135deg, #e74a3b 0%, #cf372a 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -6318,6 +6332,7 @@ textarea.form-control {
   color: #0071c2;
   background: linear-gradient(90deg, #0071c2, #0096c7);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   position: relative;
   padding: 5px 12px;
@@ -6926,6 +6941,7 @@ textarea.form-control {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -7116,7 +7132,6 @@ textarea.form-control {
   }
 }
 
-
 .extend-btn {
   background-color: #f0ad4e;
   color: #fff;
@@ -7204,7 +7219,7 @@ textarea.form-control {
   font-size: 0.9rem;
   color: #888;
   margin-left: 10px;
-
+}
 /* Modal thêm phụ phí */
 .add-surcharge-modal {
   max-width: 1200px;
@@ -7620,6 +7635,7 @@ textarea.form-control {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -7884,6 +7900,5 @@ textarea.form-control {
   border-color: #4e73df;
   outline: none;
   box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.15);
-
 }
 </style>

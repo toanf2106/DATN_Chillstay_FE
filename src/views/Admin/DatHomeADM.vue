@@ -478,12 +478,6 @@
                       </span>
                       <span v-else>
                         Phụ phí
-                        <span v-if="isNgayLe(checkOutDate) && phuPhiNgayLe">
-                          ({{ phuPhiNgayLe.tenPhuPhi }}: {{ phuPhiNgayLe.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                        </span>
-                        <span v-else-if="isCuoiTuan(checkOutDate) && phuPhiCuoiTuan">
-                          (Cuối tuần: {{ phuPhiCuoiTuan.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                        </span>
                       </span>
                     </span>
                     <span>{{ getSurchargeDisplayText() }}</span>
@@ -736,12 +730,6 @@
                   </span>
                   <span v-else>
                     Phụ phí
-                    <span v-if="isNgayLe(checkOutDate) && phuPhiNgayLe">
-                      ({{ phuPhiNgayLe.tenPhuPhi }}: {{ phuPhiNgayLe.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                    </span>
-                    <span v-else-if="isCuoiTuan(checkOutDate) && phuPhiCuoiTuan">
-                      (Cuối tuần: {{ phuPhiCuoiTuan.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                    </span>
                   </span>
                 </div>
                 <div class="item-value surcharge-value">{{ getSurchargeDisplayText() }}</div>
@@ -2258,6 +2246,11 @@ export default {
       const surchargeAmount = this.calculateSurchargeAmount();
 
       if (surchargeAmount > 0) {
+        if (this.isNgayLe(this.checkOutDate) && this.phuPhiNgayLe) {
+          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (${this.phuPhiNgayLe.tenPhuPhi} - áp dụng 1 lần)`;
+        } else if (this.isCuoiTuan(this.checkOutDate) && this.phuPhiCuoiTuan) {
+          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (Cuối tuần - áp dụng 1 lần)`;
+        }
         return `+${surchargeAmount.toLocaleString('vi-VN')}₫`;
       }
       return '0₫';

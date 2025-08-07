@@ -388,6 +388,16 @@
                           formatDate(selectedBooking.ngayDat, 'dateOnly')
                         }}</span>
                       </div>
+
+                      <div class="info-item" v-if="selectedBooking.trangThai === 'DaXacNhan' && selectedBooking.daGiaHanCheckIn">
+                        <span class="info-label">Thời hạn check-in:</span>
+                        <span class="info-value">
+                          {{ formatDateTime(selectedBooking.thoiGianGiaHanCheckIn) }}
+                          <span class="extension-info" v-if="selectedBooking.soLanGiaHan">
+                            (đã gia hạn {{ selectedBooking.soLanGiaHan }}/3 lần)
+                          </span>
+                        </span>
+                      </div>
                       <div class="date-range-box">
                         <div class="date-range-item">
                           <span class="range-label">Check-in (13:00 - 14:00)</span>
@@ -736,6 +746,50 @@
           >
             Hoàn thành
           </button>
+              <!-- Thêm nút gia hạn check-in ngay sau nút check-in -->
+           <button
+              v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+              class="action-button extend-btn"
+              @click="handleExtendCheckIn(selectedBooking.id)"
+            >
+              Gia hạn Check-in
+           </button>
+
+           <div class="extension-container" v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'">
+             <!-- Hiển thị thông tin gia hạn -->
+             <div class="extension-info-container" v-if="extensionInfo && extensionInfo.success">
+               <div class="extension-info-item">
+                 <span class="extension-label">Thời hạn mới:</span>
+                 <span class="extension-value">{{ extensionInfo.hanCheckIn ? formatDateTime(extensionInfo.hanCheckIn) : 'N/A' }}</span>
+               </div>
+               <div class="extension-info-item">
+                 <span class="extension-label">Đã gia hạn:</span>
+                 <span class="extension-value">{{ extensionInfo.soLanGiaHan }}/3 lần</span>
+               </div>
+               <div class="extension-info-item">
+                 <span class="extension-label">Còn lại:</span>
+                 <span class="extension-value">{{ extensionInfo.soLanGiaHanConLai }} lần</span>
+               </div>
+               <div class="extension-info-item" v-if="extensionInfo.timeString">
+                 <span class="extension-label">Tổng thời gian gia hạn:</span>
+                 <span class="extension-value">{{ extensionInfo.timeString }}</span>
+               </div>
+             </div>
+
+             <!-- Hiển thị thông báo lỗi -->
+             <div class="extension-error" v-if="extensionInfo && !extensionInfo.success">
+               {{ extensionInfo.error }}
+             </div>
+           </div>
+
+            <!-- Thêm cảnh báo về việc không hoàn tiền cọc -->
+          <div
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+            class="auto-cancel-warning"
+          >
+            <i class="fas fa-exclamation-triangle"></i>
+            Lưu ý: Nếu không check-in đúng thời hạn, đơn sẽ tự động bị hủy và không hoàn tiền cọc.
+          </div>
         </div>
       </div>
     </div>
@@ -1225,13 +1279,14 @@
 
 <script>
 import {
-  getAllDatHome,
-  getDatHomeById,
-  getDatHomeByTrangThai,
+  getAllDatHomesByStatus,
+  getAllDatHomes,
   updateStatus,
+  confirmAndCancelOverlaps,
   checkIn,
   checkOut,
-  confirmAndCancelOverlaps,
+  extendCheckIn,
+  getDatHomeById
 } from '@/Service/DatHomeService'
 import axios from 'axios' // Used for fetching booking logs
 import { useAuthStore } from '@/stores/authStore'
@@ -1309,6 +1364,9 @@ export default {
       isLoadingServices: false, // Loading khi lấy danh sách dịch vụ
       serviceQuantities: {}, // Số lượng cho từng dịch vụ được chọn
 
+      extensionInfo: null, // Thêm biến để lưu thông tin gia hạn
+
+
       // Modal thêm phụ phí
       showAddSurchargeModal: false,
       availableSurcharges: [], // Danh sách phụ phí có sẵn
@@ -1319,6 +1377,7 @@ export default {
       searchQuery: '',
       statusFilter: '',
       historySearchQuery: '',
+
     }
   },
   computed: {
@@ -1502,7 +1561,7 @@ export default {
     async fetchBookings() {
       try {
         this.isLoading = true
-        const response = await getAllDatHome()
+        const response = await getAllDatHomes()
         this.bookings = response.data
 
         // Log để kiểm tra cấu trúc dữ liệu booking
@@ -1526,30 +1585,30 @@ export default {
     async fetchStatistics() {
       try {
         // Lấy tổng số đặt phòng
-        const allResponse = await getAllDatHome()
+        const allResponse = await getAllDatHomes()
         this.totalBookings = allResponse.data.length
 
         // Lấy số đặt phòng chờ xác nhận
-        const pendingResponse = await getDatHomeByTrangThai('ChoXacNhan')
+        const pendingResponse = await getAllDatHomesByStatus('ChoXacNhan')
         this.pendingBookings = pendingResponse.data.length
 
         // Lấy số đặt phòng đã xác nhận
-        const confirmedResponse = await getDatHomeByTrangThai('DaXacNhan')
+        const confirmedResponse = await getAllDatHomesByStatus('DaXacNhan')
         this.confirmedBookings = confirmedResponse.data.length
 
         // Lấy số đặt phòng chờ check-in (đã xác nhận)
         this.waitingCheckinBookings = confirmedResponse.data.length
 
         // Lấy số đặt phòng chờ check-out (đã check-in)
-        const waitingCheckoutResponse = await getDatHomeByTrangThai('DaCheckIn')
+        const waitingCheckoutResponse = await getAllDatHomesByStatus('DaCheckIn')
         this.waitingCheckoutBookings = waitingCheckoutResponse.data.length
 
         // Lấy số đặt phòng đã cọc
-        const depositedResponse = await getDatHomeByTrangThai('DaCoc')
+        const depositedResponse = await getAllDatHomesByStatus('DaCoc')
         this.depositedBookings = depositedResponse.data.length
 
         // Lấy số đặt phòng đã hoàn thành
-        const completedResponse = await getDatHomeByTrangThai('HoanThanh')
+        const completedResponse = await getAllDatHomesByStatus('HoanThanh')
         this.completedBookings = completedResponse.data.length
       } catch (error) {
         console.error('Lỗi khi tải thống kê:', error)
@@ -1608,8 +1667,15 @@ export default {
 
     async viewBookingDetails(booking) {
       try {
-        const response = await getDatHomeById(booking.id)
-        this.selectedBooking = response.data
+        try {
+          const response = await getDatHomeById(booking.id)
+          this.selectedBooking = response.data
+        } catch (error) {
+          console.error('Lỗi khi lấy thông tin đặt phòng:', error)
+        }
+
+        // Reset thông tin gia hạn khi mở modal mới
+        this.extensionInfo = null
 
         // Debug: In ra cấu trúc dữ liệu để kiểm tra tên trường homestay ID
         console.log('selectedBooking structure:', this.selectedBooking)
@@ -3105,6 +3171,67 @@ export default {
         })
     },
 
+
+            // Thêm phương thức xử lý gia hạn check-in
+    async handleExtendCheckIn(bookingId) {
+      if (!this.currentUser) {
+        notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
+        return
+      }
+
+      try {
+        const userId = this.currentUser.id
+        const ghiChu = "Gia hạn thêm 2 giờ để chờ check-in"
+
+        // Gọi API gia hạn
+        const response = await extendCheckIn(bookingId, userId, ghiChu)
+
+        // Lấy dữ liệu từ response
+        if (response && response.data) {
+          const { datHome, soLanGiaHan, soLanGiaHanConLai, hanCheckIn } = response.data
+
+          // Cập nhật thông tin đơn đặt phòng
+          if (datHome) {
+            this.selectedBooking = datHome
+          }
+
+          // Cập nhật thông tin hiển thị gia hạn
+          this.extensionInfo = {
+            success: true,
+            hanCheckIn: hanCheckIn ? new Date(hanCheckIn) : null,
+            soLanGiaHan,
+            soLanGiaHanConLai,
+            tongThoiGianGiaHan: soLanGiaHan * 120,
+            timeString: `${soLanGiaHan * 2} giờ`
+          }
+
+          // Cập nhật danh sách đơn hàng
+          await this.fetchBookings()
+          notification.success('Đã gia hạn check-in thành công!')
+        }
+      } catch (error) {
+        console.error('Lỗi khi gia hạn check-in:', error)
+        this.extensionInfo = {
+          success: false,
+          error: error.response?.data || 'Đã xảy ra lỗi khi gia hạn check-in'
+        }
+        notification.error(error.response?.data || 'Đã xảy ra lỗi khi gia hạn check-in')
+      }
+    },
+
+        // Format datetime for display
+    formatDateTime(datetimeString) {
+      if (!datetimeString) return 'N/A'
+      const datetime = new Date(datetimeString)
+      return datetime.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+
     closeAddSurchargeModal() {
       this.showAddSurchargeModal = false
       this.resetSurchargeSelection()
@@ -3245,6 +3372,7 @@ export default {
           console.error('Lỗi khi import service:', error)
           this.isLoadingPhuPhi = false
         })
+
     },
   },
 }
@@ -6988,6 +7116,95 @@ textarea.form-control {
   }
 }
 
+
+.extend-btn {
+  background-color: #f0ad4e;
+  color: #fff;
+}
+
+.extension-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extension-info-container {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 12px;
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extension-info-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.extension-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.extension-value {
+  font-weight: 600;
+  color: #007bff;
+}
+
+.extension-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  border-radius: 5px;
+  padding: 12px;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.auto-cancel-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.auto-cancel-warning i {
+  margin-right: 8px;
+  color: #f0ad4e;
+}
+
+.booking-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.detail-value {
+  font-weight: 500;
+  color: #666;
+}
+
+.extension-info {
+  font-size: 0.9rem;
+  color: #888;
+  margin-left: 10px;
+
 /* Modal thêm phụ phí */
 .add-surcharge-modal {
   max-width: 1200px;
@@ -7667,5 +7884,6 @@ textarea.form-control {
   border-color: #4e73df;
   outline: none;
   box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.15);
+
 }
 </style>

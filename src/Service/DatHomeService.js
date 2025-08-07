@@ -30,6 +30,11 @@ export function checkOut(id, nhanVienId, ghiChu) {
   return api.put(`/api/datHome/checkOut/${id}?nhanVienId=${nhanVienId}${ghiChu ? `&ghiChu=${encodeURIComponent(ghiChu)}` : ''}`)
 }
 
+// Gia hạn thời gian check-in
+export function extendCheckIn(id, thucHienBoi, ghiChu) {
+  return api.put(`/api/datHome/extendCheckIn/${id}?thucHienBoi=${thucHienBoi}${ghiChu ? `&ghiChu=${encodeURIComponent(ghiChu)}` : ''}`)
+}
+
 
 export function getDatHomeByTrangThai(trangThai) {
   return api.get(`/api/datHome/trangThai/${trangThai}`)

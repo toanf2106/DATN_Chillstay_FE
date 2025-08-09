@@ -1,5 +1,5 @@
 <template>
-  <div class="voucher-container">
+  <div class="giam-gia-container">
     <h1 class="page-title">Quản Lý Giảm Giá</h1>
 
     <div class="controls-container">
@@ -10,7 +10,7 @@
             <input
               type="text"
               v-model="searchTerm"
-              placeholder="Tìm kiếm Voucher..."
+              placeholder="Tìm kiếm mã giảm giá..."
               class="search-input"
               @input="handleSearch"
             />
@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <!-- Voucher Table -->
+    <!-- Bảng Giảm Giá -->
     <div class="table-responsive" v-if="!isLoading">
       <table class="table table-hover table-bordered table-sm">
         <thead>
@@ -66,7 +66,7 @@
           <tr
             v-for="(voucher, index) in filteredVouchers"
             :key="voucher.id"
-            @dblclick="viewVoucherDetail(voucher)"
+            @dblclick="viewGiamGiaDetail(voucher)"
           >
             <td class="text-center">{{ index + 1 }}</td>
             <td class="text-center">{{ voucher.maGiamGia }}</td>
@@ -78,13 +78,14 @@
             <td class="text-center">{{ voucher.giamToiDa ? `${voucher.giamToiDa.toLocaleString('vi-VN')} đ` : 'Không giới hạn' }}</td>
             <td class="text-center">{{ getHomeStayName(voucher.homeStayId) }}</td>
             <td class="text-center">
-              <span :class="`badge ${isVoucherValid(voucher) ? 'bg-success' : 'bg-danger'}`">
-                {{ isVoucherValid(voucher) ? 'Còn hạn' : 'Hết hạn' }}
+              <span :class="`badge ${isGiamGiaValid(voucher) ? 'bg-success' : 'bg-danger'}`">
+                {{ isGiamGiaValid(voucher) ? 'Còn hạn' : 'Hết hạn' }}
               </span>
             </td>
             <td class="text-center">
               <div class="action-buttons">
                 <button
+                  v-if="voucher.trangThai"
                   class="btn btn-icon btn-warning-light"
                   title="Chỉnh sửa"
                   @click="editVoucher(voucher)"
@@ -92,11 +93,20 @@
                   <i class="fas fa-edit"></i>
                 </button>
                 <button
+                  v-if="voucher.trangThai"
                   class="btn btn-icon btn-danger-light"
-                  title="Xóa"
+                  title="Vô hiệu hóa"
                   @click="confirmDelete(voucher)"
                 >
                   <i class="fas fa-trash"></i>
+                </button>
+                <button
+                  v-if="!voucher.trangThai"
+                  class="btn btn-icon btn-success-light"
+                  title="Khôi phục"
+                  @click="confirmRestore(voucher)"
+                >
+                  <i class="fas fa-reply"></i>
                 </button>
               </div>
             </td>
@@ -149,38 +159,37 @@
 
     <!-- Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
-      <!-- Delete Confirmation -->
       <div class="confirmation-box">
-        <button class="close-button" @click="cancelDelete">&times;</button>
-        <div class="confirmation-body">
+        <button class="close-button" @click="cancelDelete">
+          <i class="fas fa-times"></i>
+        </button>
           <div class="confirm-icon-wrapper icon-danger">
             <i class="fas fa-trash-alt"></i>
           </div>
-          <h4 class="confirm-title">Bạn có chắc chắn muốn xóa?</h4>
-          <p class="confirm-text">
-            Hành động này sẽ xóa vĩnh viễn mã giảm giá
-            <strong>{{ selectedVoucher?.tenGiamGia }}</strong
-            >. <br />Bạn không thể hoàn tác hành động này.
+        <h3 class="confirm-title">Xác nhận vô hiệu hóa</h3>
+        <p class="confirm-message">
+          Bạn có chắc chắn muốn vô hiệu hóa mã giảm giá
+          <strong>{{ selectedVoucher?.tenGiamGia || 'này' }}</strong>?
           </p>
-        </div>
-        <div class="confirmation-footer">
-          <button class="btn btn-secondary" @click="cancelDelete">Hủy bỏ</button>
-          <button class="btn btn-danger" @click="executeDelete" :disabled="deleting">
-            <span
-              v-if="deleting"
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            <span v-else>Xác nhận xóa</span>
+        <div class="confirm-actions">
+          <button class="btn-cancel" @click="cancelDelete">
+            <i class="fas fa-times"></i>
+            <span>Hủy bỏ</span>
+          </button>
+          <button class="btn-confirm btn-danger" @click="executeDelete" :disabled="deleting">
+            <span v-if="deleting" class="spinner"></span>
+            <span v-else>
+              <i class="fas fa-trash-alt"></i>
+              <span>Xác nhận vô hiệu hóa</span>
+            </span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Modal Chi tiết voucher -->
+    <!-- Modal Chi tiết giảm giá -->
     <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
-      <div class="voucher-details-modal">
+      <div class="giam-gia-details-modal">
         <div class="modal-header">
           <h3>Chi Tiết Mã Giảm Giá</h3>
           <button class="close-button" @click="closeDetailModal">&times;</button>
@@ -188,26 +197,26 @@
         <div class="modal-body">
           <div class="row">
             <div class="col-md-4">
-              <div class="voucher-image-container">
-                <div class="voucher-image">
+              <div class="giam-gia-image-container">
+                <div class="giam-gia-image">
                   <i class="fas fa-ticket-alt"></i>
                 </div>
                 <h4 class="text-center mt-3">{{ detailVoucher?.tenGiamGia }}</h4>
-                <p class="text-center voucher-code">Mã: {{ detailVoucher?.maGiamGia }}</p>
+                <p class="text-center giam-gia-code">Mã: {{ detailVoucher?.maGiamGia }}</p>
 
                 <div class="status-badge">
                   <label>Trạng Thái:</label>
                   <span
-                    :class="`badge ${detailVoucher && isVoucherValid(detailVoucher) ? 'bg-success' : 'bg-danger'}`"
+                    :class="`badge ${detailVoucher && isGiamGiaValid(detailVoucher) ? 'bg-success' : 'bg-danger'}`"
                   >
-                    {{ detailVoucher && isVoucherValid(detailVoucher) ? 'Còn hạn' : 'Hết hạn' }}
+                    {{ detailVoucher && isGiamGiaValid(detailVoucher) ? 'Còn hạn' : 'Hết hạn' }}
                   </span>
                 </div>
               </div>
             </div>
 
             <div class="col-md-8">
-              <div class="voucher-info">
+              <div class="giam-gia-info">
                 <div class="form-group">
                   <label>Mã Giảm Giá</label>
                   <input
@@ -300,18 +309,48 @@
 
     <!-- Modal components for add/edit -->
     <div v-if="showModal" class="modal-overlay">
-      <VoucherModal
+      <GiamGiaModal
         :voucher="selectedVoucher"
         :isEdit="isEdit"
         @close="closeModal"
         @save="saveVoucher"
       />
     </div>
+
+    <!-- Thêm modal xác nhận khôi phục -->
+    <div v-if="showRestoreConfirm" class="modal-overlay" @click.self="cancelRestore">
+      <div class="confirmation-box">
+        <button class="close-button" @click="cancelRestore">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="confirm-icon-wrapper icon-success">
+          <i class="fas fa-reply"></i>
+        </div>
+        <h3 class="confirm-title">Xác nhận khôi phục</h3>
+        <p class="confirm-message">
+          Bạn có chắc chắn muốn khôi phục mã giảm giá
+          <strong>{{ selectedVoucher?.tenGiamGia || 'này' }}</strong>?
+        </p>
+        <div class="confirm-actions">
+          <button class="btn-cancel" @click="cancelRestore">
+            <i class="fas fa-times"></i>
+            <span>Hủy bỏ</span>
+          </button>
+          <button class="btn-confirm btn-success" @click="executeRestore" :disabled="restoring">
+            <span v-if="restoring" class="spinner"></span>
+            <span v-else>
+              <i class="fas fa-reply"></i>
+              <span>Xác nhận khôi phục</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import VoucherModal from './components/VoucherModal.vue'
+import GiamGiaModal from './components/VoucherModal.vue'
 import { useVoucherManagement } from '@/Styles/JS/Voucher.js'
 import { onMounted, ref, computed } from 'vue'
 import { getAllHomeStay } from '@/Service/HomeStayService.js'
@@ -320,13 +359,16 @@ import notification from '@/utils/notification'
 export default {
   name: 'QlyVoucher',
   components: {
-    VoucherModal,
+    GiamGiaModal,
   },
   setup() {
     const voucherManagement = useVoucherManagement()
     const homeStayList = ref([])
     const deleting = ref(false)
     const showDeleteConfirm = ref(false)
+    // Thêm biến cho khôi phục
+    const restoring = ref(false)
+    const showRestoreConfirm = ref(false)
 
     // Các biến mới thêm vào
     const emptyRows = computed(() => {
@@ -350,14 +392,14 @@ export default {
       return hs ? hs.tenHomestay || hs.tenHomeStay : ''
     }
 
-    // Kiểm tra voucher còn hạn hay không
-    const isVoucherValid = (voucher) => {
+    // Kiểm tra giảm giá còn hạn hay không
+    const isGiamGiaValid = (voucher) => {
       const currentDate = new Date()
       const endDate = new Date(voucher.ngayKetThuc)
       return endDate >= currentDate && voucher.trangThai !== false
     }
 
-    // Xác nhận xóa voucher
+    // Xác nhận xóa giảm giá
     const confirmDelete = (voucher) => {
       voucherManagement.selectedVoucher.value = { ...voucher }
       showDeleteConfirm.value = true
@@ -370,17 +412,44 @@ export default {
       deleting.value = false
     }
 
-    // Thực hiện xóa voucher
+    // Thực hiện xóa giảm giá
     const executeDelete = async () => {
       try {
         deleting.value = true
         await voucherManagement.deleteVoucher(voucherManagement.selectedVoucher.value.id)
         showDeleteConfirm.value = false
       } catch (error) {
-        console.error('Lỗi khi xóa voucher:', error)
-        notification.error('Có lỗi xảy ra khi xóa voucher')
+        console.error('Lỗi khi xóa mã giảm giá:', error)
+        notification.error('Có lỗi xảy ra khi xóa mã giảm giá')
       } finally {
         deleting.value = false
+      }
+    }
+
+    // Xác nhận khôi phục giảm giá
+    const confirmRestore = (voucher) => {
+      voucherManagement.selectedVoucher.value = { ...voucher }
+      showRestoreConfirm.value = true
+    }
+
+    // Hủy khôi phục
+    const cancelRestore = () => {
+      showRestoreConfirm.value = false
+      voucherManagement.selectedVoucher.value = null
+      restoring.value = false
+    }
+
+    // Thực hiện khôi phục giảm giá
+    const executeRestore = async () => {
+      try {
+        restoring.value = true
+        await voucherManagement.restoreVoucher(voucherManagement.selectedVoucher.value.id)
+        showRestoreConfirm.value = false
+      } catch (error) {
+        console.error('Lỗi khi khôi phục mã giảm giá:', error)
+        notification.error('Có lỗi xảy ra khi khôi phục mã giảm giá')
+      } finally {
+        restoring.value = false
       }
     }
 
@@ -390,8 +459,8 @@ export default {
       voucherManagement.loadVouchers()
     }
 
-    // Xem chi tiết voucher
-    const viewVoucherDetail = (voucher) => {
+    // Xem chi tiết giảm giá
+    const viewGiamGiaDetail = (voucher) => {
       voucherManagement.viewVoucherDetail(voucher)
     }
 
@@ -414,7 +483,7 @@ export default {
       ...voucherManagement,
       homeStayList,
       getHomeStayName,
-      isVoucherValid,
+      isGiamGiaValid,
       emptyRows,
       startItem,
       endItem,
@@ -423,8 +492,14 @@ export default {
       confirmDelete,
       cancelDelete,
       executeDelete,
+      // Thêm các biến và hàm khôi phục
+      showRestoreConfirm,
+      restoring,
+      confirmRestore,
+      cancelRestore,
+      executeRestore,
       clearSearch,
-      viewVoucherDetail,
+      viewGiamGiaDetail,
       closeDetailModal,
     }
   },
@@ -433,7 +508,7 @@ export default {
 
 <style scoped>
 /* GENERAL CONTAINER & TITLE */
-.voucher-container {
+.giam-gia-container {
   background-color: #f8f9fa;
   padding: 25px;
   border-radius: 15px;
@@ -899,6 +974,10 @@ export default {
   background-color: #ef4444;
 }
 
+.icon-success {
+  background-color: #10b981;
+}
+
 .confirm-title {
   font-size: 1.5rem;
   font-weight: 700;
@@ -913,36 +992,78 @@ export default {
   margin-bottom: 30px;
 }
 
-.confirmation-footer {
+.confirm-message {
+  font-size: 1rem;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.confirm-actions {
   display: flex;
   justify-content: center;
   gap: 15px;
 }
 
-.confirmation-footer .btn {
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 12px 0;
-  flex: 1;
-  border-radius: 30px;
-  border: none;
-  transition: all 0.2s ease;
-}
-
-.confirmation-footer .btn-secondary {
+.confirm-actions .btn-cancel {
   background-color: #e2e8f0;
   color: #475569;
-}
-.confirmation-footer .btn-secondary:hover {
-  background-color: #cbd5e1;
-}
-.confirmation-footer .btn-danger:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
+  border: none;
+  border-radius: 30px;
+  padding: 12px 25px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-/* Chi tiết voucher modal */
-.voucher-details-modal {
+.confirm-actions .btn-cancel:hover {
+  background-color: #cbd5e1;
+}
+
+.confirm-actions .btn-confirm {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 25px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+}
+
+.confirm-actions .btn-confirm:hover {
+  background: linear-gradient(45deg, #0a58ca, #0077cc);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+}
+
+.confirm-actions .btn-confirm .spinner {
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Chi tiết giảm giá modal */
+.giam-gia-details-modal {
   position: relative;
   background-color: #fff;
   border-radius: 16px;
@@ -965,7 +1086,7 @@ export default {
   }
 }
 
-.voucher-details-modal .modal-header {
+.giam-gia-details-modal .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -974,32 +1095,32 @@ export default {
   background: #f8f9fa;
 }
 
-.voucher-details-modal .modal-header h3 {
+.giam-gia-details-modal .modal-header h3 {
   margin: 0;
   font-size: 1.8rem;
   font-weight: 700;
   color: #343a40;
 }
 
-.voucher-details-modal .modal-body {
+.giam-gia-details-modal .modal-body {
   padding: 25px;
 }
 
-.voucher-details-modal .modal-footer {
+.giam-gia-details-modal .modal-footer {
   padding: 15px 25px;
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
 }
 
-.voucher-image-container {
+.giam-gia-image-container {
   padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.voucher-image {
+.giam-gia-image {
   width: 150px;
   height: 150px;
   border-radius: 50%;
@@ -1011,12 +1132,12 @@ export default {
   box-shadow: 0 10px 20px rgba(106, 17, 203, 0.2);
 }
 
-.voucher-image i {
+.giam-gia-image i {
   font-size: 60px;
   color: white;
 }
 
-.voucher-code {
+.giam-gia-code {
   font-size: 0.85rem;
   color: #6c757d;
   margin-top: 0;
@@ -1034,25 +1155,62 @@ export default {
   font-weight: 500;
 }
 
-.voucher-info {
+.giam-gia-info {
   padding: 8px;
 }
 
-.voucher-info .form-group {
+.giam-gia-info .form-group {
   margin-bottom: 15px;
 }
 
-.voucher-info label {
+.giam-gia-info label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
   color: #4b5563;
 }
 
-.voucher-info .form-control[readonly] {
+.giam-gia-info .form-control[readonly] {
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   padding: 8px 12px;
   font-size: 0.95rem;
+}
+
+.btn-success {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+.btn-success:disabled {
+  background-color: #86efac;
+  cursor: not-allowed;
+}
+
+.btn-success-light {
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.btn-success-light:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+}
+
+.btn-danger:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
 }
 </style>

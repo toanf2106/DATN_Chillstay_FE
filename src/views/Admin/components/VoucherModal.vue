@@ -1,9 +1,9 @@
-<!-- VoucherModal.vue -->
+<!-- GiamGiaModal.vue -->
 <template>
       <div class="modal-content">
         <div class="modal-header">
       <h3 class="modal-title">
-            {{ isEdit ? 'Cập nhật Voucher' : 'Thêm Voucher mới' }}
+            {{ isEdit ? 'Cập nhật mã giảm giá' : 'Thêm mã giảm giá mới' }}
       </h3>
       <button type="button" class="close-button" @click="$emit('close')" aria-label="Close">&times;</button>
         </div>
@@ -12,13 +12,13 @@
         <div class="row">
           <div class="col-md-6">
             <div class="form-group">
-              <label class="form-label">Tên Voucher <span class="text-danger">*</span></label>
+              <label class="form-label">Tên mã giảm giá <span class="text-danger">*</span></label>
               <input
                 type="text"
                 class="form-control"
                 :class="{ 'is-invalid': errors.tenGiamGia }"
                 v-model="form.tenGiamGia"
-                placeholder="Nhập tên Voucher"
+                placeholder="Nhập tên mã giảm giá"
               />
               <div class="invalid-feedback" v-if="errors.tenGiamGia">
                 {{ errors.tenGiamGia }}
@@ -38,7 +38,7 @@
                 min="0"
                 max="100"
                 step="1"
-                placeholder="Nhập % giảm giá Voucher"
+                placeholder="Nhập % giảm giá"
               />
               <div class="invalid-feedback" v-if="errors.giaTri">
                 {{ errors.giaTri }}
@@ -74,7 +74,6 @@
             </div>
           </div>
           <div class="col-md-6">
-            <!-- Thêm trường giảm tối đa cho loại phần trăm -->
             <div class="form-group">
               <label class="form-label">Giảm tối đa </label>
               <input
@@ -98,10 +97,26 @@
                 type="number"
                 class="form-control"
                 v-model.number="form.soLuong"
-                min="0"
-                placeholder="Để trống hoặc 0 nếu không giới hạn"
+                min="1"
+                step="1"
+                placeholder="Nhập số lượng mã giảm giá"
               />
-              <small class="text-muted">Để trống hoặc 0 nếu không giới hạn số lượng</small>
+              <small class="text-muted">Số lần mã giảm giá có thể được sử dụng</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mã giảm giá <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                :class="{ 'is-invalid': errors.maGiamGia }"
+                v-model="form.maGiamGia"
+                :disabled="isEdit"
+                placeholder="Nhập mã giảm giá (VD: SUMMER2023)"
+              />
+              <div class="invalid-feedback" v-if="errors.maGiamGia">
+                {{ errors.maGiamGia }}
+              </div>
             </div>
 
             <div class="form-group">
@@ -150,7 +165,7 @@
           role="status"
           aria-hidden="true"
         ></span>
-        <span v-else>{{ isEdit ? 'Cập nhật Voucher' : 'Thêm Voucher' }}</span>
+        <span v-else>{{ isEdit ? 'Cập nhật mã giảm giá' : 'Thêm mã giảm giá' }}</span>
           </button>
     </div>
   </div>
@@ -161,7 +176,7 @@ import { ref, computed, onMounted } from 'vue';
 import { getAllHomeStay } from '@/Service/HomeStayService.js';
 
 export default {
-  name: 'VoucherModal',
+  name: 'GiamGiaModal',
   props: {
     voucher: {
       type: Object,

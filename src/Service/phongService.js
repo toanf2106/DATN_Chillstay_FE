@@ -45,7 +45,11 @@ export function updatePhong(id, phongData) {
 }
 
 export function deletePhong(id) {
-  return api.delete(`/api/phong/${id}`);
+  return api.put(`/api/phong/delete/${id}`);
+}
+
+export function restorePhong(id) {
+  return api.put(`/api/phong/restore/${id}`);
 }
 
 // Lấy danh sách loại phòng để hiển thị trong form

@@ -28,9 +28,14 @@ export function updateHomestay(id, formData) {
   });
 }
 
-// Xóa homestay
+// Vô hiệu hóa homestay (thay cho xóa)
 export function deleteHomestayAPI(id) {
-  return api.delete(`/api/homestay/delete/${id}`);
+  return api.put(`/api/homestay/delete/${id}`);
+}
+
+// Khôi phục homestay đã vô hiệu hóa
+export function restoreHomestayAPI(id) {
+  return api.put(`/api/homestay/restore/${id}`);
 }
 
 // Lấy danh sách loại homestay

@@ -52,7 +52,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAllDatHome } from '@/Service/DatHomeService'
+import { getAllDatHomes } from '@/Service/DatHomeService'
 import { useAuthStore } from '@/stores/authStore'
 import ReviewModal from '@/components/ReviewModal.vue'
 import { createDanhGia, getAllDanhGia } from '@/Service/DanhGiaService' // Use getAllDanhGia
@@ -112,7 +112,7 @@ const fetchAllDataAndProcess = async () => {
       getAllKhachHang(),
       // Bước 1.1: Lấy tất cả các bài đánh giá đã được lưu vĩnh viễn trong cơ sở dữ liệu.
       getAllDanhGia(),
-      getAllDatHome()
+      getAllDatHomes()
     ])
 
     // Bước 1.2: Xác định các hồ sơ khách hàng của người dùng hiện tại.

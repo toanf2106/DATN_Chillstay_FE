@@ -22,6 +22,9 @@ export const useVoucherManagement = () => {
   const detailVoucher = ref(null)
   const loadingDetail = ref(false)
 
+  // Biến để theo dõi trạng thái xóa/khôi phục
+  const deleting = ref(false)
+
   // Debug watcher for showModal
   watch(showModal, (newVal) => {
     console.log('showModal changed to:', newVal)
@@ -228,16 +231,61 @@ export const useVoucherManagement = () => {
     }
   }
 
+  // Thay đổi hàm deleteVoucher để sử dụng PUT thay vì DELETE
   const deleteVoucher = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa mã giảm giá này?')) {
-      try {
-        await axios.delete(`/api/giamgia/${id}`)
-        toast.success('Xóa mã giảm giá thành công')
-        loadVouchers()
-      } catch (error) {
-        toast.error('Lỗi khi xóa mã giảm giá')
-        console.error('Error deleting voucher:', error)
-      }
+    try {
+      deleting.value = true
+      console.log('Deleting voucher with ID:', id)
+
+      // Gọi API vô hiệu hóa voucher (thay vì xóa hoàn toàn)
+      const response = await axios.put(`/api/giamgia/delete/${id}`)
+      console.log('Delete response:', response)
+
+      // Hiển thị thông báo thành công
+      toast.success('Đã vô hiệu hóa mã giảm giá thành công')
+
+      // Tải lại danh sách voucher
+      loadVouchers()
+      return response
+    } catch (error) {
+      console.error('Error disabling voucher:', error)
+
+      // Hiển thị thông báo lỗi
+      toast.error(
+        `Không thể vô hiệu hóa mã giảm giá. Lỗi: ${error.response?.status === 400 ? error.response.data : 'Lỗi không xác định'}`
+      )
+      throw error
+    } finally {
+      deleting.value = false
+    }
+  }
+
+  // Thêm hàm mới restoreVoucher để khôi phục mã giảm giá
+  const restoreVoucher = async (id) => {
+    try {
+      deleting.value = true
+      console.log('Restoring voucher with ID:', id)
+
+      // Gọi API khôi phục voucher
+      const response = await axios.put(`/api/giamgia/restore/${id}`)
+      console.log('Restore response:', response)
+
+      // Hiển thị thông báo thành công
+      toast.success('Đã khôi phục mã giảm giá thành công')
+
+      // Tải lại danh sách voucher
+      loadVouchers()
+      return response
+    } catch (error) {
+      console.error('Error restoring voucher:', error)
+
+      // Hiển thị thông báo lỗi
+      toast.error(
+        `Không thể khôi phục mã giảm giá. Lỗi: ${error.response?.status === 400 ? error.response.data : 'Lỗi không xác định'}`
+      )
+      throw error
+    } finally {
+      deleting.value = false
     }
   }
 
@@ -320,6 +368,7 @@ export const useVoucherManagement = () => {
     closeModal,
     saveVoucher,
     deleteVoucher,
+    restoreVoucher,
     formatLoaiGiamGia,
     formatGiaTri,
     formatDate,

@@ -126,6 +126,7 @@
                   <i class="fas fa-images"></i>
                 </button>
                 <button
+                  v-if="hs.trangThai"
                   class="btn btn-icon btn-warning-light"
                   title="Chỉnh sửa"
                   @click="editHomestay(hs)"
@@ -133,11 +134,20 @@
                   <i class="fas fa-edit"></i>
                 </button>
                 <button
+                  v-if="hs.trangThai"
                   class="btn btn-icon btn-danger-light"
-                  title="Xóa"
-                  @click="deleteHomestay(hs.id)"
+                  title="Vô hiệu hóa"
+                  @click="confirmDelete(hs)"
                 >
                   <i class="fas fa-trash"></i>
+                </button>
+                <button
+                  v-if="!hs.trangThai"
+                  class="btn btn-icon btn-success-light"
+                  title="Khôi phục"
+                  @click="confirmRestore(hs)"
+                >
+                  <i class="fas fa-reply"></i>
                 </button>
               </div>
             </td>
@@ -210,6 +220,66 @@
     :viewOnly="viewOnlyImages"
     @close="closeAnhModal"
   />
+
+  <!-- Thêm modal xác nhận xóa -->
+  <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
+    <div class="confirmation-box">
+      <button class="close-button" @click="cancelDelete">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="confirm-icon-wrapper icon-danger">
+        <i class="fas fa-trash-alt"></i>
+      </div>
+      <h3 class="confirm-title">Xác nhận vô hiệu hóa</h3>
+      <p class="confirm-message">
+        Bạn có chắc chắn muốn vô hiệu hóa homestay
+        <strong>{{ selectedHomestay?.tenHomestay || 'này' }}</strong>?
+      </p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" @click="cancelDelete">
+          <i class="fas fa-times"></i>
+          <span>Hủy bỏ</span>
+        </button>
+        <button class="btn-confirm btn-danger" @click="executeDelete" :disabled="deleting">
+          <span v-if="deleting" class="spinner"></span>
+          <span v-else>
+            <i class="fas fa-trash-alt"></i>
+            <span>Xác nhận vô hiệu hóa</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thêm modal xác nhận khôi phục -->
+  <div v-if="showRestoreConfirm" class="modal-overlay" @click.self="cancelRestore">
+    <div class="confirmation-box">
+      <button class="close-button" @click="cancelRestore">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="confirm-icon-wrapper icon-success">
+        <i class="fas fa-reply"></i>
+      </div>
+      <h3 class="confirm-title">Xác nhận khôi phục</h3>
+      <p class="confirm-message">
+        Bạn có chắc chắn muốn khôi phục homestay
+        <strong>{{ selectedHomestay?.tenHomestay || 'này' }}</strong>?
+      </p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" @click="cancelRestore">
+          <i class="fas fa-times"></i>
+          <span>Hủy bỏ</span>
+        </button>
+        <button class="btn-confirm btn-success" @click="executeRestore" :disabled="restoring">
+          <span v-if="restoring" class="spinner"></span>
+          <span v-else>
+            <i class="fas fa-reply"></i>
+            <span>Xác nhận khôi phục</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -220,7 +290,8 @@ import {
   createHomestay,
   updateHomestay,
   deleteHomestayAPI,
-  searchByKeyword
+  searchByKeyword,
+  restoreHomestayAPI
 } from '@/Service/HomeStayService'
 import HomestayModal from '../components/HomestayModal.vue'
 import AnhHomestayModal from '../components/AnhHomestayModal.vue'
@@ -259,6 +330,12 @@ export default {
     // Quản lý modal ảnh chi tiết
     const showAnhModal = ref(false)
     const viewOnlyImages = ref(false)
+
+    // Biến và hàm xử lý xác nhận xóa
+    const deleting = ref(false)
+    const restoring = ref(false)
+    const showDeleteConfirm = ref(false)
+    const showRestoreConfirm = ref(false)
 
     // API calls
     const fetchData = async () => {
@@ -623,6 +700,60 @@ export default {
       showAnhModal.value = false
     }
 
+    // Thêm các hàm xác nhận xóa
+    const confirmDelete = (homestay) => {
+      selectedHomestay.value = { ...homestay }
+      showDeleteConfirm.value = true
+    }
+
+    const cancelDelete = () => {
+      showDeleteConfirm.value = false
+      selectedHomestay.value = null
+      deleting.value = false
+    }
+
+    const executeDelete = async () => {
+      try {
+        deleting.value = true
+        await deleteHomestayAPI(selectedHomestay.value.id)
+        toast.success('Đã vô hiệu hóa homestay thành công')
+        fetchData()
+        showDeleteConfirm.value = false
+      } catch (error) {
+        console.error('Lỗi khi vô hiệu hóa homestay:', error)
+        toast.error('Có lỗi xảy ra khi vô hiệu hóa homestay')
+      } finally {
+        deleting.value = false
+      }
+    }
+
+    // Thêm các hàm xác nhận khôi phục
+    const confirmRestore = (homestay) => {
+      selectedHomestay.value = { ...homestay }
+      showRestoreConfirm.value = true
+    }
+
+    const cancelRestore = () => {
+      showRestoreConfirm.value = false
+      selectedHomestay.value = null
+      restoring.value = false
+    }
+
+    const executeRestore = async () => {
+      try {
+        restoring.value = true
+        await restoreHomestayAPI(selectedHomestay.value.id)
+        toast.success('Đã khôi phục homestay thành công')
+        fetchData()
+        showRestoreConfirm.value = false
+      } catch (error) {
+        console.error('Lỗi khi khôi phục homestay:', error)
+        toast.error('Có lỗi xảy ra khi khôi phục homestay')
+      } finally {
+        restoring.value = false
+      }
+    }
+
     onMounted(() => {
       fetchData();
     });
@@ -673,7 +804,19 @@ export default {
       openAnhModalFromDetails,
       closeAnhModal,
       formatTinhTrang,
-      calculateIndex
+      calculateIndex,
+      // Biến và hàm xử lý xác nhận xóa
+      showDeleteConfirm,
+      deleting,
+      confirmDelete,
+      cancelDelete,
+      executeDelete,
+      // Biến và hàm xử lý xác nhận khôi phục
+      showRestoreConfirm,
+      restoring,
+      confirmRestore,
+      cancelRestore,
+      executeRestore,
     }
   },
 }
@@ -1098,5 +1241,152 @@ export default {
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.confirmation-box {
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 30px;
+  text-align: center;
+  position: relative;
+  width: 90%;
+  max-width: 450px;
+}
+
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: #e0e0e0;
+}
+
+.close-button i {
+  color: #6c757d;
+  font-size: 1.2rem;
+}
+
+.confirm-icon-wrapper {
+  margin-bottom: 20px;
+  font-size: 4rem;
+  color: #dc3545; /* Red for delete */
+}
+
+.icon-success {
+  color: #20c997; /* Green for restore */
+}
+
+.confirm-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 10px;
+}
+
+.confirm-message {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
+}
+
+.btn-cancel, .btn-confirm {
+  flex: 1;
+  padding: 12px 25px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-cancel {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.btn-cancel:hover {
+  background-color: #dee2e6;
+  color: #343a40;
+}
+
+.btn-confirm {
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+  color: #fff;
+}
+
+.btn-confirm:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #20c997, #198754);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #198754, #157347);
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

@@ -189,7 +189,7 @@
             <div class="menu-item" :class="{ active: isRouteActive('admin-thanh-toan') }">
               <a href="#" @click.prevent="navigateTo('admin-thanh-toan')">
                 <i class="fas fa-credit-card"></i>
-                <span>Thanh toán</span>
+                <span>Chi Tiết Thanh toán</span>
               </a>
             </div>
 

@@ -184,7 +184,9 @@
               <div class="quote-icon">"</div>
               <p class="quote-text">{{ activeReview.content }}</p>
               <div class="author-info">
-                <strong>{{ activeReview.author }}</strong> - {{ activeReview.location }}
+                <strong>{{ activeReview.author }}</strong>
+                <span v-if="activeReview.tenHomestay">- {{ activeReview.tenHomestay }}</span>
+                <span v-if="activeReview.location">- {{ activeReview.location }}</span>
               </div>
             </div>
           </div>
@@ -192,7 +194,7 @@
           <div class="review-tabs">
             <button v-for="(review, index) in reviews" :key="index"
               :class="['tab-button', { active: activeReviewIndex === index }]" @click="activeReviewIndex = index">
-              {{ review.author }}
+              {{ review.author }}<span v-if="review.tenHomestay"> - {{ review.tenHomestay }}</span>
             </button>
           </div>
         </div>
@@ -268,9 +270,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getAllHomeStay, getAnhHomeStayByHomestayId } from '@/Service/HomeStayService'
+import { getAllHomeStay, getAnhHomeStayByHomestayId, getHomeStayById } from '@/Service/HomeStayService'
 import { getAllTinTuc } from '@/Service/TinTucService'
 import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService'
+import { getAllDanhGia } from '@/Service/DanhGiaService' // Thêm dòng này
 import { useRouter } from 'vue-router'
 import api from '@/utils/api'
 
@@ -289,49 +292,11 @@ const searchPrice = ref('Tất cả mức giá')
 
 // Thêm dữ liệu đánh giá mẫu
 const isLoadingReviews = ref(false)
+const hasReviewsError = ref(false)
+const reviewsErrorMessage = ref('')
 const activeReviewIndex = ref(0)
-const reviews = ref([
-  {
-    id: 1,
-    author: 'Chị Linh - Anh Dũng',
-    location: 'Hà Nội',
-    content:
-      'Tour du homestay 2 ngày 1 đêm rất tuyệt vời, tôi được ngắm vẻ đẹp cả vùng Mộc Châu, khám phá các làng dân tộc. Nhân viên tư vấn nhiệt tình, phục vụ chu đáo. Đồ ăn ngon, phòng ốc đẹp. Đây thực sự là trải nghiệm đáng nhớ, mình sẽ tiếp tục ủng hộ và giới thiệu cho bạn bè. Cảm ơn ChillStay!',
-    rating: 5,
-  },
-  {
-    id: 2,
-    author: 'Chị Thu Hà',
-    location: 'TP. Hồ Chí Minh',
-    content:
-      'Phòng homestay rất sạch sẽ và trang trí đẹp mắt, view nhìn ra thung lũng tuyệt vời. Chủ homestay rất thân thiện và nhiệt tình giới thiệu những địa điểm đẹp ở Mộc Châu. Bữa sáng ngon miệng với nhiều món đặc sản địa phương. Chắc chắn sẽ quay lại vào dịp tiếp theo!',
-    rating: 5,
-  },
-  {
-    id: 3,
-    author: 'Anh Khánh',
-    location: 'Đà Nẵng',
-    content:
-      'Lần đầu tiên đến Mộc Châu và lựa chọn ChillStay là quyết định đúng đắn. Không gian yên tĩnh, gần gũi thiên nhiên nhưng vẫn đầy đủ tiện nghi. Đặc biệt ấn tượng với cách bài trí mang đậm văn hóa dân tộc Thái. Nhân viên chu đáo và luôn sẵn sàng hỗ trợ mọi lúc.',
-    rating: 4,
-  },
-  {
-    id: 4,
-    author: 'Bạn Minh Hoàng',
-    location: 'Hải Phòng',
-    content:
-      'ChillStay là điểm đến hoàn hảo cho chuyến phượt Mộc Châu của nhóm mình. Phòng rộng rãi, sạch sẽ, giá cả hợp lý. Đặc biệt, được ngủ trong những căn nhà gỗ giữa khung cảnh thiên nhiên tuyệt đẹp là trải nghiệm khó quên. Chủ homestay rất nhiệt tình giới thiệu các địa điểm thú vị xung quanh.',
-    rating: 5,
-  },
-  {
-    id: 5,
-    author: 'Cô Thanh Hằng và bạn',
-    location: 'Thái Nguyên',
-    content:
-      'Đã tới nhiều homestay ở Mộc Châu nhưng ChillStay là nơi để lại ấn tượng nhất. Không gian thoáng đãng, view đẹp, đồ ăn ngon và phong cách phục vụ chuyên nghiệp. Đặc biệt thích không gian cà phê nhỏ trong khu vực homestay, rất thích hợp để ngồi ngắm mây trôi và thưởng thức đồ uống.',
-    rating: 5,
-  },
-])
+const reviews = ref([])
+const reviewSlideInterval = ref(null)
 
 // Thêm dữ liệu tin tức mẫu
 // const newsArticles = ref([
@@ -584,6 +549,54 @@ const fetchNewsData = async () => {
   }
 }
 
+// Fetch reviews from backend
+const fetchReviews = async () => {
+  isLoadingReviews.value = true
+  hasReviewsError.value = false
+  reviewsErrorMessage.value = ''
+  try {
+    const res = await getAllDanhGia()
+    console.log('Dữ liệu đánh giá từ API:', res.data)
+    if (res.data && Array.isArray(res.data)) {
+      // Lấy 5 đánh giá mới nhất
+      const latestReviews = res.data
+        .filter(r => r.trangThai !== false)
+        .sort((a, b) => new Date(b.ngayTao || b.createdAt) - new Date(a.ngayTao || a.createdAt))
+        .slice(0, 5)
+      // Lấy tên homestay cho từng đánh giá
+      const reviewsWithHomestay = await Promise.all(latestReviews.map(async (r) => {
+        let tenHomestay = ''
+        if (r.homeStayId) {
+          try {
+            const homeStayRes = await getHomeStayById(r.homeStayId)
+            tenHomestay = homeStayRes.data?.tenHomestay || ''
+          } catch (e) {
+            console.warn('Không lấy được tên homestay cho review', r.id, e)
+          }
+        }
+        return {
+          id: r.id,
+          author: r.tenKhachHang || r.tenNguoiDanhGia || r.hoTen || r.nguoiDanhGia || r.author || '',
+          tenHomestay,
+          location: r.diaChi || r.location || '',
+          content: r.noiDung || r.content || '',
+          rating: r.soSao || r.rating || 5,
+        }
+      }))
+      reviews.value = reviewsWithHomestay
+    } else {
+      hasReviewsError.value = true
+      reviewsErrorMessage.value = 'Không có dữ liệu đánh giá nào.'
+    }
+  } catch (error) {
+    hasReviewsError.value = true
+    reviewsErrorMessage.value = 'Lỗi khi tải dữ liệu đánh giá. Vui lòng thử lại sau.'
+    console.error('Lỗi khi tải đánh giá:', error)
+  } finally {
+    isLoadingReviews.value = false
+  }
+}
+
 // Biến cho hero slideshow
 const currentSlide = ref(0);
 const slideInterval = ref(null);
@@ -649,27 +662,52 @@ const toggleFaq = (index) => {
   }
 };
 
+// Biến cho đánh giá slideshow
+const nextReviewSlide = () => {
+  if (reviews.value.length > 0) {
+    activeReviewIndex.value = (activeReviewIndex.value + 1) % reviews.value.length
+  }
+}
+
+const startReviewSlideshow = () => {
+  stopReviewSlideshow()
+  reviewSlideInterval.value = setInterval(() => {
+    nextReviewSlide()
+  }, 5000)
+}
+
+const stopReviewSlideshow = () => {
+  if (reviewSlideInterval.value) {
+    clearInterval(reviewSlideInterval.value)
+    reviewSlideInterval.value = null
+  }
+}
+
 // Khởi tạo slideshow khi component được mount
 onMounted(() => {
   startSlideshow();
-
   // Tiếp tục các onMounted hiện có
   fetchHomestayData();
   fetchNewsData();
-});
+  fetchReviews(); // Thêm dòng này để lấy đánh giá từ backend
+  startReviewSlideshow();
+})
 
 // Tạm dừng slideshow khi tab không được focus
 watch(() => document.visibilityState, (newState) => {
   if (newState === 'visible') {
     startSlideshow();
+    startReviewSlideshow();
   } else {
     stopSlideshow();
+    stopReviewSlideshow();
   }
 });
 
-onMounted(async () => {
-  await fetchHomestayData()
-  await fetchNewsData()
+// Nếu muốn reset slide khi reviews thay đổi (ví dụ sau khi fetch xong)
+watch(reviews, (newVal) => {
+  activeReviewIndex.value = 0
+  startReviewSlideshow()
 })
 
 // Helper function to fix image URLs if they start with a slash

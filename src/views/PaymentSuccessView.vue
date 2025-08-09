@@ -24,7 +24,9 @@
       <h2>Thanh toán thành công!</h2>
       <p>Đơn đặt homestay của bạn đã được xác nhận.</p>
 
-      <p>Mã thanh toán: <strong>{{ transactionId }}</strong></p>
+      <p>
+        Mã thanh toán: <strong>{{ transactionId }}</strong>
+      </p>
 
       <p class="email-note">Chúng tôi đã gửi email xác nhận đặt phòng đến địa chỉ email của bạn.</p>
 
@@ -76,9 +78,7 @@ export default {
 
       // Đảm bảo rằng nếu không có mã giao dịch, chúng ta vẫn tạo một mã để hiển thị
       if (!transactionId) {
-
-        transactionId = Date.now();
-
+        transactionId = Date.now()
       }
 
       // Đảm bảo số tiền là số

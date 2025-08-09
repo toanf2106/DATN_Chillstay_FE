@@ -478,12 +478,6 @@
                       </span>
                       <span v-else>
                         Phụ phí
-                        <span v-if="isNgayLe(checkOutDate) && phuPhiNgayLe">
-                          ({{ phuPhiNgayLe.tenPhuPhi }}: {{ phuPhiNgayLe.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                        </span>
-                        <span v-else-if="isCuoiTuan(checkOutDate) && phuPhiCuoiTuan">
-                          (Cuối tuần: {{ phuPhiCuoiTuan.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                        </span>
                       </span>
                     </span>
                     <span>{{ getSurchargeDisplayText() }}</span>
@@ -736,12 +730,6 @@
                   </span>
                   <span v-else>
                     Phụ phí
-                    <span v-if="isNgayLe(checkOutDate) && phuPhiNgayLe">
-                      ({{ phuPhiNgayLe.tenPhuPhi }}: {{ phuPhiNgayLe.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                    </span>
-                    <span v-else-if="isCuoiTuan(checkOutDate) && phuPhiCuoiTuan">
-                      (Cuối tuần: {{ phuPhiCuoiTuan.giaTri.toLocaleString('vi-VN') }}₫ - áp dụng 1 lần)
-                    </span>
                   </span>
                 </div>
                 <div class="item-value surcharge-value">{{ getSurchargeDisplayText() }}</div>
@@ -1396,18 +1384,38 @@ export default {
       }
     },
 
-    // Tính tổng tiền
+    // Tính tổng tiền (giá theo ngày: Mon-Thu = base, Fri +15%, Sat/Sun +30%)
     calculateTotalAmount() {
       const selectedHomestay = this.getSelectedHomestay()
       if (!selectedHomestay || !selectedHomestay.giaCaHomestay) return 0
 
-      const nights = this.calculateNights() || 1
-      const roomPrice = selectedHomestay.giaCaHomestay * nights
-      const discountAmount = this.calculateDiscountAmount() // Số tiền giảm giá
-      const servicePrice = this.getTotalServicePrice() // Thêm giá dịch vụ
-      const surchargeAmount = this.calculateSurchargeAmount() // Thêm phụ phí
+      const basePrice = Number(selectedHomestay.giaCaHomestay) || 0
+      const start = this.checkInDate ? new Date(this.checkInDate) : null
+      const end = this.checkOutDate ? new Date(this.checkOutDate) : null
 
-      return roomPrice - discountAmount + servicePrice + surchargeAmount
+      let roomTotal = 0
+      if (start && end && !isNaN(start) && !isNaN(end) && start < end) {
+        const cur = new Date(start)
+        while (cur < end) {
+          const day = cur.getDay() // 0: CN, 6: T7
+          let multiplier = 1
+          // Mon-Thu (1..4): giữ nguyên 1
+          if (day === 5) multiplier = 1.10 // Thứ 6 +10%
+          else if (day === 6) multiplier = 1.15 // Thứ 7 +15%
+          else if (day === 0) multiplier = 1.10 // Chủ nhật +10%
+          roomTotal += Math.round(basePrice * multiplier)
+          cur.setDate(cur.getDate() + 1)
+        }
+      } else {
+        const nights = this.calculateNights() || 1
+        roomTotal = basePrice * nights
+      }
+
+      const discountAmount = this.calculateDiscountAmount()
+      const servicePrice = this.getTotalServicePrice()
+      const surchargeAmount = this.calculateSurchargeAmount()
+
+      return roomTotal - discountAmount + servicePrice + surchargeAmount
     },
 
     // Lấy tiện nghi cho homestay đã chọn
@@ -1727,8 +1735,29 @@ export default {
         this.isLoadingGiamGia = true
         // Tính tổng tiền của homestay để truyền vào API
         const selectedHomestay = this.getSelectedHomestay()
-        const nights = this.calculateNights() || 1
-        const tongTien = selectedHomestay ? selectedHomestay.giaCaHomestay * nights : 1000000
+        const tongTien = (() => {
+          if (!selectedHomestay || !selectedHomestay.giaCaHomestay) return 1000000
+          const basePrice = Number(selectedHomestay.giaCaHomestay) || 0
+          const start = this.checkInDate ? new Date(this.checkInDate) : null
+          const end = this.checkOutDate ? new Date(this.checkOutDate) : null
+          if (start && end && !isNaN(start) && !isNaN(end) && start < end) {
+            let sum = 0
+            const cur = new Date(start)
+            while (cur < end) {
+              const day = cur.getDay()
+              let multiplier = 1
+              // Mon-Thu (1..4): giữ nguyên 1
+              if (day === 5) multiplier = 1.10
+              else if (day === 6) multiplier = 1.15
+              else if (day === 0) multiplier = 1.10
+              sum += Math.round(basePrice * multiplier)
+              cur.setDate(cur.getDate() + 1)
+            }
+            return sum
+          }
+          const nights = this.calculateNights() || 1
+          return basePrice * nights
+        })()
 
         const response = await getGiamGiaByIdHomeStay(homestayId, tongTien)
 
@@ -1757,8 +1786,27 @@ export default {
       const selectedHomestay = this.getSelectedHomestay()
       if (!selectedHomestay || !selectedHomestay.giaCaHomestay) return 0
 
-      const nights = this.calculateNights() || 1
-      const roomPrice = selectedHomestay.giaCaHomestay * nights
+      const basePrice = Number(selectedHomestay.giaCaHomestay) || 0
+      const start = this.checkInDate ? new Date(this.checkInDate) : null
+      const end = this.checkOutDate ? new Date(this.checkOutDate) : null
+
+      let roomPrice = 0
+      if (start && end && !isNaN(start) && !isNaN(end) && start < end) {
+        const cur = new Date(start)
+        while (cur < end) {
+          const day = cur.getDay()
+          let multiplier = 1
+          // Mon-Thu (1..4): giữ nguyên 1
+          if (day === 5) multiplier = 1.10
+          else if (day === 6) multiplier = 1.15
+          else if (day === 0) multiplier = 1.10
+          roomPrice += Math.round(basePrice * multiplier)
+          cur.setDate(cur.getDate() + 1)
+        }
+      } else {
+        const nights = this.calculateNights() || 1
+        roomPrice = basePrice * nights
+      }
 
       // Tính giảm giá dựa trên phần trăm
       let discountAmount = Math.round((roomPrice * this.giamGia.giaTri) / 100)
@@ -2258,6 +2306,11 @@ export default {
       const surchargeAmount = this.calculateSurchargeAmount();
 
       if (surchargeAmount > 0) {
+        if (this.isNgayLe(this.checkOutDate) && this.phuPhiNgayLe) {
+          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (${this.phuPhiNgayLe.tenPhuPhi} - áp dụng 1 lần)`;
+        } else if (this.isCuoiTuan(this.checkOutDate) && this.phuPhiCuoiTuan) {
+          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (Cuối tuần - áp dụng 1 lần)`;
+        }
         return `+${surchargeAmount.toLocaleString('vi-VN')}₫`;
       }
       return '0₫';

@@ -28,9 +28,14 @@ export function updateHomestay(id, formData) {
   });
 }
 
-// Xóa homestay
+// Vô hiệu hóa homestay (thay cho xóa)
 export function deleteHomestayAPI(id) {
-  return api.delete(`/api/homestay/delete/${id}`);
+  return api.put(`/api/homestay/delete/${id}`);
+}
+
+// Khôi phục homestay đã vô hiệu hóa
+export function restoreHomestayAPI(id) {
+  return api.put(`/api/homestay/restore/${id}`);
 }
 
 // Lấy danh sách loại homestay
@@ -56,11 +61,6 @@ export function deleteLoaiHomestay(id) {
 // Thay đổi trạng thái loại homestay
 export function changeLoaiHomestayStatus(id) {
   return api.put(`/api/loai-homestay/change-status/${id}`);
-}
-
-// Lấy danh sách chủ homestay
-export function getChuHomeStay() {
-  return api.get('/api/chu-home/all');
 }
 
 // Lấy danh sách tiện nghi của homestay
@@ -167,5 +167,3 @@ export function checkHomestayLockStatus(homestayId) {
 export function getLockedHomestays() {
   return api.get('/api/homestay/offline-locked');
 }
-
-// ... existing code ...

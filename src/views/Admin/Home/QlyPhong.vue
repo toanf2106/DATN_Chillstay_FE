@@ -128,6 +128,7 @@
                   <i class="fas fa-images"></i>
                 </button>
                 <button
+                  v-if="phong.trangThai"
                   class="btn btn-icon btn-warning-light"
                   title="Chỉnh sửa"
                   @click="editPhong(phong)"
@@ -135,11 +136,20 @@
                   <i class="fas fa-edit"></i>
                 </button>
                 <button
+                  v-if="phong.trangThai"
                   class="btn btn-icon btn-danger-light"
-                  title="Xóa"
-                  @click="deletePhong(phong.id)"
+                  title="Vô hiệu hóa"
+                  @click="confirmDelete(phong)"
                 >
                   <i class="fas fa-trash"></i>
+                </button>
+                <button
+                  v-if="!phong.trangThai"
+                  class="btn btn-icon btn-success-light"
+                  title="Khôi phục"
+                  @click="confirmRestore(phong)"
+                >
+                  <i class="fas fa-reply"></i>
                 </button>
               </div>
             </td>
@@ -213,6 +223,66 @@
     :viewOnly="viewOnlyAnh"
     @close="closeAnhModal"
   />
+
+  <!-- Thêm modal xác nhận xóa -->
+  <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
+    <div class="confirmation-box">
+      <button class="close-button" @click="cancelDelete">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="confirm-icon-wrapper icon-danger">
+        <i class="fas fa-trash-alt"></i>
+      </div>
+      <h3 class="confirm-title">Xác nhận vô hiệu hóa</h3>
+      <p class="confirm-message">
+        Bạn có chắc chắn muốn vô hiệu hóa phòng
+        <strong>{{ selectedPhongForDelete?.tenPhong || 'này' }}</strong>?
+      </p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" @click="cancelDelete">
+          <i class="fas fa-times"></i>
+          <span>Hủy bỏ</span>
+        </button>
+        <button class="btn-confirm btn-danger" @click="executeDelete" :disabled="deleting">
+          <span v-if="deleting" class="spinner"></span>
+          <span v-else>
+            <i class="fas fa-trash-alt"></i>
+            <span>Xác nhận vô hiệu hóa</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thêm modal xác nhận khôi phục -->
+  <div v-if="showRestoreConfirm" class="modal-overlay" @click.self="cancelRestore">
+    <div class="confirmation-box">
+      <button class="close-button" @click="cancelRestore">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="confirm-icon-wrapper icon-success">
+        <i class="fas fa-reply"></i>
+      </div>
+      <h3 class="confirm-title">Xác nhận khôi phục</h3>
+      <p class="confirm-message">
+        Bạn có chắc chắn muốn khôi phục phòng
+        <strong>{{ selectedPhongForDelete?.tenPhong || 'này' }}</strong>?
+      </p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" @click="cancelRestore">
+          <i class="fas fa-times"></i>
+          <span>Hủy bỏ</span>
+        </button>
+        <button class="btn-confirm btn-success" @click="executeRestore" :disabled="restoring">
+          <span v-if="restoring" class="spinner"></span>
+          <span v-else>
+            <i class="fas fa-reply"></i>
+            <span>Xác nhận khôi phục</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -224,7 +294,9 @@ import {
   createPhong,
   updatePhong,
   deletePhong as deletePhongAPI,
-  searchPhongByKeyword
+  searchPhongByKeyword,
+  deletePhong,
+  restorePhong
 } from '@/Service/phongService'
 import PhongModal from '../components/PhongModal.vue'
 import { useToast } from '@/stores/notificationStore'
@@ -264,6 +336,13 @@ export default {
     const showAnhModal = ref(false)
     const selectedPhongForAnh = ref(null)
     const viewOnlyAnh = ref(false)
+
+    // Biến và hàm xử lý xác nhận xóa
+    const deleting = ref(false)
+    const restoring = ref(false)
+    const showDeleteConfirm = ref(false)
+    const showRestoreConfirm = ref(false)
+    const selectedPhongForDelete = ref(null)
 
     const goToLoaiPhong = () => {
       router.push({ name: 'admin-qly-loai-phong' })
@@ -656,6 +735,60 @@ export default {
       }, 300)
     }
 
+    // Thêm các hàm xác nhận xóa
+    const confirmDelete = (phong) => {
+      selectedPhongForDelete.value = { ...phong }
+      showDeleteConfirm.value = true
+    }
+
+    const cancelDelete = () => {
+      showDeleteConfirm.value = false
+      selectedPhongForDelete.value = null
+      deleting.value = false
+    }
+
+    const executeDelete = async () => {
+      try {
+        deleting.value = true
+        await deletePhong(selectedPhongForDelete.value.id)
+        toast.success('Đã vô hiệu hóa phòng thành công')
+        fetchData()
+        showDeleteConfirm.value = false
+      } catch (error) {
+        console.error('Lỗi khi vô hiệu hóa phòng:', error)
+        toast.error('Có lỗi xảy ra khi vô hiệu hóa phòng')
+      } finally {
+        deleting.value = false
+      }
+    }
+
+    // Thêm các hàm xác nhận khôi phục
+    const confirmRestore = (phong) => {
+      selectedPhongForDelete.value = { ...phong }
+      showRestoreConfirm.value = true
+    }
+
+    const cancelRestore = () => {
+      showRestoreConfirm.value = false
+      selectedPhongForDelete.value = null
+      restoring.value = false
+    }
+
+    const executeRestore = async () => {
+      try {
+        restoring.value = true
+        await restorePhong(selectedPhongForDelete.value.id)
+        toast.success('Đã khôi phục phòng thành công')
+        fetchData()
+        showRestoreConfirm.value = false
+      } catch (error) {
+        console.error('Lỗi khi khôi phục phòng:', error)
+        toast.error('Có lỗi xảy ra khi khôi phục phòng')
+      } finally {
+        restoring.value = false
+      }
+    }
+
     onMounted(() => {
       fetchData();
     });
@@ -707,7 +840,20 @@ export default {
       viewOnlyAnh,
       closeAnhModal,
       goToLoaiPhong,
-      goToVatTuPhong
+      goToVatTuPhong,
+      // Biến và hàm xử lý xác nhận xóa
+      showDeleteConfirm,
+      deleting,
+      confirmDelete,
+      cancelDelete,
+      executeDelete,
+      selectedPhongForDelete,
+      // Biến và hàm xử lý xác nhận khôi phục
+      showRestoreConfirm,
+      restoring,
+      confirmRestore,
+      cancelRestore,
+      executeRestore,
     }
   },
 }
@@ -1153,5 +1299,144 @@ export default {
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050; /* Ensure it's above other content */
+}
+
+.confirmation-box {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  padding: 30px;
+  text-align: center;
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+}
+
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-button:hover {
+  color: #343a40;
+}
+
+.confirm-icon-wrapper {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  color: #dc3545; /* Red for delete/restore */
+}
+
+.icon-success {
+  color: #28a745; /* Green for restore */
+}
+
+.confirm-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #343a40;
+  margin-bottom: 15px;
+}
+
+.confirm-message {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
+}
+
+.btn-cancel, .btn-confirm {
+  flex: 1;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-cancel {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.btn-cancel:hover {
+  background-color: #dee2e6;
+  color: #343a40;
+}
+
+.btn-confirm {
+  background: linear-gradient(135deg, #0d6efd, #0099ff);
+  color: #fff;
+}
+
+.btn-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+  background: linear-gradient(135deg, #0a58ca, #0077cc);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #28a745, #218838);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+}
+
+.spinner {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

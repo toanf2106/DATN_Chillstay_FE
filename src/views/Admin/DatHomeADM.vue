@@ -452,8 +452,31 @@
                               getSelectedHomestay().giaCaHomestay * (calculateNights() || 1)
                             ).toLocaleString('vi-VN')
                           : '0'
-                      }}₫</span
+                      }}
+                      ₫</span
                     >
+                  </div>
+                  <!-- Giá theo từng ngày cuối tuần -->
+                  <div class="price-row" v-if="weekendDetails.friday.count > 0">
+                    <span>
+                      Giá Thứ 6 (+10%)<br />
+                      <small>({{ weekendDetails.friday.dates.join(', ') }})</small>
+                    </span>
+                    <span>+{{ weekendDetails.friday.amount.toLocaleString('vi-VN') }} ₫</span>
+                  </div>
+                  <div class="price-row" v-if="weekendDetails.saturday.count > 0">
+                    <span>
+                      Giá Thứ 7 (+15%)<br />
+                      <small>({{ weekendDetails.saturday.dates.join(', ') }})</small>
+                    </span>
+                    <span>+{{ weekendDetails.saturday.amount.toLocaleString('vi-VN') }} ₫</span>
+                  </div>
+                  <div class="price-row" v-if="weekendDetails.sunday.count > 0">
+                    <span>
+                      Giá CN (+10%)<br />
+                      <small>({{ weekendDetails.sunday.dates.join(', ') }})</small>
+                    </span>
+                    <span>+{{ weekendDetails.sunday.amount.toLocaleString('vi-VN') }} ₫</span>
                   </div>
                   <div class="price-row discount">
                     <span>
@@ -476,9 +499,7 @@
                       <span v-if="isLoadingPhuPhi">
                         <i class="fas fa-spinner fa-spin"></i> Đang tải phụ phí...
                       </span>
-                      <span v-else>
-                        Phụ phí
-                      </span>
+                      <span v-else> Phụ phí </span>
                     </span>
                     <span>{{ getSurchargeDisplayText() }}</span>
                   </div>
@@ -728,9 +749,7 @@
                   <span v-if="isLoadingPhuPhi">
                     <i class="fas fa-spinner fa-spin"></i> Đang tải...
                   </span>
-                  <span v-else>
-                    Phụ phí
-                  </span>
+                  <span v-else> Phụ phí </span>
                 </div>
                 <div class="item-value surcharge-value">{{ getSurchargeDisplayText() }}</div>
               </div>
@@ -1056,6 +1075,45 @@ export default {
           return this.selectedPayment === 'cash' ? 'Chưa thanh toán' : 'Đang chờ xử lý'
       }
     },
+    // Chi tiết giá theo ngày cuối tuần: Thứ 6/7/CN
+    weekendDetails() {
+      const selectedHomestay = this.getSelectedHomestay()
+      const basePrice =
+        selectedHomestay && selectedHomestay.giaCaHomestay
+          ? Number(selectedHomestay.giaCaHomestay)
+          : 0
+
+      const start = this.checkInDate ? new Date(this.checkInDate) : null
+      const end = this.checkOutDate ? new Date(this.checkOutDate) : null
+
+      const details = {
+        friday: { dates: [], count: 0, amount: 0 },
+        saturday: { dates: [], count: 0, amount: 0 },
+        sunday: { dates: [], count: 0, amount: 0 },
+      }
+
+      if (start && end && !isNaN(start) && !isNaN(end) && start < end) {
+        const cur = new Date(start)
+        while (cur < end) {
+          const day = cur.getDay() // 0: CN, 5: T6, 6: T7
+          const dateStr = this.formatDisplayDate(cur)
+          if (day === 5) details.friday.dates.push(dateStr)
+          else if (day === 6) details.saturday.dates.push(dateStr)
+          else if (day === 0) details.sunday.dates.push(dateStr)
+          cur.setDate(cur.getDate() + 1)
+        }
+      }
+
+      details.friday.count = details.friday.dates.length
+      details.saturday.count = details.saturday.dates.length
+      details.sunday.count = details.sunday.dates.length
+
+      details.friday.amount = Math.round(basePrice * 0.1 * details.friday.count)
+      details.saturday.amount = Math.round(basePrice * 0.15 * details.saturday.count)
+      details.sunday.amount = Math.round(basePrice * 0.1 * details.sunday.count)
+
+      return details
+    },
   },
   methods: {
     // Các phương thức từ QlyDatTaiQuay
@@ -1293,13 +1351,21 @@ export default {
           })),
 
           // Thêm thông tin phụ phí nếu có
-          phuPhi: this.calculateSurchargeAmount() > 0 ? {
-            phuPhiId: this.isNgayLe(this.checkOutDate) ? this.phuPhiNgayLe.id :
-                     (this.isCuoiTuan(this.checkOutDate) ? this.phuPhiCuoiTuan.id : null),
-            moTa: this.isNgayLe(this.checkOutDate) ?
-                 'Phụ phí ngày lễ' :
-                 (this.isCuoiTuan(this.checkOutDate) ? 'Phụ phí cuối tuần' : '')
-          } : null,
+          phuPhi:
+            this.calculateSurchargeAmount() > 0
+              ? {
+                  phuPhiId: this.isNgayLe(this.checkOutDate)
+                    ? this.phuPhiNgayLe.id
+                    : this.isCuoiTuan(this.checkOutDate)
+                      ? this.phuPhiCuoiTuan.id
+                      : null,
+                  moTa: this.isNgayLe(this.checkOutDate)
+                    ? 'Phụ phí ngày lễ'
+                    : this.isCuoiTuan(this.checkOutDate)
+                      ? 'Phụ phí cuối tuần'
+                      : '',
+                }
+              : null,
         }
 
         console.log('Dữ liệu đặt phòng:', bookingData)
@@ -1400,9 +1466,11 @@ export default {
           const day = cur.getDay() // 0: CN, 6: T7
           let multiplier = 1
           // Mon-Thu (1..4): giữ nguyên 1
-          if (day === 5) multiplier = 1.10 // Thứ 6 +10%
-          else if (day === 6) multiplier = 1.15 // Thứ 7 +15%
-          else if (day === 0) multiplier = 1.10 // Chủ nhật +10%
+          if (day === 5)
+            multiplier = 1.1 // Thứ 6 +10%
+          else if (day === 6)
+            multiplier = 1.15 // Thứ 7 +15%
+          else if (day === 0) multiplier = 1.1 // Chủ nhật +10%
           roomTotal += Math.round(basePrice * multiplier)
           cur.setDate(cur.getDate() + 1)
         }
@@ -1747,9 +1815,9 @@ export default {
               const day = cur.getDay()
               let multiplier = 1
               // Mon-Thu (1..4): giữ nguyên 1
-              if (day === 5) multiplier = 1.10
+              if (day === 5) multiplier = 1.1
               else if (day === 6) multiplier = 1.15
-              else if (day === 0) multiplier = 1.10
+              else if (day === 0) multiplier = 1.1
               sum += Math.round(basePrice * multiplier)
               cur.setDate(cur.getDate() + 1)
             }
@@ -1797,9 +1865,9 @@ export default {
           const day = cur.getDay()
           let multiplier = 1
           // Mon-Thu (1..4): giữ nguyên 1
-          if (day === 5) multiplier = 1.10
+          if (day === 5) multiplier = 1.1
           else if (day === 6) multiplier = 1.15
-          else if (day === 0) multiplier = 1.10
+          else if (day === 0) multiplier = 1.1
           roomPrice += Math.round(basePrice * multiplier)
           cur.setDate(cur.getDate() + 1)
         }
@@ -1825,7 +1893,7 @@ export default {
       const discountAmount = this.calculateDiscountAmount()
 
       // Luôn hiển thị số tiền giảm giá (0đ nếu không có giảm giá)
-      return `-${discountAmount.toLocaleString('vi-VN')}₫`
+      return `-${discountAmount.toLocaleString('vi-VN')} ₫`
     },
 
     // Add validation method for customer information
@@ -2218,128 +2286,140 @@ export default {
     },
     // Kiểm tra xem ngày có phải là cuối tuần (thứ 7, chủ nhật) không
     isCuoiTuan(date) {
-      const day = new Date(date).getDay();
-      return day === 0 || day === 6; // 0: Chủ nhật, 6: Thứ 7
+      const day = new Date(date).getDay()
+      return day === 0 || day === 6 // 0: Chủ nhật, 6: Thứ 7
     },
 
     // Kiểm tra xem ngày có phải là ngày lễ không
     isNgayLe(date) {
-      if (!this.danhSachNgayLe || this.danhSachNgayLe.length === 0) return false;
+      if (!this.danhSachNgayLe || this.danhSachNgayLe.length === 0) return false
 
       // Convert to YYYY-MM-DD format for comparison
-      const dateStr = new Date(date).toISOString().split('T')[0];
+      const dateStr = new Date(date).toISOString().split('T')[0]
 
       // Kiểm tra xem ngày có khớp với bất kỳ ngày lễ nào trong danh sách không
       for (const ngayLe of this.danhSachNgayLe) {
         if (ngayLe.ngayApDung) {
-          const ngayLeStr = new Date(ngayLe.ngayApDung).toISOString().split('T')[0];
+          const ngayLeStr = new Date(ngayLe.ngayApDung).toISOString().split('T')[0]
           if (dateStr === ngayLeStr) {
             // Lưu lại thông tin phụ phí ngày lễ đang áp dụng
-            this.phuPhiNgayLe = ngayLe;
-            return true;
+            this.phuPhiNgayLe = ngayLe
+            return true
           }
         }
       }
 
-      return false;
+      return false
     },
 
     // Tính số tiền phụ phí
     calculateSurchargeAmount() {
-      if (!this.checkInDate || !this.checkOutDate) return 0;
+      if (!this.checkInDate || !this.checkOutDate) return 0
 
-      let surchargeAmount = 0;
-      const checkIn = new Date(this.checkInDate);
-      const checkOut = new Date(this.checkOutDate);
+      let surchargeAmount = 0
+      const checkIn = new Date(this.checkInDate)
+      const checkOut = new Date(this.checkOutDate)
 
       // Tạo mảng các ngày từ checkIn đến checkOut (bao gồm cả ngày trả phòng)
-      const dates = [];
-      let currentDate = new Date(checkIn);
+      const dates = []
+      let currentDate = new Date(checkIn)
 
-      while (currentDate <= checkOut) {  // Bao gồm cả ngày trả phòng
-        dates.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
+      while (currentDate <= checkOut) {
+        // Bao gồm cả ngày trả phòng
+        dates.push(new Date(currentDate))
+        currentDate.setDate(currentDate.getDate() + 1)
       }
 
-      console.log('Danh sách các ngày để tính phụ phí:', dates.map(d => d.toLocaleDateString('vi-VN')));
+      console.log(
+        'Danh sách các ngày để tính phụ phí:',
+        dates.map((d) => d.toLocaleDateString('vi-VN')),
+      )
 
       // Kiểm tra xem có ngày lễ trong khoảng ngày không
-      let hasHoliday = false;
-      let holidayDate = null;
+      let hasHoliday = false
+      let holidayDate = null
       for (const date of dates) {
         if (this.isNgayLe(date)) {
-          hasHoliday = true;
-          holidayDate = date;
-          break;
+          hasHoliday = true
+          holidayDate = date
+          break
         }
       }
 
       // Nếu có ngày lễ, chỉ áp dụng phụ phí ngày lễ (1 lần)
       if (hasHoliday && this.phuPhiNgayLe) {
-        console.log('Áp dụng phụ phí ngày lễ cho:', holidayDate.toLocaleDateString('vi-VN'), this.phuPhiNgayLe.giaTri);
-        surchargeAmount = this.phuPhiNgayLe.giaTri;
+        console.log(
+          'Áp dụng phụ phí ngày lễ cho:',
+          holidayDate.toLocaleDateString('vi-VN'),
+          this.phuPhiNgayLe.giaTri,
+        )
+        surchargeAmount = this.phuPhiNgayLe.giaTri
       }
       // Nếu không có ngày lễ, kiểm tra xem có cuối tuần không (chỉ tính 1 lần)
       else {
-        let hasWeekend = false;
-        let weekendDate = null;
+        let hasWeekend = false
+        let weekendDate = null
         for (const date of dates) {
           if (this.isCuoiTuan(date)) {
-            hasWeekend = true;
-            weekendDate = date;
-            break;
+            hasWeekend = true
+            weekendDate = date
+            break
           }
         }
 
         if (hasWeekend && this.phuPhiCuoiTuan) {
-          console.log('Áp dụng phụ phí cuối tuần (1 lần) cho booking có ngày:', weekendDate.toLocaleDateString('vi-VN'), this.phuPhiCuoiTuan.giaTri);
-          surchargeAmount = this.phuPhiCuoiTuan.giaTri;
+          console.log(
+            'Áp dụng phụ phí cuối tuần (1 lần) cho booking có ngày:',
+            weekendDate.toLocaleDateString('vi-VN'),
+            this.phuPhiCuoiTuan.giaTri,
+          )
+          surchargeAmount = this.phuPhiCuoiTuan.giaTri
         }
       }
 
-      console.log('Tổng phụ phí:', surchargeAmount);
-      return surchargeAmount;
+      console.log('Tổng phụ phí:', surchargeAmount)
+      return surchargeAmount
     },
 
     // Lấy chuỗi hiển thị phụ phí
     getSurchargeDisplayText() {
-      const surchargeAmount = this.calculateSurchargeAmount();
+      const surchargeAmount = this.calculateSurchargeAmount()
 
       if (surchargeAmount > 0) {
         if (this.isNgayLe(this.checkOutDate) && this.phuPhiNgayLe) {
-          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (${this.phuPhiNgayLe.tenPhuPhi} - áp dụng 1 lần)`;
+          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (${this.phuPhiNgayLe.tenPhuPhi} - áp dụng 1 lần)`
         } else if (this.isCuoiTuan(this.checkOutDate) && this.phuPhiCuoiTuan) {
-          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (Cuối tuần - áp dụng 1 lần)`;
+          return `+${surchargeAmount.toLocaleString('vi-VN')}₫ (Cuối tuần - áp dụng 1 lần)`
         }
-        return `+${surchargeAmount.toLocaleString('vi-VN')}₫`;
+        return `+${surchargeAmount.toLocaleString('vi-VN')}₫`
       }
-      return '0₫';
+      return '0₫'
     },
 
     // Lấy phụ phí cuối tuần và ngày lễ
     async fetchPhuPhi() {
       try {
-        this.isLoadingPhuPhi = true;
+        this.isLoadingPhuPhi = true
 
         // Lấy phụ phí cuối tuần
-        const cuoiTuanResponse = await getPhuPhiCuoiTuan();
+        const cuoiTuanResponse = await getPhuPhiCuoiTuan()
         if (cuoiTuanResponse && cuoiTuanResponse.data && cuoiTuanResponse.data.length > 0) {
-          this.phuPhiCuoiTuan = cuoiTuanResponse.data[0];
-          console.log('Phụ phí cuối tuần:', this.phuPhiCuoiTuan);
+          this.phuPhiCuoiTuan = cuoiTuanResponse.data[0]
+          console.log('Phụ phí cuối tuần:', this.phuPhiCuoiTuan)
         }
 
         // Lấy tất cả các phụ phí ngày lễ
-        const ngayLeResponse = await getAllNgayLe();
+        const ngayLeResponse = await getAllNgayLe()
         if (ngayLeResponse && ngayLeResponse.data && ngayLeResponse.data.length > 0) {
-          this.danhSachNgayLe = ngayLeResponse.data;
+          this.danhSachNgayLe = ngayLeResponse.data
           // Lấy phụ phí ngày lễ đầu tiên làm mẫu cho giá trị phụ phí
-          this.phuPhiNgayLe = ngayLeResponse.data[0];
-          console.log('Danh sách phụ phí ngày lễ:', this.danhSachNgayLe);
+          this.phuPhiNgayLe = ngayLeResponse.data[0]
+          console.log('Danh sách phụ phí ngày lễ:', this.danhSachNgayLe)
         }
       } catch (error) {
-        console.error('Lỗi khi lấy phụ phí:', error);
+        console.error('Lỗi khi lấy phụ phí:', error)
       } finally {
-        this.isLoadingPhuPhi = false;
+        this.isLoadingPhuPhi = false
       }
     },
   },
@@ -2411,7 +2491,7 @@ export default {
     }
 
     // Lấy thông tin phụ phí
-    this.fetchPhuPhi();
+    this.fetchPhuPhi()
   },
   // Đảm bảo dừng kiểm tra trạng thái khi component bị hủy
   beforeUnmount() {
@@ -5075,21 +5155,21 @@ textarea {
   margin: 8px 0;
 }
 
-  .surcharge-value {
-    font-weight: 600 !important;
-    color: #f6993f !important;
-  }
+.surcharge-value {
+  font-weight: 600 !important;
+  color: #f6993f !important;
+}
 
-  .price-row.surcharge {
-    color: #f6993f;
-    background-color: rgba(246, 153, 63, 0.05);
-    padding: 8px;
-    border-radius: 6px;
-    margin: 8px 0;
-  }
+.price-row.surcharge {
+  color: #f6993f;
+  background-color: rgba(246, 153, 63, 0.05);
+  padding: 8px;
+  border-radius: 6px;
+  margin: 8px 0;
+}
 
-  .price-row.surcharge span:last-child {
-    font-weight: 600;
-    color: #f6993f;
-  }
+.price-row.surcharge span:last-child {
+  font-weight: 600;
+  color: #f6993f;
+}
 </style>

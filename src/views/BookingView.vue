@@ -224,8 +224,31 @@
                               getSelectedHomestay().giaCaHomestay * (calculateNights() || 1)
                             ).toLocaleString('vi-VN')
                           : '850,000'
-                      }}₫</span
+                      }}
+                      ₫</span
                     >
+                  </div>
+                  <!-- Giá theo từng ngày cuối tuần -->
+                  <div class="price-row" v-if="weekendDetails.friday.count > 0">
+                    <span>
+                      Giá Thứ 6 (+10%)<br />
+                      <small>({{ weekendDetails.friday.dates.join(', ') }})</small>
+                    </span>
+                    <span>+{{ weekendDetails.friday.amount.toLocaleString('vi-VN') }} ₫</span>
+                  </div>
+                  <div class="price-row" v-if="weekendDetails.saturday.count > 0">
+                    <span>
+                      Giá Thứ 7 (+15%)<br />
+                      <small>({{ weekendDetails.saturday.dates.join(', ') }})</small>
+                    </span>
+                    <span>+{{ weekendDetails.saturday.amount.toLocaleString('vi-VN') }} ₫</span>
+                  </div>
+                  <div class="price-row" v-if="weekendDetails.sunday.count > 0">
+                    <span>
+                      Giá CN (+10%)<br />
+                      <small>({{ weekendDetails.sunday.dates.join(', ') }})</small>
+                    </span>
+                    <span>+{{ weekendDetails.sunday.amount.toLocaleString('vi-VN') }} ₫</span>
                   </div>
                   <div class="price-row discount">
                     <span>
@@ -834,6 +857,45 @@ export default {
     canUseCashPayment() {
       return this.customerCount >= 3 && !this.isLoadingCustomerCount
     },
+    // Chi tiết giá theo ngày Thứ 6/7/CN
+    weekendDetails() {
+      const selectedHomestay = this.getSelectedHomestay()
+      const basePrice =
+        selectedHomestay && selectedHomestay.giaCaHomestay
+          ? Number(selectedHomestay.giaCaHomestay)
+          : 0
+
+      const start = this.checkInDate ? new Date(this.checkInDate) : null
+      const end = this.checkOutDate ? new Date(this.checkOutDate) : null
+
+      const details = {
+        friday: { dates: [], count: 0, amount: 0 },
+        saturday: { dates: [], count: 0, amount: 0 },
+        sunday: { dates: [], count: 0, amount: 0 },
+      }
+
+      if (start && end && !isNaN(start) && !isNaN(end) && start < end) {
+        const cur = new Date(start)
+        while (cur < end) {
+          const day = cur.getDay() // 0: CN, 5: T6, 6: T7
+          const dateStr = this.formatDisplayDate(cur)
+          if (day === 5) details.friday.dates.push(dateStr)
+          else if (day === 6) details.saturday.dates.push(dateStr)
+          else if (day === 0) details.sunday.dates.push(dateStr)
+          cur.setDate(cur.getDate() + 1)
+        }
+      }
+
+      details.friday.count = details.friday.dates.length
+      details.saturday.count = details.saturday.dates.length
+      details.sunday.count = details.sunday.dates.length
+
+      details.friday.amount = Math.round(basePrice * 0.1 * details.friday.count)
+      details.saturday.amount = Math.round(basePrice * 0.15 * details.saturday.count)
+      details.sunday.amount = Math.round(basePrice * 0.1 * details.sunday.count)
+
+      return details
+    },
     // Removed cash payment computed properties
   },
   methods: {
@@ -1121,9 +1183,11 @@ export default {
           const day = cur.getDay() // 0: CN, 6: T7
           let multiplier = 1
           // Mon-Thu (1..4): giữ nguyên 1
-          if (day === 5) multiplier = 1.10 // Thứ 6 +10%
-          else if (day === 6) multiplier = 1.15 // Thứ 7 +15%
-          else if (day === 0) multiplier = 1.10 // Chủ nhật +10%
+          if (day === 5)
+            multiplier = 1.1 // Thứ 6 +10%
+          else if (day === 6)
+            multiplier = 1.15 // Thứ 7 +15%
+          else if (day === 0) multiplier = 1.1 // Chủ nhật +10%
           roomTotal += Math.round(basePrice * multiplier)
           cur.setDate(cur.getDate() + 1)
         }
@@ -1286,9 +1350,11 @@ export default {
             const day = cur.getDay()
             let multiplier = 1
             // Mon-Thu (1..4): giữ nguyên 1
-            if (day === 5) multiplier = 1.10 // Thứ 6 +10%
-            else if (day === 6) multiplier = 1.15 // Thứ 7 +15%
-            else if (day === 0) multiplier = 1.10 // Chủ nhật +10%
+            if (day === 5)
+              multiplier = 1.1 // Thứ 6 +10%
+            else if (day === 6)
+              multiplier = 1.15 // Thứ 7 +15%
+            else if (day === 0) multiplier = 1.1 // Chủ nhật +10%
             roomTotal += Math.round(basePrice * multiplier)
             cur.setDate(cur.getDate() + 1)
           }
@@ -1523,9 +1589,9 @@ export default {
               const day = cur.getDay()
               let multiplier = 1
               // Mon-Thu (1..4): giữ nguyên 1
-              if (day === 5) multiplier = 1.10
+              if (day === 5) multiplier = 1.1
               else if (day === 6) multiplier = 1.15
-              else if (day === 0) multiplier = 1.10
+              else if (day === 0) multiplier = 1.1
               sum += Math.round(basePrice * multiplier)
               cur.setDate(cur.getDate() + 1)
             }
@@ -1573,9 +1639,9 @@ export default {
           const day = cur.getDay()
           let multiplier = 1
           // Mon-Thu (1..4): giữ nguyên 1
-          if (day === 5) multiplier = 1.10
+          if (day === 5) multiplier = 1.1
           else if (day === 6) multiplier = 1.15
-          else if (day === 0) multiplier = 1.10
+          else if (day === 0) multiplier = 1.1
           roomPrice += Math.round(basePrice * multiplier)
           cur.setDate(cur.getDate() + 1)
         }
@@ -1601,7 +1667,7 @@ export default {
       const discountAmount = this.calculateDiscountAmount()
 
       // Luôn hiển thị số tiền giảm giá (0đ nếu không có giảm giá)
-      return `-${discountAmount.toLocaleString('vi-VN')}₫`
+      return `-${discountAmount.toLocaleString('vi-VN')} ₫`
     },
 
     // Lấy phụ phí cuối tuần và ngày lễ

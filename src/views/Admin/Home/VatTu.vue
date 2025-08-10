@@ -6,14 +6,14 @@
       <div class="search-box">
         <div class="search-control-group">
           <div class="search-input-wrapper">
-        <i class="fas fa-search search-icon"></i>
-        <input
-          type="text"
-          v-model="searchText"
-          placeholder="Tìm kiếm vật tư..."
-          class="search-input"
-          @input="onSearchChange"
-        />
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              v-model="searchText"
+              placeholder="Tìm kiếm vật tư..."
+              class="search-input"
+              @input="onSearchChange"
+            />
           </div>
         </div>
       </div>
@@ -265,12 +265,10 @@ import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 import notification from '@/utils/notification'
 import {
-  getVatTuList,
   createVatTu,
   updateVatTu,
   deleteVatTu as apiDeleteVatTu,
   resetVatTu as apiResetVatTu,
-  searchVatTu,
 } from '@/Service/vatTuService'
 
 const vatTuList = ref([])
@@ -441,10 +439,7 @@ async function confirmDelete() {
 async function restoreVatTu(item) {
   processing.value = true
   try {
-    await api.put(`/api/vattu/update/${item.id}`, {
-      ...item,
-      trangThai: true,
-    })
+    await apiResetVatTu(item.id)
     notification.success('Đã khôi phục vật tư thành công!')
     await fetchVatTu()
   } catch (error) {

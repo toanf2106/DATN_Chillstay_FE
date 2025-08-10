@@ -6,13 +6,14 @@ import FooterHome from './components/FooterHome.vue'
 import NotificationContainer from './components/notifications/NotificationContainer.vue'
 import { useAuthStore } from './stores/authStore'
 import { useNotificationStore } from './stores/notificationStore'
-
+import ChatWidget from './components/ChatWidget.vue'
 export default {
   components: {
     RouterView,
     HeaderNav,
     FooterHome,
     NotificationContainer,
+    ChatWidget,
   },
   setup() {
     const authStore = useAuthStore()
@@ -97,6 +98,7 @@ export default {
   <RouterView />
   <FooterHome v-if="!isAdminRoute" />
   <NotificationContainer />
+  <ChatWidget v-if="!isAdminRoute" :hotline-url="'/contact'" />
 </template>
 
 <style>

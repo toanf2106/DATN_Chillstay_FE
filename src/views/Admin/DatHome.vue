@@ -628,7 +628,7 @@
                     <div class="payment-item">
                       <span class="payment-label">Giá Homestay:</span>
                       <span class="payment-value">{{
-                        formatCurrency(selectedBooking.giaCaHomestay)
+                        formatCurrency(selectedBooking.tongTien)
                       }}</span>
                     </div>
                     <div class="payment-item" v-if="selectedBooking.tenGiamGia">
@@ -842,6 +842,7 @@
                   <th width="15%">Người thực hiện</th>
                   <th width="10%">Mã NV</th>
                   <th width="20%">Ghi chú</th>
+                  
                 </tr>
               </thead>
               <tbody>
@@ -2649,6 +2650,12 @@ export default {
     calculateTotalAmount() {
       if (!this.selectedBooking) return 0
 
+      // Ưu tiên dùng tổng tiền từ đơn đặt (datHome)
+      if (this.selectedBooking.tongTien !== undefined && this.selectedBooking.tongTien !== null) {
+        return Number(this.selectedBooking.tongTien) || 0
+      }
+
+      // Fallback: tính lại từ các phần nếu không có tongTien
       const giaCaHomestay = Number(this.selectedBooking.giaCaHomestay || 0)
       const giamGia = Number(this.calculateActualDiscount() || 0)
       const tongTienDichVu = Number(this.selectedBooking.tongTienDichVu || 0)
@@ -2680,7 +2687,14 @@ export default {
       }
       this.selectedBooking.tongTienPhuPhi = phuPhiTotal
 
-      // Update tổng tiền = giá homestay + dịch vụ + phụ phí - giảm giá
+      // Nếu đã có tổng tiền từ backend (datHome.tongTien), giữ nguyên để tránh sai lệch
+      if (this.selectedBooking.tongTien !== undefined && this.selectedBooking.tongTien !== null) {
+        // Cập nhật số tiền còn lại dựa trên tongTien hiện tại
+        this.soTienConLai = (Number(this.selectedBooking.tongTien) || 0) - this.soTienDaThanhToan
+        return
+      }
+
+      // Fallback: tính tổng tiền nếu backend chưa cung cấp tongTien
       const giaCaHomestay = Number(this.selectedBooking.giaCaHomestay || 0)
       const giamGia = Number(this.calculateActualDiscount() || 0)
       const tongTien = giaCaHomestay - giamGia + serviceTotal + phuPhiTotal
@@ -3061,14 +3075,10 @@ export default {
         return this.selectedBooking.soTienGiam
       }
 
-      if (this.selectedBooking.giaTri && this.selectedBooking.giaCaHomestay) {
-        const checkin = new Date(this.selectedBooking.ngayNhanPhong)
-        const checkout = new Date(this.selectedBooking.ngayTraPhong)
-        const nights = Math.round((checkout - checkin) / (1000 * 60 * 60 * 24))
-        const roomPrice = this.selectedBooking.giaCaHomestay * nights
-        let discount = roomPrice * (this.selectedBooking.giaTri / 100)
-
-        return Math.min(discount, roomPrice)
+      if (this.selectedBooking.giaTri && this.selectedBooking.tongTien) {
+        const roomTotal = Number(this.selectedBooking.tongTien) || 0
+        let discount = roomTotal * (this.selectedBooking.giaTri / 100)
+        return Math.min(discount, roomTotal)
       }
 
       return 0
@@ -3185,6 +3195,35 @@ export default {
       if (!this.currentUser) {
         notification.warning('Bạn cần đăng nhập để thực hiện thao tác này!')
         return
+      }
+
+      // Kiểm tra chỉ cho phép gia hạn từ 12:50 ngày nhận phòng
+      const now = new Date()
+      const checkinDate =
+        this.selectedBooking && this.selectedBooking.ngayNhanPhong
+          ? new Date(this.selectedBooking.ngayNhanPhong)
+          : null
+      if (checkinDate) {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const startOfCheckin = new Date(
+          checkinDate.getFullYear(),
+          checkinDate.getMonth(),
+          checkinDate.getDate(),
+        )
+        if (startOfToday < startOfCheckin) {
+          notification.warning(
+            'Chưa đến ngày check-in. Chỉ có thể gia hạn từ 12:50 ngày nhận phòng.',
+          )
+          return
+        }
+        if (startOfToday.getTime() === startOfCheckin.getTime()) {
+          const threshold = new Date(checkinDate)
+          threshold.setHours(12, 50, 0, 0)
+          if (now < threshold) {
+            notification.warning('Chưa đến giờ gia hạn check-in (chỉ từ 12:50).')
+            return
+          }
+        }
       }
 
       try {

@@ -1,0 +1,303 @@
+[
+  {
+    "id": "homestay_types",
+    "category": "thong-tin",
+    "question_variants": ["có những loại homestay nào", "có mấy loại chỗ ở", "loại homestay"],
+    "answer": "Hệ thống đang có 3 loại homestay: Nhà sàn, Bungalow và Villa. Tên và mô tả từng loại hiển thị trên trang đặt chỗ.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "room_types",
+    "category": "thong-tin",
+    "question_variants": ["có những loại phòng nào", "hạng phòng", "phòng vip tiêu chuẩn"],
+    "answer": "Các hạng phòng hiện có: Phòng Tiêu Chuẩn, Phòng VIP và Phòng Gia Đình. Mỗi phòng có mô tả và sức chứa riêng trên trang chi tiết.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "navigate_all_homestays",
+    "category": "thong-tin",
+    "question_variants": ["xem tất cả homestay", "danh sách chỗ ở", "tất cả homestay"],
+    "answer": "Bạn có thể xem toàn bộ danh sách homestay, lọc theo loại, giá và xem chi tiết trước khi đặt.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "price_reference",
+    "category": "gia-ca",
+    "question_variants": ["giá khoảng bao nhiêu", "giá tham khảo", "bao nhiêu 1 đêm"],
+    "answer": "Giá theo đêm tuỳ homestay. Dữ liệu mẫu hiện dao động khoảng 1.8–4.5 triệu/đêm. Giá chính xác được hiển thị tại thời điểm đặt và có thể thay đổi theo ngày/khuyến mãi.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "pricing_formula",
+    "category": "gia-ca",
+    "question_variants": ["tổng tiền tính như thế nào", "công thức tính giá", "giá gồm những gì"],
+    "answer": "Tổng tiền = (Giá homestay theo đêm × số đêm) + tổng phí dịch vụ đã chọn − số tiền giảm (nếu có). Các khoản phụ phí phát sinh (cuối tuần/ngày lễ/đến-đi sớm muộn) sẽ cộng thêm khi áp dụng.",
+    "last_updated": "2025-08-10"
+  },
+  {
+    "id": "amenities_general",
+    "category": "tien-ich",
+    "question_variants": ["tiện nghi có những gì", "có wifi máy lạnh không", "bãi đỗ xe hồ bơi"],
+    "answer": "Các tiện nghi phổ biến: Wi‑Fi, máy lạnh, bãi đỗ xe, hồ bơi. Tùy homestay sẽ có danh sách tiện nghi cụ thể và số lượng đi kèm.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "amenities_detail",
+    "category": "tien-ich",
+    "question_variants": ["xem tiện nghi chi tiết ở đâu", "tiện nghi mỗi homestay", "danh sách tiện nghi"],
+    "answer": "Trên trang chi tiết từng homestay sẽ có danh sách tiện nghi và số lượng (ví dụ: số lượng khăn, chăn, vật tư phòng).",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "services_breakfast",
+    "category": "dich-vu",
+    "question_variants": ["có bữa sáng không", "ăn sáng buffet", "breakfast"],
+    "answer": "Có cung cấp dịch vụ bữa sáng (ví dụ: Ăn sáng buffet). Phí và thời gian phục vụ sẽ hiển thị khi đặt dịch vụ kèm theo.",
+    "last_updated": "2025-08-10"
+  },
+  {
+    "id": "services_rentbike",
+    "category": "dich-vu",
+    "question_variants": ["thuê xe máy", "có cho thuê xe không", "dịch vụ đi lại"],
+    "answer": "Có dịch vụ thuê xe máy để di chuyển tham quan. Bạn có thể chọn thêm khi hoàn tất đặt phòng hoặc liên hệ lễ tân để hỗ trợ.",
+    "last_updated": "2025-08-10"
+  },
+  {
+    "id": "checkin_checkout_window",
+    "category": "quy-dinh",
+    "question_variants": ["giờ nhận trả phòng", "checkin checkout", "check-in check-out mấy giờ"],
+    "answer": "Giờ nhận/trả phòng tiêu chuẩn có thể thay đổi theo từng homestay và sẽ hiển thị trên trang đặt chỗ. Hệ thống hiện có quy định phụ phí cho các trường hợp nhận/trả sớm hoặc muộn (xem chi tiết bên dưới).",
+    "last_updated": "2025-08-10",
+    "link": "/faq"
+  },
+  {
+    "id": "early_late_checkin",
+    "category": "quy-dinh",
+    "question_variants": ["nhận phòng sớm có tính phí không", "check-in sớm muộn", "đến sớm đến muộn"],
+    "answer": "Có thể hỗ trợ nhận phòng sớm/đến muộn tùy tình trạng. Phụ phí áp dụng cho check‑in sớm (trước ~12:00) hoặc check‑in muộn (sau ~13:00). Vui lòng báo trước để sắp xếp.",
+    "last_updated": "2025-08-10",
+    "link": "/faq"
+  },
+  {
+    "id": "late_checkout",
+    "category": "quy-dinh",
+    "question_variants": ["trả phòng muộn", "checkout trễ", "check-out muộn có phí không"],
+    "answer": "Trả phòng muộn có thể hỗ trợ nếu không trùng lịch đón khách sau. Phụ phí áp dụng khi check‑out sau ~11:00. Hãy xác nhận với lễ tân trước ngày trả phòng.",
+    "last_updated": "2025-08-10",
+    "link": "/faq"
+  },
+  {
+    "id": "surcharge_calendar",
+    "category": "gia-ca",
+    "question_variants": ["có phụ thu cuối tuần không", "phụ phí ngày lễ", "phụ thu thêm"],
+    "answer": "Có thể áp dụng phụ phí cho cuối tuần và ngày lễ theo lịch. Mức phí cụ thể sẽ hiển thị khi chọn ngày, ví dụ có thể có phụ phí cuối tuần và phụ phí ngày lễ trong hệ thống.",
+    "last_updated": "2025-08-10",
+    "link": "/payment"
+  },
+  {
+    "id": "payment_methods",
+    "category": "thanh-toan",
+    "question_variants": ["thanh toán như thế nào", "có quét mã vietqr không", "có nhận thẻ không"],
+    "answer": "Hỗ trợ các phương thức: Chuyển khoản, Tiền mặt, VietQR và Thẻ tín dụng. Chi tiết và hướng dẫn sẽ hiển thị trong bước thanh toán của đơn đặt phòng.",
+    "last_updated": "2025-08-10",
+    "link": "/payment"
+  },
+  {
+    "id": "payment_vietqr",
+    "category": "thanh-toan",
+    "question_variants": ["vietqr", "quét mã qr", "qr pay"],
+    "answer": "Bạn có thể thanh toán qua VietQR. Khi đến bước thanh toán, hệ thống sẽ hiển thị mã QR tương ứng để quét và hoàn tất.",
+    "last_updated": "2025-08-10",
+    "link": "/payment"
+  },
+  {
+    "id": "payment_card",
+    "category": "thanh-toan",
+    "question_variants": ["thanh toán thẻ", "visa master", "credit card"],
+    "answer": "Chúng tôi hỗ trợ thanh toán qua thẻ (tuỳ thời điểm triển khai). Vui lòng xem chi tiết ở bước thanh toán để biết phương thức khả dụng.",
+    "last_updated": "2025-08-10",
+    "link": "/payment"
+  },
+  {
+    "id": "deposit_policy",
+    "category": "thanh-toan",
+    "question_variants": ["có cần đặt cọc không", "cọc bao nhiêu", "giữ chỗ"],
+    "answer": "Một số đơn có yêu cầu đặt cọc. Số tiền cọc được hiển thị rõ trong xác nhận đặt phòng và có trên biên lai thanh toán.",
+    "last_updated": "2025-08-10",
+    "link": "/payment"
+  },
+  {
+    "id": "voucher_discount",
+    "category": "khuyen-mai",
+    "question_variants": ["có mã giảm giá không", "nhập voucher ở đâu", "chương trình khuyến mãi"],
+    "answer": "Bạn có thể nhập mã giảm giá nếu chương trình còn hiệu lực. Mỗi đơn áp dụng 1 mã (không cộng dồn trừ khi có ghi chú khác). Thời gian áp dụng và giới hạn số lượng thể hiện trên mã.",
+    "last_updated": "2025-08-10",
+    "link": "/payment"
+  },
+  {
+    "id": "how_to_book",
+    "category": "dat-phong",
+    "question_variants": ["cách đặt phòng", "đặt phòng thế nào", "book phòng"],
+    "answer": "Chọn homestay bạn thích, vào trang chi tiết để xem phòng, chọn ngày, dịch vụ kèm theo và tiến hành đặt chỗ. Bạn có thể xem danh sách homestay tại trang Tất cả homestay.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "booking_statuses",
+    "category": "dat-phong",
+    "question_variants": ["đơn của tôi đang ở trạng thái gì", "các trạng thái đặt phòng", "ý nghĩa trạng thái"],
+    "answer": "Các trạng thái phổ biến: Chờ xác nhận → Đã cọc → Đã xác nhận → Đã check‑in → Đã check‑out → Hoàn thành. Nếu huỷ sẽ về trạng thái Đã huỷ.",
+    "last_updated": "2025-08-10",
+    "link": "/tai-khoan/lich-su-dat-phong"
+  },
+  {
+    "id": "booking_detail",
+    "category": "dat-phong",
+    "question_variants": ["xem chi tiết đơn ở đâu", "chi tiết đặt phòng của tôi", "đơn đặt phòng của tôi"],
+    "answer": "Bạn có thể xem chi tiết đơn trong trang Tài khoản → Lịch sử đặt phòng, bao gồm trạng thái, tổng tiền, dịch vụ và biên lai nếu có.",
+    "last_updated": "2025-08-10",
+    "link": "/tai-khoan/lich-su-dat-phong"
+  },
+  {
+    "id": "reviews_public",
+    "category": "danh-gia",
+    "question_variants": ["xem đánh giá", "đánh giá của khách", "review"],
+    "answer": "Bạn có thể xem danh sách đánh giá công khai tại trang Đánh giá và đi sâu chi tiết theo homestay.",
+    "last_updated": "2025-08-10",
+    "link": "/danh-gia"
+  },
+  {
+    "id": "news_general",
+    "category": "tin-tuc",
+    "question_variants": ["tin tức", "bài viết", "blog"],
+    "answer": "Trang Tin tức tổng hợp các bài viết mới nhất về khuyến mãi, trải nghiệm và mẹo du lịch.",
+    "last_updated": "2025-08-10",
+    "link": "/tin-tuc"
+  },
+  {
+    "id": "address_directions",
+    "category": "di-chuyen",
+    "question_variants": ["địa chỉ ở đâu", "chỉ đường", "đi đường nào tới"],
+    "answer": "Địa chỉ của từng homestay hiển thị trên trang chi tiết kèm bản đồ. Bạn có thể mở Google/Apple Maps theo liên kết để được dẫn đường chính xác.",
+    "last_updated": "2025-08-10",
+    "link": "/all-homestays"
+  },
+  {
+    "id": "contact_support",
+    "category": "lien-he",
+    "question_variants": ["hotline", "liên hệ cskh", "zalo hỗ trợ"],
+    "answer": "Bạn có thể liên hệ CSKH qua số hotline/Zalo hiển thị trên website trong khung giờ 08:00–22:00 mỗi ngày. Trường hợp khẩn cấp vui lòng dùng số khẩn cấp trên phiếu xác nhận.",
+    "last_updated": "2025-08-10",
+    "link": "/contact"
+  },
+  {
+    "id": "faq_page",
+    "category": "ho-tro",
+    "question_variants": ["faq", "câu hỏi thường gặp", "trợ giúp"],
+    "answer": "Trang Câu hỏi thường gặp tổng hợp những thắc mắc phổ biến và cách xử lý.",
+    "last_updated": "2025-08-10",
+    "link": "/faq"
+  },
+  {
+    "id": "privacy_policy",
+    "category": "phap-ly",
+    "question_variants": ["chính sách bảo mật", "privacy", "bảo vệ dữ liệu"],
+    "answer": "Chúng tôi tôn trọng và cam kết bảo vệ dữ liệu cá nhân của bạn. Xem chi tiết tại Chính sách bảo mật.",
+    "last_updated": "2025-08-10",
+    "link": "/privacy"
+  },
+  {
+    "id": "terms_of_service",
+    "category": "phap-ly",
+    "question_variants": ["điều khoản sử dụng", "terms", "điều kiện điều khoản"],
+    "answer": "Các điều khoản sử dụng dịch vụ được nêu rõ ràng để đảm bảo quyền lợi và trách nhiệm giữa hai bên.",
+    "last_updated": "2025-08-10",
+    "link": "/terms"
+  },
+  {
+    "id": "account_login",
+    "category": "tai-khoan",
+    "question_variants": ["đăng nhập", "tài khoản của tôi", "thông tin tài khoản"],
+    "answer": "Sau khi đăng nhập, bạn có thể quản lý thông tin cá nhân, xem lịch sử đặt phòng và đánh giá của mình.",
+    "last_updated": "2025-08-10",
+    "link": "/tai-khoan"
+  },
+  {
+    "id": "forgot_password",
+    "category": "tai-khoan",
+    "question_variants": ["quên mật khẩu", "đặt lại mật khẩu", "khôi phục mật khẩu"],
+    "answer": "Nếu quên mật khẩu, bạn có thể yêu cầu đặt lại và làm theo hướng dẫn gửi qua email.",
+    "last_updated": "2025-08-10",
+    "link": "/quen-mat-khau"
+  },
+  {
+    "id": "email_verification",
+    "category": "tai-khoan",
+    "question_variants": ["xác nhận email", "kích hoạt tài khoản", "verify account"],
+    "answer": "Sau khi đăng ký hoặc thay đổi email, bạn có thể xác nhận tài khoản qua mã gửi đến email của mình.",
+    "last_updated": "2025-08-10",
+    "link": "/xac-nhan-tai-khoan"
+  },
+  {
+    "id": "payment_receipt",
+    "category": "thanh-toan",
+    "question_variants": ["biên lai thanh toán", "hoá đơn", "xem biên lai ở đâu"],
+    "answer": "Sau khi thanh toán thành công, bạn sẽ thấy thông báo tại trang xác nhận thanh toán và có thể xem/đối chiếu thông tin đơn đặt phòng.",
+    "last_updated": "2025-08-10",
+    "link": "/payment-success"
+  },
+  {
+    "id": "cancel_booking",
+    "category": "dat-phong",
+    "question_variants": ["huỷ phòng", "huỷ đặt chỗ", "có hoàn tiền không"],
+    "answer": "Chính sách huỷ có thể khác nhau theo từng homestay và chương trình khuyến mãi. Vui lòng kiểm tra điều kiện trong lúc đặt hoặc liên hệ CSKH để được hỗ trợ.",
+    "last_updated": "2025-08-10",
+    "link": "/contact"
+  },
+  {
+    "id": "signup_requirements",
+    "category": "tai-khoan",
+    "question_variants": ["điều kiện đăng ký", "yêu cầu mật khẩu", "mật khẩu cần gì"],
+    "answer": "Khi đăng ký, vui lòng dùng email hợp lệ và mật khẩu đủ mạnh (khuyến nghị ≥ 8 ký tự gồm chữ hoa, chữ thường, số).",
+    "last_updated": "2025-08-10",
+    "link": "/tai-khoan"
+  },
+  {
+    "id": "signup_email_verify_delay",
+    "category": "tai-khoan",
+    "question_variants": ["không nhận được email xác nhận", "email xác nhận chưa tới", "xác nhận email chậm"],
+    "answer": "Nếu chưa thấy email xác nhận sau vài phút, hãy kiểm tra thư rác/Promotions. Bạn có thể yêu cầu gửi lại mã tại trang Xác nhận tài khoản.",
+    "last_updated": "2025-08-10",
+    "link": "/xac-nhan-tai-khoan"
+  },
+  {
+    "id": "signup_email_not_received",
+    "category": "tai-khoan",
+    "question_variants": ["không nhận mã", "không thấy mail xác nhận", "mã xác thực không gửi"],
+    "answer": "Trường hợp không nhận được email, hãy đảm bảo địa chỉ đúng và hộp thư còn dung lượng. Bạn cũng có thể liên hệ CSKH để được hỗ trợ.",
+    "last_updated": "2025-08-10",
+    "link": "/contact"
+  },
+  {
+    "id": "signup_account_exists",
+    "category": "tai-khoan",
+    "question_variants": ["tài khoản đã tồn tại", "email đã dùng rồi", "không đăng ký được"],
+    "answer": "Nếu hệ thống báo tài khoản đã tồn tại, bạn có thể dùng chức năng Quên mật khẩu để đặt lại hoặc đăng nhập bằng tài khoản hiện có.",
+    "last_updated": "2025-08-10",
+    "link": "/quen-mat-khau"
+  },
+  {
+    "id": "signup_change_email_before_verify",
+    "category": "tai-khoan",
+    "question_variants": ["đổi email khi chưa xác nhận", "sai email khi đăng ký", "sửa email"],
+    "answer": "Nếu bạn nhập sai email khi đăng ký, hãy thực hiện lại đăng ký với email đúng. Với tài khoản chưa xác thực sẽ không thể đăng nhập, dữ liệu sẽ không ảnh hưởng.",
+    "last_updated": "2025-08-10",
+    "link": "/tai-khoan"
+  }
+]

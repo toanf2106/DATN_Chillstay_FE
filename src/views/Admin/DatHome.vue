@@ -842,7 +842,6 @@
                   <th width="15%">Người thực hiện</th>
                   <th width="10%">Mã NV</th>
                   <th width="20%">Ghi chú</th>
-                  
                 </tr>
               </thead>
               <tbody>
@@ -1743,52 +1742,54 @@ export default {
       this.calendar.removeAllEvents()
 
       // Chuyển đổi bookings thành sự kiện FullCalendar
-      const events = this.bookings.map((booking) => {
-        const statusColorMap = {
-          ChoXacNhan: '#f6c23e',
-          DaCoc: '#36b9cc',
-          DaXacNhan: '#1cc88a',
-          DaCheckIn: '#e74a3b',
-          DaCheckOut: '#8e44ad',
-          HoanThanh: '#4e73df',
-          DaHuy: '#858796',
-        }
+      const events = this.bookings
+        .filter((b) => b.trangThai !== 'DaHuy') // Ẩn các đơn đã hủy khỏi lịch
+        .map((booking) => {
+          const statusColorMap = {
+            ChoXacNhan: '#f6c23e',
+            DaCoc: '#36b9cc',
+            DaXacNhan: '#1cc88a',
+            DaCheckIn: '#e74a3b',
+            DaCheckOut: '#8e44ad',
+            HoanThanh: '#4e73df',
+            DaHuy: '#858796',
+          }
 
-        const statusLabels = {
-          ChoXacNhan: 'Chờ xác nhận',
-          DaCoc: 'Đã cọc',
-          DaXacNhan: 'Đã xác nhận',
-          DaCheckIn: 'Đã check-in',
-          DaCheckOut: 'Đã check-out',
-          HoanThanh: 'Hoàn thành',
-          DaHuy: 'Đã hủy',
-        }
+          const statusLabels = {
+            ChoXacNhan: 'Chờ xác nhận',
+            DaCoc: 'Đã cọc',
+            DaXacNhan: 'Đã xác nhận',
+            DaCheckIn: 'Đã check-in',
+            DaCheckOut: 'Đã check-out',
+            HoanThanh: 'Hoàn thành',
+            DaHuy: 'Đã hủy',
+          }
 
-        // Tạo tiêu đề sự kiện với đầy đủ thông tin
-        const title = `${booking.tenKhachHang} - ${booking.tenHomestay}
+          // Tạo tiêu đề sự kiện với đầy đủ thông tin
+          const title = `${booking.tenKhachHang} - ${booking.tenHomestay}
           [${statusLabels[booking.trangThai] || booking.trangThai}]`
 
-        // Thêm 1 ngày vào ngày kết thúc để FullCalendar hiển thị đúng khoảng thời gian
-        const endDate = new Date(booking.ngayTraPhong)
-        endDate.setDate(endDate.getDate() + 1)
+          // Thêm 1 ngày vào ngày kết thúc để FullCalendar hiển thị đúng khoảng thời gian
+          const endDate = new Date(booking.ngayTraPhong)
+          endDate.setDate(endDate.getDate() + 1)
 
-        return {
-          id: booking.id,
-          resourceId: 'homestay-' + booking.homestayId,
-          title: title,
-          start: booking.ngayNhanPhong,
-          end: endDate.toISOString().split('T')[0], // Format lại thành YYYY-MM-DD
-          color: statusColorMap[booking.trangThai] || '#858796',
-          extendedProps: {
-            status: booking.trangThai,
-            homestayName: booking.tenHomestay,
-            customerName: booking.tenKhachHang,
-            bookingCode: booking.maDatHome,
-            realEndDate: booking.ngayTraPhong, // Lưu ngày kết thúc thực tế
-          },
-          allDay: true,
-        }
-      })
+          return {
+            id: booking.id,
+            resourceId: 'homestay-' + booking.homestayId,
+            title: title,
+            start: booking.ngayNhanPhong,
+            end: endDate.toISOString().split('T')[0], // Format lại thành YYYY-MM-DD
+            color: statusColorMap[booking.trangThai] || '#858796',
+            extendedProps: {
+              status: booking.trangThai,
+              homestayName: booking.tenHomestay,
+              customerName: booking.tenKhachHang,
+              bookingCode: booking.maDatHome,
+              realEndDate: booking.ngayTraPhong, // Lưu ngày kết thúc thực tế
+            },
+            allDay: true,
+          }
+        })
 
       // Thêm sự kiện mới
       this.calendar.addEventSource(events)

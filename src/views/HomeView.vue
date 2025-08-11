@@ -705,7 +705,7 @@ watch(() => document.visibilityState, (newState) => {
 });
 
 // Nếu muốn reset slide khi reviews thay đổi (ví dụ sau khi fetch xong)
-watch(reviews, (newVal) => {
+watch(reviews, () => {
   activeReviewIndex.value = 0
   startReviewSlideshow()
 })
@@ -905,6 +905,7 @@ const fixImageUrl = (url) => {
   margin: 0 auto;
 }
 
+/* Make search row balanced */
 .search-box {
   display: flex;
   gap: 15px;
@@ -918,12 +919,23 @@ const fixImageUrl = (url) => {
   }
 }
 
+/* On larger screens, switch to grid for perfect alignment */
+@media (min-width: 992px) {
+  .hero-search .search-box {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1.2fr auto;
+    align-items: stretch;
+    gap: 15px;
+  }
+}
+
 .search-input {
   position: relative;
   flex: 1;
   min-width: 200px;
 }
 
+/* Uniform control height */
 .search-input input,
 .search-input select {
   width: 100%;
@@ -932,6 +944,8 @@ const fixImageUrl = (url) => {
   border-radius: 30px;
   font-size: 0.95rem;
   transition: border-color 0.3s ease;
+  height: 48px;
+  line-height: 24px;
 }
 
 .search-input.dropdown select {
@@ -963,11 +977,12 @@ const fixImageUrl = (url) => {
   cursor: not-allowed;
 }
 
+/* Button matches input height */
 .search-btn {
   background: #48cae4;
   color: #fff;
   border: none;
-  padding: 12px 30px;
+  padding: 0 28px;
   border-radius: 30px;
   font-weight: 500;
   font-size: 1rem;
@@ -975,6 +990,11 @@ const fixImageUrl = (url) => {
   transition: background 0.3s ease;
   min-width: 120px;
   text-align: center;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .search-btn:hover {

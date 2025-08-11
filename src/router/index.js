@@ -3,7 +3,6 @@ import HomeView from '../views/HomeView.vue'
 import about from '../views/AboutView.vue'
 import ThongKe from '../views/Admin/ThongKe.vue'
 import DatHomestay from '../views/Admin/DatHome.vue'
-import TestThanhToan from '../views/testThanhToan.vue'
 
 import ForgotPasswordForm from '../components/Password.vue'
 import EmailConfirmView from '../views/EmailConfirmView.vue'
@@ -50,8 +49,6 @@ const router = createRouter({
     // Thanh toán
     { path: '/payment-success', name: 'payment-success', component: PaymentSuccessView },
     { path: '/payment-failure', name: 'payment-failure', component: () => import('../views/PaymentFailureView.vue') },
-
-    { path: '/test-thanh-toan', name: 'testThanhToan', component: TestThanhToan },
 
     { path: '/homestay/:id', name: 'homestayDetail', component: DetailHome },
 
@@ -280,15 +277,6 @@ const router = createRouter({
           meta: { requiresAuth: true, requiresAdmin: true },
         },
 
-        // Trang test thanh toán
-        {
-          path: 'test-thanh-toan',
-          name: 'admin-test-thanh-toan',
-          component: TestThanhToan,
-          meta: { requiresAuth: true, requiresAdmin: true },
-        },
-
-        // Thêm route cho QlyPhong trong phần admin routes
         {
           path: '/admin/phong',
           name: 'admin-phong',

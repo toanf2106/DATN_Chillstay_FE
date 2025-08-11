@@ -881,7 +881,7 @@
     </div>
 
     <teleport to="body">
-      <div class="modal-overlay" v-if="showPaymentModal">
+      <div class="modal-overlay" v-if="showPaymentModal" @click.self="cancelPaymentByUser">
         <div class="modal-container payment-iframe-container">
           <div class="modal-body payment-iframe-body">
             <div v-if="!paymentUrl" class="payment-loading">
@@ -1555,10 +1555,14 @@ export default {
   watch: {
     // Theo dõi trạng thái của booking để chuyển tab khi cần
     'selectedBooking.trangThai': function (newVal) {
-      // Nếu trạng thái không phải là DaCheckIn và đang ở tab phụ phí
       if (newVal !== 'DaCheckIn' && this.activeTab === 'phuphi') {
-        // Chuyển về tab dịch vụ
         this.activeTab = 'dichvu'
+      }
+    },
+    // Đóng modal khi thanh toán thành công để tránh kẹt modal
+    paymentStatus(newVal) {
+      if (newVal === 'ThanhCong' && this.showPaymentModal) {
+        this.closePaymentModal()
       }
     },
   },
@@ -2433,6 +2437,34 @@ export default {
       this.stopPaymentCountdown()
     },
 
+    // Người dùng click ra ngoài để hủy thanh toán đang mở
+    async cancelPaymentByUser() {
+      if (!this.paymentOrderCode) {
+        this.closePaymentModal()
+        return
+      }
+      try {
+        await PaymentService.cancelPaymentLink(
+          this.paymentOrderCode,
+          'Nguoi dung huy trong khi mo modal',
+        )
+        this.paymentStatus = 'ThatBai'
+        this.closePaymentModal()
+        this.$nextTick(() => {
+          // Hiển thị thông báo sau khi đóng modal
+          const msg = 'Bạn đã hủy giao dịch thanh toán.'
+          if (typeof notification?.info === 'function') {
+            notification.info(msg)
+          } else {
+            console.info(msg)
+          }
+        })
+      } catch (e) {
+        console.error('Lỗi khi hủy thanh toán bởi người dùng:', e)
+        this.closePaymentModal()
+      }
+    },
+
     openPaymentUrl() {
       if (this.paymentUrl) {
         window.open(this.paymentUrl, '_blank')
@@ -2454,7 +2486,8 @@ export default {
             currentUrl.includes('status=success')
           ) {
             console.log('Payment successful, closing modal')
-            // Gọi kiểm tra trạng thái thanh toán thay vì đóng modal ngay
+            // Đóng modal ngay để tránh kẹt, sau đó vẫn đồng bộ trạng thái
+            this.closePaymentModal()
             this.checkPaymentStatus(true)
           } else if (
             currentUrl.includes('payment-failure') ||
@@ -2513,9 +2546,10 @@ export default {
         if (this.paymentStatus !== 'ThanhCong' && this.paymentStatus !== 'ThatBai') {
           this.checkPaymentStatus(false)
         } else {
-          // Nếu đã có trạng thái cuối cùng, dừng kiểm tra
+          // Nếu đã có trạng thái cuối cùng, dừng kiểm tra và đóng modal nếu còn mở
           console.log('Đã nhận được trạng thái cuối cùng, dừng kiểm tra')
           this.stopAutoStatusCheck()
+          if (this.showPaymentModal) this.closePaymentModal()
         }
       }, 3000)
     },
@@ -2546,8 +2580,13 @@ export default {
 
       // Không cập nhật nếu đã biết trạng thái cuối cùng
       if (this.paymentStatus === 'ThatBai' || this.paymentStatus === 'ThanhCong') {
-        console.log(`Đã xác định trạng thái cuối cùng (${this.paymentStatus}), không cập nhật nữa`)
-        this.stopAutoStatusCheck() // Dừng kiểm tra tự động
+        console.log(
+          `Đã xác định trạng thái cuối cùng (${this.paymentStatus}), dừng kiểm tra và đóng modal nếu đang mở`,
+        )
+        this.stopAutoStatusCheck()
+        if (this.showPaymentModal) {
+          this.closePaymentModal()
+        }
         return
       }
 
@@ -2558,6 +2597,9 @@ export default {
       try {
         console.log('Đang kiểm tra trạng thái thanh toán...')
 
+        // Gọi API kiểm tra thủ công để đồng bộ trạng thái với PayOS
+        await PaymentService.checkPaymentStatus(this.paymentOrderCode)
+
         // Gọi API để lấy thông tin thanh toán từ database với signal
         const dbStatus = await PaymentService.getPaymentStatusFromDB(
           this.paymentOrderCode,
@@ -2566,7 +2608,7 @@ export default {
 
         if (dbStatus && dbStatus.data) {
           const oldStatus = this.paymentStatus
-          const newStatus = dbStatus.data.trangThai
+          const newStatus = dbStatus.data?.data?.trangThai ?? dbStatus.data?.trangThai
 
           console.log(
             `Nhận được trạng thái từ server: ${newStatus} (hiện tại: ${this.paymentStatus})`,
@@ -2596,6 +2638,12 @@ export default {
                 if (this.showPaymentModal) {
                   this.closePaymentModal()
                 }
+                // Đảm bảo modal đã đóng hẳn
+                this.$nextTick(() => {
+                  if (this.showPaymentModal) {
+                    this.showPaymentModal = false
+                  }
+                })
               } else if (this.paymentStatus === 'ThatBai') {
                 notification.error('Thanh toán thất bại')
                 this.stopAutoStatusCheck() // Dừng kiểm tra khi thanh toán thất bại

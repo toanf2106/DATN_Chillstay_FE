@@ -89,6 +89,37 @@
         </div>
       </div>
 
+      <!-- Map Section -->
+      <div class="map-section">
+        <div class="map-container">
+          <h3 class="map-title">
+            <i class="fas fa-map-marker-alt"></i>
+            Vị trí homestay
+          </h3>
+          <div class="map-wrapper">
+            <div class="map-container">
+              <iframe src="https://maps.google.com/maps?q=20.7598130,104.6043897&z=14&hl=vi&output=embed" width="100%"
+                height="400" style="border:0; border-radius: 0 0 8px 8px;" allowfullscreen="" loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade">
+              </iframe>
+            </div>
+            <!-- <div class="map-overlay">
+              <div class="map-info">
+                <h4>{{ homestay.tenHomestay }}</h4>
+                <div class="coordinates-info">
+
+                  <p class="location-detail"><i class="fas fa-map-pin"></i> Mộc Châu, Sơn La</p>
+                </div>
+                <button class="open-maps-btn" @click="openInGoogleMaps">
+                  <i class="fas fa-external-link-alt"></i>
+                  Mở trên Google Maps
+                </button>
+              </div>
+            </div> -->
+          </div>
+        </div>
+      </div>
+
       <!-- Nút Đặt phòng ngay -->
       <div class="booking-action">
         <div class="booking-action-container">
@@ -586,29 +617,45 @@
 
           <div class="info-section">
             <h3>Đánh giá từ khách hàng</h3>
-            <div v-if="homestay.danhGiaTrungBinh !== undefined" class="reviews-summary">
+            <div v-if="isLoadingReviews" class="loading-indicator">
+              <div class="spinner-sm"></div>
+              <span>Đang tải đánh giá...</span>
+            </div>
+            <div v-else-if="reviews.length > 0" class="reviews-summary">
               <div class="overall-rating">
-                <span class="rating-number">{{ homestay.danhGiaTrungBinh }}</span>
+                <span class="rating-number">{{ homestay.danhGiaTrungBinh || 0 }}</span>
                 <div class="stars">★★★★★</div>
-                <span class="review-count">{{ homestay.soDanhGia || 0 }} đánh giá</span>
+                <span class="review-count">{{ reviews.length }} đánh giá</span>
               </div>
-              <div v-if="homestay.chiTietDanhGia" class="rating-bars">
-                <div v-for="(rating, category) in homestay.chiTietDanhGia" :key="category" class="rating-bar-item">
-                  <span>{{ category }}</span>
-                  <div class="bar-container">
-                    <div class="bar" :style="{ width: (rating * 20) + '%' }"></div>
+
+              <!-- Danh sách đánh giá chi tiết -->
+              <div class="reviews-list">
+                <div v-for="review in reviews.slice(0, 3)" :key="review.ID" class="review-item">
+                  <div class="review-header">
+                    <div class="reviewer-info">
+                      <i class="fas fa-user-circle"></i>
+                      <span class="reviewer-name">{{ review.khachHang?.hoTen || review.khachHang?.HoTen || 'Khách hàng'
+                      }}</span>
+                    </div>
+                    <div class="review-rating">
+                      <span class="stars">★★★★★</span>
+                      <span class="rating-score">{{ review.Diem_So }}/5</span>
+                    </div>
                   </div>
-                  <span>{{ rating.toFixed(1) }}</span>
+                  <p class="review-content">{{ review.Noi_Dung }}</p>
+                  <div class="review-date">{{ new Date(review.Thoi_Gian_Danh_Gia).toLocaleDateString('vi-VN') }}</div>
                 </div>
               </div>
-              <div v-else class="no-data">
-                <i class="fas fa-info-circle"></i>
-                <span>Chưa có chi tiết đánh giá</span>
+
+              <div v-if="reviews.length > 3" class="more-reviews">
+                <router-link :to="`/danh-gia/${homestay.id}`" class="more-reviews-link">
+                  Xem tất cả {{ reviews.length }} đánh giá <i class="fas fa-arrow-right"></i>
+                </router-link>
               </div>
             </div>
             <div v-else class="no-data">
               <i class="fas fa-info-circle"></i>
-              <span>Chưa có đánh giá</span>
+              <span>Chưa có đánh giá nào cho homestay này</span>
             </div>
           </div>
         </div>
@@ -625,6 +672,8 @@ import { getAllTienNghi } from '@/Service/TienNghiService';
 import { getVatTuList } from '@/Service/vatTuService';
 import { getPhongByHomeStayId, getAnhPhongByPhongId } from '@/Service/phongService';
 import { getDichVuByIdHomeStay } from '@/Service/DatHomeService';
+import { getAllDanhGia } from '@/Service/DanhGiaService';
+import { getAllKhachHang } from '@/Service/khachHangService';
 // import { useAuthStore } from '@/stores/authStore';
 import notification from '@/utils/notification';
 
@@ -696,6 +745,8 @@ const roomsSection = ref(null);
 const amenitiesSection = ref(null);
 const rulesSection = ref(null);
 
+
+
 // Đặt section active và scroll đến section đó
 const setActiveSection = (section) => {
   activeSection.value = section;
@@ -751,6 +802,10 @@ const isLoadingAmenities = ref(false);
 const isLoadingSupplies = ref(false);
 const isLoadingServices = ref(false);
 
+// Danh sách đánh giá từ API
+const reviews = ref([]);
+const isLoadingReviews = ref(false);
+
 // Lấy dữ liệu tiện nghi, vật tư và dịch vụ
 const fetchAmenitiesAndSupplies = async () => {
   isLoadingAmenities.value = true;
@@ -796,6 +851,53 @@ const fetchAmenitiesAndSupplies = async () => {
     }
   } else {
     isLoadingServices.value = false;
+  }
+};
+
+// Lấy danh sách đánh giá cho homestay
+const fetchReviews = async (homestayId) => {
+  isLoadingReviews.value = true;
+  try {
+    const [danhGiaResponse, khachHangResponse] = await Promise.all([
+      getAllDanhGia(),
+      getAllKhachHang()
+    ]);
+
+    if (danhGiaResponse && danhGiaResponse.data && khachHangResponse && khachHangResponse.data) {
+      console.log('Tất cả đánh giá từ API:', danhGiaResponse.data);
+      console.log('Tất cả khách hàng từ API:', khachHangResponse.data);
+
+      // Tạo map khách hàng để truy cập nhanh
+      const khachHangMap = {};
+      khachHangResponse.data.forEach(kh => {
+        khachHangMap[kh.ID] = kh;
+      });
+
+      // Lọc đánh giá theo homestayId - kiểm tra nhiều trường có thể
+      reviews.value = danhGiaResponse.data.filter(review => {
+        const reviewHomeStayId = review.HomeStay_ID || review.homeStay_ID || review.homestay_ID ||
+          (review.homestay && review.homestay.id) ||
+          (review.homestay && review.homestay.ID);
+
+        console.log(`Review ID ${review.ID}: HomeStay_ID = ${reviewHomeStayId}, Target ID = ${homestayId}`);
+
+        // Chấp nhận cả trạng thái 1 (active) và 'APPROVED'
+        const isApproved = review.trangThai === 'APPROVED' || review.trangThai === 1 || review.trangThai === true;
+
+        if (reviewHomeStayId == homestayId && isApproved) {
+          // Thêm thông tin khách hàng vào review
+          review.khachHang = khachHangMap[review.KhachHang_ID];
+          return true;
+        }
+        return false;
+      });
+
+      console.log('Đánh giá đã lọc cho homestay', homestayId, ':', reviews.value);
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách đánh giá:', error);
+  } finally {
+    isLoadingReviews.value = false;
   }
 };
 
@@ -905,9 +1007,10 @@ const fetchHomestayData = async () => {
         allProps: Object.keys(homestay.value)
       });
 
-      // Sau khi lấy thông tin homestay thành công, tiếp tục lấy ảnh và phòng
+      // Sau khi lấy thông tin homestay thành công, tiếp tục lấy ảnh, phòng và đánh giá
       await fetchHomestayImages(homestayId);
       await fetchRooms(homestayId);
+      await fetchReviews(homestayId);
     } else {
       throw new Error('Không tìm thấy thông tin homestay');
     }
@@ -1119,14 +1222,14 @@ const bookNow = async () => {
 
       // Nếu homestay đang bị khóa, hiển thị thông báo và không cho phép đặt
       if (!homestayData || homestayData.isLocked) {
-                 notification.warning(
-           'Rất tiếc, homestay này hiện đang được đặt tại quầy. Vui lòng chọn homestay khác hoặc thử lại sau.'
-         );
-         router.push('/').then(() => {
-           // Đảm bảo cuộn lên đầu trang sau khi chuyển hướng
-           window.scrollTo({ top: 0, behavior: 'smooth' });
-         });
-         return;
+        notification.warning(
+          'Rất tiếc, homestay này hiện đang được đặt tại quầy. Vui lòng chọn homestay khác hoặc thử lại sau.'
+        );
+        router.push('/').then(() => {
+          // Đảm bảo cuộn lên đầu trang sau khi chuyển hướng
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        return;
       }
     }
 
@@ -1157,6 +1260,18 @@ const getStatusText = (status) => {
     return 'Không xác định';
   }
 };
+
+
+
+// const openInGoogleMaps = () => {
+//   // Mở Google Maps với tọa độ cố định theo yêu cầu
+//   const lat = 20.7598130;
+//   const lng = 104.6043897;
+//   const url = `https://www.google.com/maps?q=${lat},${lng}`;
+//   window.open(url, '_blank');
+// };
+
+
 
 onMounted(() => {
   fetchHomestayData();
@@ -2195,8 +2310,8 @@ onMounted(() => {
 /* Reviews */
 .reviews-summary {
   display: flex;
-  gap: 40px;
-  align-items: center;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .overall-rating {
@@ -2204,7 +2319,10 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 140px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
 .rating-number {
@@ -2220,38 +2338,104 @@ onMounted(() => {
   font-size: 14px;
 }
 
-.rating-bars {
-  flex: 1;
+/* Reviews list */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.rating-bar-item {
+.review-item {
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.reviewer-info {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 10px;
 }
 
-.rating-bar-item span {
-  width: 60px;
+.reviewer-info i {
+  font-size: 24px;
+  color: #6c757d;
 }
 
-.rating-bar-item span:last-child {
-  width: 30px;
+.reviewer-name {
+  font-weight: 600;
+  color: #212529;
+}
+
+.review-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-rating .stars {
+  color: #ffc107;
+  font-size: 14px;
+}
+
+.rating-score {
+  font-weight: 600;
+  color: #007bff;
+}
+
+.review-content {
+  color: #495057;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.review-date {
+  color: #6c757d;
+  font-size: 12px;
   text-align: right;
 }
 
-/* Bar styling */
-.bar-container {
-  flex: 1;
-  height: 8px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  margin: 0 10px;
+.more-reviews {
+  text-align: center;
+  margin-top: 20px;
 }
 
-.bar {
-  height: 100%;
+.more-reviews-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid #007bff;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.more-reviews-link:hover {
   background-color: #007bff;
-  border-radius: 4px;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.more-reviews-link i {
+  font-size: 12px;
+  transition: transform 0.3s ease;
+}
+
+.more-reviews-link:hover i {
+  transform: translateX(5px);
 }
 
 /* Booking Form - Removed */
@@ -2291,6 +2475,16 @@ onMounted(() => {
 
   .rating-number {
     margin-bottom: 0;
+  }
+
+  .review-item {
+    padding: 15px;
+  }
+
+  .review-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
   .info-section h3 {
@@ -2695,5 +2889,277 @@ html {
   margin: 0;
   font-size: 14px;
   opacity: 0.9;
+}
+
+/* Map Section */
+.map-section {
+  margin-bottom: 30px;
+}
+
+.map-container {
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.map-title {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #dee2e6;
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-title i {
+  color: #007bff;
+  font-size: 20px;
+}
+
+.map-wrapper {
+  position: relative;
+  height: 400px;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #333;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  max-width: 300px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+}
+
+.map-info h4 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.coordinates-info {
+  margin-bottom: 15px;
+}
+
+.coordinates {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.location-detail {
+  margin: 0;
+  font-size: 13px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-detail i {
+  color: #28a745;
+  font-size: 12px;
+}
+
+.open-maps-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.open-maps-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.open-maps-btn i {
+  font-size: 14px;
+}
+
+/* Responsive design for map */
+@media (max-width: 768px) {
+  .map-wrapper {
+    height: 300px;
+  }
+
+  .map-overlay {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 15px;
+    max-width: none;
+    background-color: #ffffff;
+  }
+
+  .map-title {
+    padding: 12px 15px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .map-wrapper {
+    height: 250px;
+  }
+
+  .map-overlay {
+    margin: 10px;
+    padding: 15px;
+  }
+
+  .open-maps-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+.map-fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 8px 8px;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.fallback-content {
+  text-align: center;
+  color: #6c757d;
+  padding: 20px;
+  max-width: 400px;
+}
+
+.map-placeholder {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.map-placeholder i.fa-map-marked-alt {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #007bff;
+  opacity: 0.8;
+}
+
+.map-placeholder h4 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 20px;
+}
+
+.coordinates-display {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.coordinate-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  background: rgba(0, 123, 255, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 123, 255, 0.2);
+}
+
+.coordinate-item i {
+  color: #007bff;
+  font-size: 16px;
+  width: 20px;
+}
+
+.coordinate-item span {
+  font-size: 14px;
+  color: #495057;
+}
+
+.location-info {
+  margin-bottom: 25px;
+}
+
+.location-info p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.location-info i {
+  color: #28a745;
+  width: 16px;
+}
+
+.fallback-content .open-maps-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.fallback-content .open-maps-btn:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+.fallback-content .open-maps-btn i {
+  font-size: 16px;
 }
 </style>

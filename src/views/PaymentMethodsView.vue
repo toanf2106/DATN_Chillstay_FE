@@ -11,22 +11,7 @@
       </div>
 
       <div class="payment-methods">
-        <div class="payment-method">
-          <div class="method-icon">
-            <i class="fas fa-credit-card"></i>
-          </div>
-          <div class="method-content">
-            <h2>Thẻ tín dụng/ghi nợ</h2>
-            <p>ChillStay chấp nhận thanh toán qua các thẻ tín dụng và ghi nợ phổ biến, bao gồm:</p>
-            <div class="card-logos">
-              <span class="card-logo visa">Visa</span>
-              <span class="card-logo mastercard">MasterCard</span>
-              <span class="card-logo jcb">JCB</span>
-              <span class="card-logo amex">American Express</span>
-            </div>
-            <p class="method-note">Giao dịch thanh toán thẻ được bảo mật theo tiêu chuẩn quốc tế PCI DSS, đảm bảo thông tin thanh toán của bạn luôn được bảo vệ.</p>
-          </div>
-        </div>
+
 
         <div class="payment-method">
           <div class="method-icon">
@@ -36,9 +21,9 @@
             <h2>Chuyển khoản ngân hàng</h2>
             <p>Bạn có thể thanh toán bằng cách chuyển khoản đến tài khoản ngân hàng của ChillStay:</p>
             <div class="bank-info">
-              <p><strong>Ngân hàng:</strong> Vietcombank</p>
-              <p><strong>Số tài khoản:</strong> 1234567890</p>
-              <p><strong>Chủ tài khoản:</strong> CÔNG TY TNHH CHILLSTAY</p>
+              <p><strong>Ngân hàng:</strong> MB Bank</p>
+              <p><strong>Số tài khoản:</strong> 2038205102005</p>
+              <p><strong>Chủ tài khoản:</strong> MAI XUAN TRUNG</p>
               <p><strong>Chi nhánh:</strong> Sơn La</p>
               <p><strong>Nội dung:</strong> [Mã đặt phòng] - [Họ tên]</p>
             </div>

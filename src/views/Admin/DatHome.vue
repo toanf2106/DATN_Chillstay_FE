@@ -25,7 +25,10 @@
         <div class="card-details">
           <p>Đang chờ xác nhận</p>
           <div class="progress-bar">
-            <div class="progress" :style="{ width: pendingPercent + '%', backgroundColor: '#f6c23e' }"></div>
+            <div
+              class="progress"
+              :style="{ width: pendingPercent + '%', backgroundColor: '#f6c23e' }"
+            ></div>
           </div>
         </div>
       </div>
@@ -39,7 +42,10 @@
         <div class="card-details">
           <p>Đã xác nhận đặt phòng</p>
           <div class="progress-bar">
-            <div class="progress" :style="{ width: confirmedPercent + '%', backgroundColor: '#1cc88a' }"></div>
+            <div
+              class="progress"
+              :style="{ width: confirmedPercent + '%', backgroundColor: '#1cc88a' }"
+            ></div>
           </div>
         </div>
       </div>
@@ -53,7 +59,10 @@
         <div class="card-details">
           <p>Chờ khách check-in</p>
           <div class="progress-bar">
-            <div class="progress" :style="{ width: waitingCheckinPercent + '%', backgroundColor: '#4e73df' }"></div>
+            <div
+              class="progress"
+              :style="{ width: waitingCheckinPercent + '%', backgroundColor: '#4e73df' }"
+            ></div>
           </div>
         </div>
       </div>
@@ -67,7 +76,10 @@
         <div class="card-details">
           <p>Chờ khách check-out</p>
           <div class="progress-bar">
-            <div class="progress" :style="{ width: waitingCheckoutPercent + '%', backgroundColor: '#e74a3b' }"></div>
+            <div
+              class="progress"
+              :style="{ width: waitingCheckoutPercent + '%', backgroundColor: '#e74a3b' }"
+            ></div>
           </div>
         </div>
       </div>
@@ -81,18 +93,29 @@
         <div class="card-details">
           <p>Hoàn tất dịch vụ</p>
           <div class="progress-bar">
-            <div class="progress" :style="{ width: completedPercent + '%', backgroundColor: '#858796' }"></div>
+            <div
+              class="progress"
+              :style="{ width: completedPercent + '%', backgroundColor: '#858796' }"
+            ></div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="view-toggle-container">
-      <button class="view-toggle-btn" :class="{ active: currentView === 'calendar' }" @click="switchToCalendarView">
+      <button
+        class="view-toggle-btn"
+        :class="{ active: currentView === 'calendar' }"
+        @click="switchToCalendarView"
+      >
         <font-awesome-icon icon="fa-solid fa-calendar-alt" class="btn-icon" />
         Xem lịch
       </button>
-      <button class="view-toggle-btn" :class="{ active: currentView === 'detail' }" @click="switchToDetailView">
+      <button
+        class="view-toggle-btn"
+        :class="{ active: currentView === 'detail' }"
+        @click="switchToDetailView"
+      >
         <font-awesome-icon icon="fa-solid fa-list" class="btn-icon" />
         Xem chi tiết
       </button>
@@ -111,8 +134,12 @@
         <div class="section-header">
           <h2>Lịch Sử Thay Đổi Trạng Thái</h2>
           <div class="search-box">
-            <input type="text" v-model="historySearchQuery" placeholder="Tìm theo mã đặt home..."
-              class="search-input" />
+            <input
+              type="text"
+              v-model="historySearchQuery"
+              placeholder="Tìm theo mã đặt home..."
+              class="search-input"
+            />
             <i class="fas fa-search search-icon"></i>
           </div>
         </div>
@@ -180,10 +207,18 @@
                 <i class="fas fa-chevron-left"></i>
               </a>
             </li>
-            <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: page - 1 === currentPage }">
+            <li
+              v-for="page in totalPages"
+              :key="page"
+              class="page-item"
+              :class="{ active: page - 1 === currentPage }"
+            >
               <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
             </li>
-            <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }">
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
+            >
               <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
                 <i class="fas fa-chevron-right"></i>
               </a>
@@ -198,8 +233,12 @@
 
       <div class="filter-container">
         <div class="search-box">
-          <input type="text" v-model="searchQuery" placeholder="Tìm theo mã đặt home hoặc số điện thoại..."
-            class="search-input" />
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Tìm theo mã đặt home hoặc số điện thoại..."
+            class="search-input"
+          />
           <i class="fas fa-search search-icon"></i>
         </div>
         <div class="filter-box">
@@ -217,8 +256,12 @@
 
       <div v-if="isLoading" class="loading">Đang tải dữ liệu...</div>
       <div v-else class="booking-cards">
-        <div v-for="booking in filteredBookings" :key="booking.id" class="booking-card"
-          @click="viewBookingDetails(booking)">
+        <div
+          v-for="booking in filteredBookings"
+          :key="booking.id"
+          class="booking-card"
+          @click="viewBookingDetails(booking)"
+        >
           <div class="card-header">
             <div class="card-booking-code">{{ booking.maDatHome }}</div>
             <div class="card-status">
@@ -288,12 +331,18 @@
           </div>
         </div>
 
-        <div v-if="selectedBooking" class="booking-details" style="flex: 1; overflow-y: auto; padding-bottom: 20px">
+        <div
+          v-if="selectedBooking"
+          class="booking-details"
+          style="flex: 1; overflow-y: auto; padding-bottom: 20px"
+        >
           <div class="modal-columns" style="min-height: 400px">
             <div class="modal-column" style="flex: 7; display: flex; flex-direction: column">
               <div style="display: flex; gap: 15px; height: 100%; flex: 1">
-                <div class="booking-section customer-section"
-                  style="flex: 1; height: 100%; display: flex; flex-direction: column">
+                <div
+                  class="booking-section customer-section"
+                  style="flex: 1; height: 100%; display: flex; flex-direction: column"
+                >
                   <div class="section-content" style="flex: 1">
                     <h3>Thông tin khách hàng</h3>
                     <div class="info-item">
@@ -313,13 +362,15 @@
                       <span class="info-label">Yêu cầu đặc biệt:</span>
                       <span class="info-value">{{
                         selectedBooking.yeuCauDacBiet || 'Không có'
-                        }}</span>
+                      }}</span>
                     </div>
                   </div>
                 </div>
 
-                <div class="booking-section booking-info-section"
-                  style="flex: 1; height: 100%; display: flex; flex-direction: column">
+                <div
+                  class="booking-section booking-info-section"
+                  style="flex: 1; height: 100%; display: flex; flex-direction: column"
+                >
                   <div class="section-content" style="flex: 1">
                     <h3>Thông tin Homestay</h3>
                     <div class="info-item">
@@ -335,13 +386,16 @@
                         <span class="info-label">Ngày đặt:</span>
                         <span class="info-value date-value">{{
                           formatDate(selectedBooking.ngayDat, 'dateOnly')
-                          }}</span>
+                        }}</span>
                       </div>
 
-                      <div class="info-item" v-if="
-                        selectedBooking.trangThai === 'DaXacNhan' &&
-                        selectedBooking.daGiaHanCheckIn
-                      ">
+                      <div
+                        class="info-item"
+                        v-if="
+                          selectedBooking.trangThai === 'DaXacNhan' &&
+                          selectedBooking.daGiaHanCheckIn
+                        "
+                      >
                         <span class="info-label">Thời hạn check-in:</span>
                         <span class="info-value">
                           {{ formatDateTime(selectedBooking.thoiGianGiaHanCheckIn) }}
@@ -355,14 +409,14 @@
                           <span class="range-label">Check-in (13:00 - 14:00)</span>
                           <span class="range-value">{{
                             formatDate(selectedBooking.ngayNhanPhong, 'dateOnly')
-                            }}</span>
+                          }}</span>
                         </div>
                         <div class="date-arrow">→</div>
                         <div class="date-range-item">
                           <span class="range-label">Check-out (9:30 - 11:00)</span>
                           <span class="range-value">{{
                             formatDate(selectedBooking.ngayTraPhong, 'dateOnly')
-                            }}</span>
+                          }}</span>
                         </div>
                       </div>
                     </div>
@@ -375,24 +429,39 @@
                 <div class="section-content">
                   <div class="service-header">
                     <div class="service-tabs">
-                      <div class="service-tab" :class="{ active: activeTab === 'dichvu' }"
-                        @click="activeTab = 'dichvu'">
+                      <div
+                        class="service-tab"
+                        :class="{ active: activeTab === 'dichvu' }"
+                        @click="activeTab = 'dichvu'"
+                      >
                         <i class="fas fa-concierge-bell"></i> Dịch vụ
                       </div>
-                      <div v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckIn'" class="service-tab"
-                        :class="{ active: activeTab === 'phuphi' }" @click="activeTab = 'phuphi'">
+                      <div
+                        v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckIn'"
+                        class="service-tab"
+                        :class="{ active: activeTab === 'phuphi' }"
+                        @click="activeTab = 'phuphi'"
+                      >
                         <i class="fas fa-money-bill-wave"></i> Phụ phí
                       </div>
                     </div>
                     <div class="service-action-buttons">
-                      <button v-if="activeTab === 'dichvu'" class="btn-add-service" @click="addService">
+                      <button
+                        v-if="activeTab === 'dichvu'"
+                        class="btn-add-service"
+                        @click="addService"
+                      >
                         <i class="fas fa-plus"></i> Thêm dịch vụ
                       </button>
-                      <button v-if="
-                        activeTab === 'phuphi' &&
-                        selectedBooking &&
-                        selectedBooking.trangThai === 'DaCheckIn'
-                      " class="btn-add-surcharge" @click="addSurcharge">
+                      <button
+                        v-if="
+                          activeTab === 'phuphi' &&
+                          selectedBooking &&
+                          selectedBooking.trangThai === 'DaCheckIn'
+                        "
+                        class="btn-add-surcharge"
+                        @click="addSurcharge"
+                      >
                         <i class="fas fa-plus"></i> Thêm phụ phí
                       </button>
                     </div>
@@ -407,21 +476,27 @@
                     </div>
 
                     <!-- Empty state -->
-                    <div class="service-empty"
-                      v-else-if="!selectedBooking.dichVus || selectedBooking.dichVus.length === 0">
+                    <div
+                      class="service-empty"
+                      v-else-if="!selectedBooking.dichVus || selectedBooking.dichVus.length === 0"
+                    >
                       <i class="fas fa-concierge-bell"></i>
                       <p>Chưa có dịch vụ nào được sử dụng</p>
                     </div>
 
                     <!-- Service list -->
                     <div class="service-list" v-else>
-                      <div class="service-item" v-for="(service, index) in selectedBooking.dichVus" :key="index">
+                      <div
+                        class="service-item"
+                        v-for="(service, index) in selectedBooking.dichVus"
+                        :key="index"
+                      >
                         <div class="service-details">
                           <span class="service-name">{{ service.tenDichVu }}</span>
                           <div class="service-info">
                             <span class="service-price">{{
                               formatCurrency(service.giaDichVu)
-                              }}</span>
+                            }}</span>
                           </div>
                         </div>
                         <div class="service-actions">
@@ -443,32 +518,42 @@
                         <span class="service-total-label">Tổng tiền dịch vụ:</span>
                         <span class="service-total-value">{{
                           formatCurrency(calculateServiceTotal())
-                          }}</span>
+                        }}</span>
                       </div>
                     </div>
                   </div>
 
                   <!-- Tab phụ phí - chỉ hiển thị khi đang ở trạng thái check-in -->
-                  <div v-if="
-                    activeTab === 'phuphi' &&
-                    selectedBooking &&
-                    selectedBooking.trangThai === 'DaCheckIn'
-                  " class="service-content">
+                  <div
+                    v-if="
+                      activeTab === 'phuphi' &&
+                      selectedBooking &&
+                      selectedBooking.trangThai === 'DaCheckIn'
+                    "
+                    class="service-content"
+                  >
                     <!-- Empty state -->
-                    <div class="service-empty" v-if="!selectedBooking.phuPhis || selectedBooking.phuPhis.length === 0">
+                    <div
+                      class="service-empty"
+                      v-if="!selectedBooking.phuPhis || selectedBooking.phuPhis.length === 0"
+                    >
                       <i class="fas fa-money-bill-wave"></i>
                       <p>Chưa có phụ phí nào được thêm</p>
                     </div>
 
                     <!-- Surcharge list -->
                     <div class="service-list" v-else>
-                      <div class="service-item" v-for="(phuPhi, index) in selectedBooking.phuPhis" :key="index">
+                      <div
+                        class="service-item"
+                        v-for="(phuPhi, index) in selectedBooking.phuPhis"
+                        :key="index"
+                      >
                         <div class="service-details">
                           <span class="service-name">{{ phuPhi.tenPhuPhi }}</span>
                           <div class="service-info">
                             <span class="service-price">{{
                               formatCurrency(phuPhi.giaPhuPhi)
-                              }}</span>
+                            }}</span>
                           </div>
                         </div>
                         <div class="service-actions">
@@ -481,7 +566,7 @@
                         <span class="service-total-label">Tổng tiền phụ phí:</span>
                         <span class="service-total-value">{{
                           formatCurrency(calculatePhuPhiTotal())
-                          }}</span>
+                        }}</span>
                       </div>
                     </div>
                   </div>
@@ -533,7 +618,10 @@
               </div> -->
             </div>
             <div class="modal-column" style="flex: 5; display: flex; flex-direction: column">
-              <div class="booking-section payment-section" style="height: 100%; display: flex; flex-direction: column">
+              <div
+                class="booking-section payment-section"
+                style="height: 100%; display: flex; flex-direction: column"
+              >
                 <div class="section-content" style="flex: 1">
                   <h3>Thông tin thanh toán</h3>
                   <div class="payment-summary">
@@ -541,25 +629,27 @@
                       <span class="payment-label">Giá Homestay:</span>
                       <span class="payment-value">{{
                         formatCurrency(selectedBooking.tongTien)
-                        }}</span>
+                      }}</span>
                     </div>
                     <div class="payment-item" v-if="selectedBooking.tenGiamGia">
                       <span class="payment-label">
                         Giảm giá ({{ selectedBooking.tenGiamGia }}):
                       </span>
-                      <span class="payment-value discount">- {{ formatCurrency(calculateActualDiscount()) }}</span>
+                      <span class="payment-value discount"
+                        >- {{ formatCurrency(calculateActualDiscount()) }}</span
+                      >
                     </div>
                     <div class="payment-item">
                       <span class="payment-label">Tổng tiền dịch vụ:</span>
                       <span class="payment-value">{{
                         formatCurrency(selectedBooking.tongTienDichVu)
-                        }}</span>
+                      }}</span>
                     </div>
                     <div class="payment-item">
                       <span class="payment-label">Tổng tiền phụ phí (nếu có):</span>
                       <span class="payment-value">{{
                         formatCurrency(calculatePhuPhiTotal())
-                        }}</span>
+                      }}</span>
                     </div>
 
                     <div class="payment-divider"></div>
@@ -567,7 +657,7 @@
                       <span class="payment-label">Tổng tiền:</span>
                       <span class="payment-value total-value">{{
                         formatCurrency(calculateTotalAmount())
-                        }}</span>
+                      }}</span>
                     </div>
 
                     <!-- Thêm hiển thị số tiền đã thanh toán -->
@@ -575,13 +665,13 @@
                       <span class="payment-label">Đã thanh toán:</span>
                       <span class="payment-value paid">{{
                         formatCurrency(soTienDaThanhToan)
-                        }}</span>
+                      }}</span>
                     </div>
                     <div class="payment-item" v-if="calculateRemainingAmount() > 0">
                       <span class="payment-label">Còn lại phải thanh toán:</span>
                       <span class="payment-value remaining">{{
                         formatCurrency(calculateRemainingAmount())
-                        }}</span>
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -589,7 +679,9 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer" style="
+        <div
+          class="modal-footer"
+          style="
             border-top: 1px solid #eee;
             padding: 16px;
             display: flex;
@@ -597,58 +689,89 @@
             gap: 10px;
             background-color: #f8f9fa;
             border-radius: 0 0 18px 18px;
-          ">
-          <button v-if="selectedBooking && selectedBooking.trangThai === 'ChoXacNhan'" class="action-button cancel-btn"
-            @click="updateBookingStatus(selectedBooking.id, 'DaHuy')">
+          "
+        >
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'ChoXacNhan'"
+            class="action-button cancel-btn"
+            @click="updateBookingStatus(selectedBooking.id, 'DaHuy')"
+          >
             Hủy đặt phòng
           </button>
-          <button v-if="selectedBooking && selectedBooking.trangThai === 'ChoXacNhan'" class="action-button confirm-btn"
-            @click="updateBookingStatus(selectedBooking.id, 'DaXacNhan')">
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'ChoXacNhan'"
+            class="action-button confirm-btn"
+            @click="updateBookingStatus(selectedBooking.id, 'DaXacNhan')"
+          >
             Xác nhận đặt phòng
           </button>
-          <button v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'" class="action-button confirm-btn"
-            @click="handleCheckIn(selectedBooking.id)">
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+            class="action-button confirm-btn"
+            @click="handleCheckIn(selectedBooking.id)"
+          >
             Check-in
           </button>
-          <button v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckIn'" class="action-button confirm-btn"
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckIn'"
+            class="action-button confirm-btn"
             @click="handleCheckOut(selectedBooking.id)"
-            :disabled="calculateRemainingAmount() > 0 && paymentStatus !== 'ThanhCong'" :class="{
+            :disabled="calculateRemainingAmount() > 0 && paymentStatus !== 'ThanhCong'"
+            :class="{
               'disabled-btn': calculateRemainingAmount() > 0 && paymentStatus !== 'ThanhCong',
-            }">
+            }"
+          >
             Check-out
-            <span v-if="calculateRemainingAmount() > 0 && paymentStatus !== 'ThanhCong'" class="payment-required-text">
+            <span
+              v-if="calculateRemainingAmount() > 0 && paymentStatus !== 'ThanhCong'"
+              class="payment-required-text"
+            >
               (Cần thanh toán số tiền còn lại)
             </span>
           </button>
           <!-- Sửa nút thanh toán ngay để hiển thị số tiền còn lại -->
-          <button v-if="
-            selectedBooking &&
-            calculateRemainingAmount() > 0 &&
-            paymentStatus !== 'ThanhCong' &&
-            selectedBooking.trangThai === 'DaCheckIn'
-          " class="action-button payment-btn" @click="createPaymentForRemaining" :disabled="isLoadingPayment">
+          <button
+            v-if="
+              selectedBooking &&
+              calculateRemainingAmount() > 0 &&
+              paymentStatus !== 'ThanhCong' &&
+              selectedBooking.trangThai === 'DaCheckIn'
+            "
+            class="action-button payment-btn"
+            @click="createPaymentForRemaining"
+            :disabled="isLoadingPayment"
+          >
             {{ isLoadingPayment ? 'Đang xử lý...' : 'Thanh toán ngay' }} ({{
               formatCurrency(calculateRemainingAmount())
             }})
           </button>
-          <button v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckOut'" class="action-button confirm-btn"
-            @click="updateBookingStatus(selectedBooking.id, 'HoanThanh')">
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaCheckOut'"
+            class="action-button confirm-btn"
+            @click="updateBookingStatus(selectedBooking.id, 'HoanThanh')"
+          >
             Hoàn thành
           </button>
           <!-- Thêm nút gia hạn check-in ngay sau nút check-in -->
-          <button v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'" class="action-button extend-btn"
-            @click="handleExtendCheckIn(selectedBooking.id)">
+          <button
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+            class="action-button extend-btn"
+            @click="handleExtendCheckIn(selectedBooking.id)"
+          >
             Gia hạn Check-in
           </button>
 
-          <div class="extension-container" v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'">
+          <div
+            class="extension-container"
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+          >
             <!-- Hiển thị thông tin gia hạn -->
             <div class="extension-info-container" v-if="extensionInfo && extensionInfo.success">
               <div class="extension-info-item">
                 <span class="extension-label">Thời hạn mới:</span>
                 <span class="extension-value">{{
                   extensionInfo.hanCheckIn ? formatDateTime(extensionInfo.hanCheckIn) : 'N/A'
-                  }}</span>
+                }}</span>
               </div>
               <div class="extension-info-item">
                 <span class="extension-label">Đã gia hạn:</span>
@@ -671,7 +794,10 @@
           </div>
 
           <!-- Thêm cảnh báo về việc không hoàn tiền cọc -->
-          <div v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'" class="auto-cancel-warning">
+          <div
+            v-if="selectedBooking && selectedBooking.trangThai === 'DaXacNhan'"
+            class="auto-cancel-warning"
+          >
             <i class="fas fa-exclamation-triangle"></i>
             Lưu ý: Nếu không check-in đúng thời hạn, đơn sẽ tự động bị hủy và không hoàn tiền cọc.
           </div>
@@ -704,7 +830,10 @@
           <div class="log-table-container">
             <div v-if="loadingLogs" class="loading">Đang tải dữ liệu...</div>
 
-            <table class="log-table" v-else-if="currentBookingLogs && currentBookingLogs.length > 0">
+            <table
+              class="log-table"
+              v-else-if="currentBookingLogs && currentBookingLogs.length > 0"
+            >
               <thead>
                 <tr>
                   <th width="5%">STT</th>
@@ -721,7 +850,11 @@
                   <td>{{ formatDate(log.thoiGianThayDoi, 'dateOnly') }}</td>
                   <td>
                     <div class="status-change">
-                      <span v-if="log.trangThaiCu" class="status-badge" :class="getStatusClass(log.trangThaiCu)">
+                      <span
+                        v-if="log.trangThaiCu"
+                        class="status-badge"
+                        :class="getStatusClass(log.trangThaiCu)"
+                      >
                         {{ getStatusLabel(log.trangThaiCu) }}
                       </span>
                       <span v-else class="status-badge status-new">Mới tạo</span>
@@ -755,9 +888,15 @@
               <i class="fas fa-spinner fa-spin"></i>
               <span>Đang tải trang thanh toán...</span>
             </div>
-            <iframe v-else :src="paymentUrl" class="payment-iframe" allow="payment"
+            <iframe
+              v-else
+              :src="paymentUrl"
+              class="payment-iframe"
+              allow="payment"
               sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-popups"
-              @load="handleIframeLoad" ref="paymentIframe"></iframe>
+              @load="handleIframeLoad"
+              ref="paymentIframe"
+            ></iframe>
             <div class="payment-countdown">
               <span class="countdown-label">Thời gian còn lại:</span>
               <span class="countdown-timer" :class="{ 'time-low': remainingTimeSeconds < 60 }">
@@ -829,8 +968,15 @@
               <div class="payment-row">
                 <span class="payment-label">Tiền khách đưa:</span>
                 <div class="payment-input">
-                  <input type="number" v-model.number="cashReceived" @input="calculateChange"
-                    placeholder="Nhập số tiền khách đưa" min="0" step="10000" class="cash-input" />
+                  <input
+                    type="number"
+                    v-model.number="cashReceived"
+                    @input="calculateChange"
+                    placeholder="Nhập số tiền khách đưa"
+                    min="0"
+                    step="10000"
+                    class="cash-input"
+                  />
                   <span class="currency">₫</span>
                 </div>
               </div>
@@ -843,8 +989,12 @@
               <div class="quick-amounts">
                 <p class="quick-title">Chọn nhanh số tiền:</p>
                 <div class="quick-buttons">
-                  <button v-for="(amount, index) in quickAmounts" :key="index" @click="setQuickAmount(amount)"
-                    class="quick-button">
+                  <button
+                    v-for="(amount, index) in quickAmounts"
+                    :key="index"
+                    @click="setQuickAmount(amount)"
+                    class="quick-button"
+                  >
                     {{ formatCurrency(amount) }}
                   </button>
                 </div>
@@ -855,8 +1005,11 @@
             <button class="btn btn-secondary" @click="closeCashPaymentModal">
               <i class="fas fa-times"></i> Hủy
             </button>
-            <button class="btn btn-primary" @click="confirmCashPayment"
-              :disabled="cashReceived === null || cashReceived < soTienConLai">
+            <button
+              class="btn btn-primary"
+              @click="confirmCashPayment"
+              :disabled="cashReceived === null || cashReceived < soTienConLai"
+            >
               <i class="fas fa-check-circle"></i> Xác nhận thanh toán
             </button>
           </div>
@@ -898,11 +1051,20 @@
 
               <div class="services-grid" v-if="availableServices.length > 0">
                 <!-- Service items dưới dạng checkbox -->
-                <div class="service-checkbox-item" v-for="service in availableServices" :key="service.id">
+                <div
+                  class="service-checkbox-item"
+                  v-for="service in availableServices"
+                  :key="service.id"
+                >
                   <div class="service-checkbox-content">
                     <div class="checkbox-wrapper">
-                      <input type="checkbox" :id="`service-${service.id}`" v-model="service.selected"
-                        @change="onServiceSelectionChange(service)" class="service-checkbox" />
+                      <input
+                        type="checkbox"
+                        :id="`service-${service.id}`"
+                        v-model="service.selected"
+                        @change="onServiceSelectionChange(service)"
+                        class="service-checkbox"
+                      />
                       <label :for="`service-${service.id}`" class="checkbox-label">
                         <div class="service-main-info">
                           <div class="service-name-price">
@@ -914,14 +1076,28 @@
                           </div>
                           <div class="service-quantity-controls" v-if="service.selected">
                             <div class="quantity-controls">
-                              <button type="button" class="qty-btn minus" @click="decrementQuantity(service)"
-                                :disabled="service.quantity <= 1">
+                              <button
+                                type="button"
+                                class="qty-btn minus"
+                                @click="decrementQuantity(service)"
+                                :disabled="service.quantity <= 1"
+                              >
                                 <i class="fas fa-minus"></i>
                               </button>
-                              <input type="number" class="qty-input" v-model.number="service.quantity"
-                                @input="onQuantityChange(service)" min="1" max="99" />
-                              <button type="button" class="qty-btn plus" @click="incrementQuantity(service)"
-                                :disabled="service.quantity >= 99">
+                              <input
+                                type="number"
+                                class="qty-input"
+                                v-model.number="service.quantity"
+                                @input="onQuantityChange(service)"
+                                min="1"
+                                max="99"
+                              />
+                              <button
+                                type="button"
+                                class="qty-btn plus"
+                                @click="incrementQuantity(service)"
+                                :disabled="service.quantity >= 99"
+                              >
                                 <i class="fas fa-plus"></i>
                               </button>
                             </div>
@@ -950,15 +1126,22 @@
 
           <div class="modal-footer add-service-footer">
             <div class="selected-summary">
-              <span class="selected-count">Đã chọn: <strong>{{ selectedServiceIds.length }}</strong> dịch vụ</span>
-              <span class="total-amount">Tổng tiền: <strong>{{ formatCurrency(calculateSelectedTotal())
-                  }}</strong></span>
+              <span class="selected-count"
+                >Đã chọn: <strong>{{ selectedServiceIds.length }}</strong> dịch vụ</span
+              >
+              <span class="total-amount"
+                >Tổng tiền: <strong>{{ formatCurrency(calculateSelectedTotal()) }}</strong></span
+              >
             </div>
             <div class="footer-actions">
               <button class="btn btn-secondary" @click="closeAddServiceModal">
                 <i class="fas fa-times"></i> Hủy
               </button>
-              <button class="btn btn-primary" :disabled="selectedServiceIds.length === 0" @click="addSelectedServices">
+              <button
+                class="btn btn-primary"
+                :disabled="selectedServiceIds.length === 0"
+                @click="addSelectedServices"
+              >
                 <i class="fas fa-plus-circle"></i> Thêm dịch vụ ({{ selectedServiceIds.length }})
               </button>
             </div>
@@ -996,16 +1179,27 @@
             <div class="surcharges-container">
               <div class="surcharges-header">
                 <h4>Danh sách phụ phí có sẵn</h4>
-                <span class="surcharges-count">Tìm thấy {{ availableSurcharges.length }} phụ phí</span>
+                <span class="surcharges-count"
+                  >Tìm thấy {{ availableSurcharges.length }} phụ phí</span
+                >
               </div>
 
               <div class="surcharges-grid" v-if="availableSurcharges.length > 0">
                 <!-- Service items dưới dạng checkbox -->
-                <div class="surcharge-checkbox-item" v-for="surcharge in availableSurcharges" :key="surcharge.id">
+                <div
+                  class="surcharge-checkbox-item"
+                  v-for="surcharge in availableSurcharges"
+                  :key="surcharge.id"
+                >
                   <div class="surcharge-checkbox-content">
                     <div class="checkbox-wrapper">
-                      <input type="checkbox" :id="`surcharge-${surcharge.id}`" v-model="surcharge.selected"
-                        @change="onSurchargeSelectionChange(surcharge)" class="surcharge-checkbox" />
+                      <input
+                        type="checkbox"
+                        :id="`surcharge-${surcharge.id}`"
+                        v-model="surcharge.selected"
+                        @change="onSurchargeSelectionChange(surcharge)"
+                        class="surcharge-checkbox"
+                      />
                       <label :for="`surcharge-${surcharge.id}`" class="checkbox-label">
                         <div class="surcharge-main-info">
                           <div class="surcharge-name-price">
@@ -1017,14 +1211,28 @@
                           </div>
                           <div class="surcharge-quantity-controls" v-if="surcharge.selected">
                             <div class="quantity-controls">
-                              <button type="button" class="qty-btn minus" @click="decrementSurchargeQuantity(surcharge)"
-                                :disabled="surcharge.quantity <= 1">
+                              <button
+                                type="button"
+                                class="qty-btn minus"
+                                @click="decrementSurchargeQuantity(surcharge)"
+                                :disabled="surcharge.quantity <= 1"
+                              >
                                 <i class="fas fa-minus"></i>
                               </button>
-                              <input type="number" class="qty-input" v-model.number="surcharge.quantity"
-                                @input="onSurchargeQuantityChange(surcharge)" min="1" max="99" />
-                              <button type="button" class="qty-btn plus" @click="incrementSurchargeQuantity(surcharge)"
-                                :disabled="surcharge.quantity >= 99">
+                              <input
+                                type="number"
+                                class="qty-input"
+                                v-model.number="surcharge.quantity"
+                                @input="onSurchargeQuantityChange(surcharge)"
+                                min="1"
+                                max="99"
+                              />
+                              <button
+                                type="button"
+                                class="qty-btn plus"
+                                @click="incrementSurchargeQuantity(surcharge)"
+                                :disabled="surcharge.quantity >= 99"
+                              >
                                 <i class="fas fa-plus"></i>
                               </button>
                             </div>
@@ -1053,16 +1261,23 @@
 
           <div class="modal-footer add-surcharge-footer">
             <div class="selected-summary">
-              <span class="selected-count">Đã chọn: <strong>{{ selectedSurchargeIds.length }}</strong> phụ phí</span>
-              <span class="total-amount">Tổng tiền:
-                <strong>{{ formatCurrency(calculateSelectedSurchargeTotal()) }}</strong></span>
+              <span class="selected-count"
+                >Đã chọn: <strong>{{ selectedSurchargeIds.length }}</strong> phụ phí</span
+              >
+              <span class="total-amount"
+                >Tổng tiền:
+                <strong>{{ formatCurrency(calculateSelectedSurchargeTotal()) }}</strong></span
+              >
             </div>
             <div class="footer-actions">
               <button class="btn btn-secondary" @click="closeAddSurchargeModal">
                 <i class="fas fa-times"></i> Hủy
               </button>
-              <button class="btn btn-primary" :disabled="selectedSurchargeIds.length === 0"
-                @click="addSelectedSurcharges">
+              <button
+                class="btn btn-primary"
+                :disabled="selectedSurchargeIds.length === 0"
+                @click="addSelectedSurcharges"
+              >
                 <i class="fas fa-plus-circle"></i> Thêm phụ phí ({{ selectedSurchargeIds.length }})
               </button>
             </div>
@@ -2229,14 +2444,19 @@ export default {
         return
       }
       try {
+        // Hủy link PayOS (nếu cần)
         await PaymentService.cancelPaymentLink(
+          this.paymentOrderCode,
+          'Nguoi dung huy trong khi mo modal',
+        )
+        // Ép trạng thái trong DB về thất bại nếu đang chờ
+        await PaymentService.forceFailIfPending(
           this.paymentOrderCode,
           'Nguoi dung huy trong khi mo modal',
         )
         this.paymentStatus = 'ThatBai'
         this.closePaymentModal()
         this.$nextTick(() => {
-          // Hiển thị thông báo sau khi đóng modal
           const msg = 'Bạn đã hủy giao dịch thanh toán.'
           if (typeof notification?.info === 'function') {
             notification.info(msg)
@@ -2246,6 +2466,7 @@ export default {
         })
       } catch (e) {
         console.error('Lỗi khi hủy thanh toán bởi người dùng:', e)
+        // Dù lỗi, vẫn cố gắng đóng modal để không kẹt UI
         this.closePaymentModal()
       }
     },
@@ -3530,7 +3751,6 @@ export default {
 }
 
 @keyframes icon-bounce {
-
   0%,
   100% {
     transform: scale(1);
@@ -3621,10 +3841,12 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(120deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
   transform: translateX(-100%);
   transition: transform 0.6s ease;
   z-index: -1;
@@ -4601,7 +4823,6 @@ textarea.form-control {
 }
 
 @keyframes icon-float {
-
   0%,
   100% {
     transform: translateY(0);

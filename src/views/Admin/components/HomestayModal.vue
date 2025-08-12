@@ -303,7 +303,6 @@
                             required
                           />
                         </div>
-
                         <div class="form-actions mt-3">
                           <button
                             type="button"
@@ -629,6 +628,7 @@ export default {
       donVi: '',
       moTa: '',
       soLuong: 1,
+      trangThai: true
     })
 
     // Lọc tiện nghi theo từ khóa tìm kiếm
@@ -801,6 +801,7 @@ export default {
           donVi: '',
           moTa: '',
           soLuong: 1,
+          trangThai: true
         }
 
         showAddTienNghi.value = false

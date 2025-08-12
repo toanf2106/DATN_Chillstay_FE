@@ -3,7 +3,7 @@
       <div class="modal-content">
         <div class="modal-header">
       <h3 class="modal-title">
-            {{ isEdit ? 'Cập nhật mã giảm giá' : 'Thêm mã giảm giá mới' }}
+            {{ isEdit ? 'Cập nhật giảm giá' : 'Thêm giảm giá mới' }}
       </h3>
       <button type="button" class="close-button" @click="$emit('close')" aria-label="Close">&times;</button>
         </div>
@@ -96,27 +96,16 @@
               <input
                 type="number"
                 class="form-control"
+                :class="{ 'is-invalid': errors.soLuong }"
                 v-model.number="form.soLuong"
                 min="1"
                 step="1"
                 placeholder="Nhập số lượng mã giảm giá"
               />
-              <small class="text-muted">Số lần mã giảm giá có thể được sử dụng</small>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Mã giảm giá <span class="text-danger">*</span></label>
-              <input
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': errors.maGiamGia }"
-                v-model="form.maGiamGia"
-                :disabled="isEdit"
-                placeholder="Nhập mã giảm giá (VD: SUMMER2023)"
-              />
-              <div class="invalid-feedback" v-if="errors.maGiamGia">
-                {{ errors.maGiamGia }}
+              <div class="invalid-feedback" v-if="errors.soLuong">
+                {{ errors.soLuong }}
               </div>
+              <small class="text-muted">Số lần mã giảm giá có thể được sử dụng</small>
             </div>
 
             <div class="form-group">
@@ -191,7 +180,6 @@ export default {
   setup(props, { emit }) {
     const form = ref({
       id: null,
-      maGiamGia: '',
       tenGiamGia: '',
       loaiGiamGia: 'PhanTram',
       giaTri: 0,
@@ -215,7 +203,6 @@ export default {
       if (props.isEdit && props.voucher) {
         form.value = {
           id: props.voucher.id,
-          maGiamGia: props.voucher.maGiamGia || '',
           tenGiamGia: props.voucher.tenGiamGia || '',
           loaiGiamGia: props.voucher.loaiGiamGia || 'PhanTram',
           giaTri: props.voucher.giaTri || 0,
@@ -265,6 +252,10 @@ export default {
 
       if (!form.value.homeStayId) {
         newErrors.homeStayId = 'Vui lòng chọn homestay áp dụng';
+      }
+
+      if (!form.value.soLuong || form.value.soLuong <= 0) {
+        newErrors.soLuong = 'Số lượng phải lớn hơn 0';
       }
 
       // Validate giảm tối đa khi loại giảm giá là phần trăm

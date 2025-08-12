@@ -35,37 +35,48 @@
 </template>
 
 <script>
+import PaymentService from '@/Service/PaymentService'
 export default {
   name: 'PaymentFailureView',
   data() {
     return {
-      errorMessage: ''
-    };
+      errorMessage: '',
+    }
   },
-  created() {
+  async created() {
     // Lấy thông tin lỗi từ URL parameters nếu có
-    const urlParams = new URLSearchParams(window.location.search);
-    const errorCode = urlParams.get('errorCode');
-    const errorMsg = urlParams.get('message');
+    const urlParams = new URLSearchParams(window.location.search)
+    const errorCode = urlParams.get('errorCode')
+    const errorMsg = urlParams.get('message')
+    const orderCode = urlParams.get('orderCode')
 
     if (errorMsg) {
-      this.errorMessage = errorMsg;
+      this.errorMessage = errorMsg
     } else if (errorCode) {
       // Ánh xạ mã lỗi thành thông báo nếu cần
       const errorMessages = {
         '01': 'Giao dịch bị từ chối bởi ngân hàng.',
         '02': 'Thông tin thẻ không hợp lệ.',
         '03': 'Tài khoản không đủ số dư.',
-        '99': 'Lỗi không xác định.'
-      };
-      this.errorMessage = errorMessages[errorCode] || 'Có lỗi xảy ra trong quá trình thanh toán.';
+        99: 'Lỗi không xác định.',
+      }
+      this.errorMessage = errorMessages[errorCode] || 'Có lỗi xảy ra trong quá trình thanh toán.'
+    }
+
+    // Đồng bộ trạng thái: nếu có orderCode, gọi API để server cập nhật trạng thái theo link PayOS
+    try {
+      if (orderCode) {
+        await PaymentService.checkPaymentStatus(orderCode, true)
+      }
+    } catch (e) {
+      console.error('Không thể đồng bộ trạng thái thanh toán:', e)
     }
   },
   methods: {
     goBack() {
-      window.history.go(-1);
-    }
-  }
+      window.history.go(-1)
+    },
+  },
 }
 </script>
 

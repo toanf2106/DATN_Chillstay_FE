@@ -447,7 +447,7 @@
                     </div>
                     <div class="service-action-buttons">
                       <button
-                        v-if="activeTab === 'dichvu'"
+                        v-if="activeTab === 'dichvu' && !isPaymentCompleted"
                         class="btn-add-service"
                         @click="addService"
                       >
@@ -457,7 +457,8 @@
                         v-if="
                           activeTab === 'phuphi' &&
                           selectedBooking &&
-                          selectedBooking.trangThai === 'DaCheckIn'
+                          selectedBooking.trangThai === 'DaCheckIn' &&
+                          !isPaymentCompleted
                         "
                         class="btn-add-surcharge"
                         @click="addSurcharge"
@@ -501,15 +502,27 @@
                         </div>
                         <div class="service-actions">
                           <div class="quantity-controls">
-                            <button class="quantity-btn" @click="decrementServiceQuantity(service)">
+                            <button
+                              class="quantity-btn"
+                              @click="decrementServiceQuantity(service)"
+                              v-if="!isPaymentCompleted"
+                            >
                               <i class="fas fa-minus"></i>
                             </button>
                             <span class="quantity-value">{{ service.soLuong }}</span>
-                            <button class="quantity-btn" @click="incrementServiceQuantity(service)">
+                            <button
+                              class="quantity-btn"
+                              @click="incrementServiceQuantity(service)"
+                              v-if="!isPaymentCompleted"
+                            >
                               <i class="fas fa-plus"></i>
                             </button>
                           </div>
-                          <button class="delete-btn" @click="removeService(service, index)">
+                          <button
+                            class="delete-btn"
+                            @click="removeService(service, index)"
+                            v-if="!isPaymentCompleted"
+                          >
                             <i class="fas fa-trash-alt"></i>
                           </button>
                         </div>
@@ -557,7 +570,7 @@
                           </div>
                         </div>
                         <div class="service-actions">
-                          <button class="delete-btn" @click="removePhuPhi(phuPhi, index)">
+                          <button class="delete-btn" @click="removePhuPhi(phuPhi, index)" v-if="!isPaymentCompleted">
                             <i class="fas fa-trash-alt"></i>
                           </button>
                         </div>
@@ -628,7 +641,9 @@
                     <div class="payment-item">
                       <span class="payment-label">Giá Homestay:</span>
                       <span class="payment-value">{{
-                        formatCurrency(selectedBooking.tongTien)
+                        formatCurrency(
+                          selectedBooking.tongTien || selectedBooking.giaCaHomestay || 0,
+                        )
                       }}</span>
                     </div>
                     <div class="payment-item" v-if="selectedBooking.tenGiamGia">
@@ -1542,6 +1557,14 @@ export default {
         })
         .slice(0, this.visibleBookingsCount)
     },
+    // Thêm computed: xác định đã thanh toán xong
+    isPaymentCompleted() {
+      const remaining =
+        typeof this.calculateRemainingAmount === 'function'
+          ? this.calculateRemainingAmount()
+          : this.soTienConLai
+      return remaining <= 0 || this.paymentStatus === 'ThanhCong'
+    },
   },
   mounted() {
     this.fetchBookings()
@@ -2202,15 +2225,16 @@ export default {
             ? Number(response.data)
             : 0
 
-        // Đảm bảo lấy giá trị tongTien từ selectedBooking
-        if (this.selectedBooking && this.selectedBooking.tongTien) {
-          this.soTienConLai = this.selectedBooking.tongTien - this.soTienDaThanhToan
+        // Cập nhật số tiền còn lại dựa trên công thức tổng tiền chuẩn
+        if (this.selectedBooking) {
+          const total = this.calculateTotalAmount()
+          this.soTienConLai = total - this.soTienDaThanhToan
         } else {
           this.soTienConLai = 0
         }
 
         console.log('Số tiền đã thanh toán:', this.soTienDaThanhToan)
-        console.log('Tổng tiền:', this.selectedBooking.tongTien)
+        console.log('Tổng tiền (tính lại):', this.calculateTotalAmount())
         console.log('Số tiền còn lại:', this.soTienConLai)
 
         // Nếu không còn số tiền phải thanh toán, cập nhật trạng thái thanh toán thành công
@@ -2225,7 +2249,7 @@ export default {
         console.error('Lỗi khi lấy thông tin tổng tiền đã thanh toán:', error)
         // Đặt giá trị mặc định nếu có lỗi
         this.soTienDaThanhToan = 0
-        this.soTienConLai = this.selectedBooking ? this.selectedBooking.tongTien : 0
+        this.soTienConLai = this.selectedBooking ? this.calculateTotalAmount() : 0
       }
     },
 
@@ -2705,24 +2729,23 @@ export default {
     calculateTotalAmount() {
       if (!this.selectedBooking) return 0
 
-      // Ưu tiên dùng tổng tiền từ đơn đặt (datHome)
-      if (this.selectedBooking.tongTien !== undefined && this.selectedBooking.tongTien !== null) {
-        return Number(this.selectedBooking.tongTien) || 0
-      }
+      // Giá phòng/homestay gốc từ đơn (không bao gồm dịch vụ, phụ phí)
+      const baseRoomPrice = Number(
+        this.selectedBooking.tongTien || this.selectedBooking.giaCaHomestay || 0,
+      )
+      const discount = Number(this.calculateActualDiscount() || 0)
+      const serviceTotal = Number(this.selectedBooking.tongTienDichVu || 0)
+      const surchargeTotal = Number(this.calculatePhuPhiTotal() || 0)
 
-      // Fallback: tính lại từ các phần nếu không có tongTien
-      const giaCaHomestay = Number(this.selectedBooking.giaCaHomestay || 0)
-      const giamGia = Number(this.calculateActualDiscount() || 0)
-      const tongTienDichVu = Number(this.selectedBooking.tongTienDichVu || 0)
-      const tongTienPhuPhi = this.calculatePhuPhiTotal()
-
-      return giaCaHomestay - giamGia + tongTienDichVu + tongTienPhuPhi
+      const roomAfterDiscount = Math.max(0, baseRoomPrice - discount)
+      return roomAfterDiscount + serviceTotal + surchargeTotal
     },
 
     // Tính số tiền còn lại phải thanh toán
     calculateRemainingAmount() {
-      const tongTien = this.calculateTotalAmount()
-      return tongTien - this.soTienDaThanhToan
+      const total = this.calculateTotalAmount()
+      const remaining = total - Number(this.soTienDaThanhToan || 0)
+      return Math.max(0, remaining)
     },
 
     // Update tổng tiền
@@ -2733,31 +2756,17 @@ export default {
       const serviceTotal = this.calculateServiceTotal()
       const phuPhiTotal = this.calculatePhuPhiTotal()
 
-      // Update tiền dịch vụ (chỉ tính phần dịch vụ, không bao gồm phụ phí)
+      // Cập nhật các trường hiển thị
       this.selectedBooking.tongTienDichVu = serviceTotal
-
-      // Lưu tổng tiền phụ phí riêng nếu chưa có
       if (!this.selectedBooking.tongTienPhuPhi) {
         this.selectedBooking.tongTienPhuPhi = 0
       }
       this.selectedBooking.tongTienPhuPhi = phuPhiTotal
 
-      // Nếu đã có tổng tiền từ backend (datHome.tongTien), giữ nguyên để tránh sai lệch
-      if (this.selectedBooking.tongTien !== undefined && this.selectedBooking.tongTien !== null) {
-        // Cập nhật số tiền còn lại dựa trên tongTien hiện tại
-        this.soTienConLai = (Number(this.selectedBooking.tongTien) || 0) - this.soTienDaThanhToan
-        return
-      }
+      // Luôn tính tổng tiền theo công thức chuẩn
+      const tongTien = this.calculateTotalAmount()
 
-      // Fallback: tính tổng tiền nếu backend chưa cung cấp tongTien
-      const giaCaHomestay = Number(this.selectedBooking.giaCaHomestay || 0)
-      const giamGia = Number(this.calculateActualDiscount() || 0)
-      const tongTien = giaCaHomestay - giamGia + serviceTotal + phuPhiTotal
-
-      // Set tổng
-      this.selectedBooking.tongTien = tongTien
-
-      // Update còn lại
+      // Cập nhật số tiền còn lại
       this.soTienConLai = tongTien - this.soTienDaThanhToan
 
       console.log('Đã cập nhật tổng tiền:', {
@@ -2770,6 +2779,10 @@ export default {
 
     // Thêm dịch vụ
     async addService() {
+      if (this.isPaymentCompleted) {
+        notification.warning('Đơn đã thanh toán xong, không thể thêm dịch vụ')
+        return
+      }
       try {
         // Mở modal
         this.showAddServiceModal = true
@@ -2934,6 +2947,10 @@ export default {
 
     // Tăng số lượng dịch vụ
     incrementServiceQuantity(service) {
+      if (this.isPaymentCompleted) {
+        notification.warning('Đơn đã thanh toán, không thể thay đổi dịch vụ')
+        return
+      }
       if (!service) return
       service.soLuong++
       service.tongTien = service.soLuong * service.giaDichVu
@@ -2942,6 +2959,10 @@ export default {
 
     // Giảm số lượng dịch vụ
     decrementServiceQuantity(service) {
+      if (this.isPaymentCompleted) {
+        notification.warning('Đơn đã thanh toán, không thể thay đổi dịch vụ')
+        return
+      }
       if (!service || service.soLuong <= 1) return
       service.soLuong--
       service.tongTien = service.soLuong * service.giaDichVu
@@ -2975,6 +2996,10 @@ export default {
 
     // Xóa dịch vụ
     removeService(service, index) {
+      if (this.isPaymentCompleted) {
+        notification.warning('Đơn đã thanh toán, không thể xóa dịch vụ')
+        return
+      }
       if (!service || !this.selectedBooking || !this.selectedBooking.dichVus) return
 
       if (confirm(`Bạn có chắc chắn muốn xóa dịch vụ "${service.tenDichVu}" không?`)) {
@@ -3088,6 +3113,10 @@ export default {
     },
 
     removePhuPhi(phuPhi, index) {
+      if (this.isPaymentCompleted) {
+        notification.warning('Đơn đã thanh toán, không thể xóa phụ phí')
+        return
+      }
       if (!phuPhi || !this.selectedBooking || !this.selectedBooking.phuPhis) return
 
       if (confirm(`Bạn có chắc chắn muốn xóa phụ phí "${phuPhi.tenPhuPhi}" không?`)) {

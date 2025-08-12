@@ -14,12 +14,12 @@
               <input type="text" placeholder="Nhập tên homestay" v-model="searchName" />
             </div>
             <div class="search-input dropdown">
-              <i class="fas fa-map-marker-alt search-icon"></i>
+              <i class="fas fa-home search-icon"></i>
               <select v-model="searchLocation">
-                <option>Tất cả địa điểm</option>
-                <option>Trung tâm Mộc Châu</option>
-                <option>Bản Ba Phách</option>
-                <option>Thung lũng Nà Ka</option>
+                <option value="Tất cả loại homestay">Tất cả loại homestay</option>
+                <option v-for="loai in homestayTypes" :key="loai.id" :value="loai.tenLoaiHomestay">
+                  {{ loai.tenLoaiHomestay }}
+                </option>
               </select>
             </div>
             <div class="search-input dropdown">
@@ -83,11 +83,14 @@
               </span>
             </div>
             <div class="homestay-content">
-              <div class="location" v-if="home.diaChi">
-                <i class="fas fa-map-marker-alt"></i> {{ home.diaChi }}
+              <div class="homestay-type" v-if="home.tenLoaiHomestay">
+                <i class="fas fa-home"></i> {{ home.tenLoaiHomestay }}
               </div>
-              <div class="location" v-else>
-                <i class="fas fa-map-marker-alt"></i> Chưa cập nhật địa chỉ
+              <div class="homestay-type" v-else-if="home.loaiHomeStay && home.loaiHomeStay.tenLoai">
+                <i class="fas fa-home"></i> {{ home.loaiHomeStay.tenLoai }}
+              </div>
+              <div class="homestay-type" v-else>
+                <i class="fas fa-home"></i> Homestay
               </div>
               <h3 class="homestay-title">{{ home.tenHomestay }}</h3>
               <div class="homestay-details">
@@ -170,7 +173,7 @@ const defaultImage = 'https://images.unsplash.com/photo-1566073771259-6a85060999
 
 // Thêm biến state cho tìm kiếm
 const searchName = ref('')
-const searchLocation = ref('Tất cả địa điểm')
+const searchLocation = ref('Tất cả loại homestay')
 const searchPrice = ref('Tất cả mức giá')
 
 // Thêm biến state cho phân trang
@@ -186,7 +189,7 @@ const navigateToBooking = (homestayId) => {
 const handleSearch = () => {
   console.log('Đang tìm kiếm với:', {
     tên: searchName.value,
-    địaĐiểm: searchLocation.value,
+    loạiHomestay: searchLocation.value,
     giáCả: searchPrice.value,
   })
 
@@ -195,7 +198,7 @@ const handleSearch = () => {
     path: '/all-homestays',
     query: {
       name: searchName.value,
-      location: searchLocation.value !== 'Tất cả địa điểm' ? searchLocation.value : null,
+      loaiHomestay: searchLocation.value !== 'Tất cả loại homestay' ? searchLocation.value : null,
       price: searchPrice.value !== 'Tất cả mức giá' ? searchPrice.value : null,
       sort: sortOption.value,
     },
@@ -217,9 +220,19 @@ const filteredHomestays = computed(() => {
     )
   }
 
-  // Lọc theo địa điểm từ tham số tìm kiếm
-  if (searchLocation.value && searchLocation.value !== 'Tất cả địa điểm') {
-    result = result.filter((home) => home.diaChi && home.diaChi.includes(searchLocation.value))
+  // Lọc theo loại homestay từ tham số tìm kiếm
+  if (searchLocation.value && searchLocation.value !== 'Tất cả loại homestay') {
+    result = result.filter((home) => {
+      // Kiểm tra trường tenLoaiHomestay trực tiếp
+      if (home.tenLoaiHomestay && home.tenLoaiHomestay === searchLocation.value) {
+        return true
+      }
+      // Kiểm tra trường loaiHomeStay.tenLoai nếu có
+      if (home.loaiHomeStay && home.loaiHomeStay.tenLoai && home.loaiHomeStay.tenLoai === searchLocation.value) {
+        return true
+      }
+      return false
+    })
   }
 
   // Lọc theo giá từ tham số tìm kiếm
@@ -308,7 +321,7 @@ const nextPage = () => {
 // Đặt lại bộ lọc
 const resetFilters = () => {
   searchName.value = ''
-  searchLocation.value = 'Tất cả địa điểm'
+  searchLocation.value = 'Tất cả loại homestay'
   searchPrice.value = 'Tất cả mức giá'
   sortOption.value = 'price-asc'
   roomTypeFilter.value = ''
@@ -325,8 +338,8 @@ const readSearchParamsFromURL = () => {
     searchName.value = route.query.name
   }
 
-  if (route.query.location) {
-    searchLocation.value = route.query.location
+  if (route.query.loaiHomestay) {
+    searchLocation.value = route.query.loaiHomestay
   }
 
   if (route.query.price) {
@@ -353,13 +366,21 @@ const fetchHomestayTypes = async () => {
     console.log('Dữ liệu loại homestay từ API:', response.data)
 
     if (response.data && Array.isArray(response.data)) {
-      homestayTypes.value = response.data
+      // Chỉ lấy các loại homestay đang hoạt động
+      homestayTypes.value = response.data.filter(loai => loai.trangThai === true)
       console.log('Đã tải loại homestay từ API:', homestayTypes.value)
     } else {
       console.warn('API trả về dữ liệu loại homestay không hợp lệ:', response.data)
     }
   } catch (error) {
     console.error('Lỗi khi tải dữ liệu loại homestay:', error)
+    // Nếu không lấy được dữ liệu từ API, sử dụng dữ liệu mẫu
+    homestayTypes.value = [
+      { id: 1, tenLoaiHomestay: 'Homestay truyền thống' },
+      { id: 2, tenLoaiHomestay: 'Cottage gỗ' },
+      { id: 3, tenLoaiHomestay: 'Villa cao cấp' },
+      { id: 4, tenLoaiHomestay: 'Bungalow' }
+    ]
   }
 }
 
@@ -832,7 +853,7 @@ watch(currentPage, (newPage) => {
   justify-content: space-between;
 }
 
-.location {
+.homestay-type {
   display: flex;
   align-items: center;
   gap: 6px;

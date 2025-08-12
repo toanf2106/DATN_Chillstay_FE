@@ -48,12 +48,12 @@
                 <input type="text" placeholder="Nhập tên homestay" v-model="searchName" />
               </div>
               <div class="search-input dropdown">
-                <i class="fas fa-map-marker-alt search-icon"></i>
+                <i class="fas fa-home search-icon"></i>
                 <select v-model="searchLocation">
-                  <option>Tất cả địa điểm</option>
-                  <option>Trung tâm Mộc Châu</option>
-                  <option>Bản Ba Phách</option>
-                  <option>Thung lũng Nà Ka</option>
+                  <option value="Tất cả loại homestay">Tất cả loại homestay</option>
+                  <option v-for="loai in loaiHomestays" :key="loai.id" :value="loai.tenLoaiHomestay">
+                    {{ loai.tenLoaiHomestay }}
+                  </option>
                 </select>
               </div>
               <div class="search-input dropdown">
@@ -270,7 +270,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { getAllHomeStay, getAnhHomeStayByHomestayId, getHomeStayById } from '@/Service/HomeStayService'
+import { getAllHomeStay, getAnhHomeStayByHomestayId, getHomeStayById, getLoaiHomeStay } from '@/Service/HomeStayService'
 import { getAllTinTuc } from '@/Service/TinTucService'
 import { getAnhTinTucByTinTucId } from '@/Service/AnhTinTucService'
 import { getAllDanhGia } from '@/Service/DanhGiaService' // Thêm dòng này
@@ -287,8 +287,11 @@ const defaultImage =
 
 // Thêm các state cho form tìm kiếm
 const searchName = ref('')
-const searchLocation = ref('Tất cả địa điểm')
+const searchLocation = ref('Tất cả loại homestay')
 const searchPrice = ref('Tất cả mức giá')
+
+// State cho loại homestay
+const loaiHomestays = ref([])
 
 // Thêm dữ liệu đánh giá mẫu
 const isLoadingReviews = ref(false)
@@ -346,7 +349,7 @@ const activeReview = computed(() => {
 const handleSearch = () => {
   console.log('Đang tìm kiếm với:', {
     tên: searchName.value,
-    địaĐiểm: searchLocation.value,
+    loạiHomestay: searchLocation.value,
     giáCả: searchPrice.value,
   })
 
@@ -355,7 +358,7 @@ const handleSearch = () => {
     path: '/all-homestays',
     query: {
       name: searchName.value,
-      location: searchLocation.value !== 'Tất cả địa điểm' ? searchLocation.value : null,
+      loaiHomestay: searchLocation.value !== 'Tất cả loại homestay' ? searchLocation.value : null,
       price: searchPrice.value !== 'Tất cả mức giá' ? searchPrice.value : null,
     },
   })
@@ -487,6 +490,27 @@ const fetchHomestayData = async () => {
     errorMessage.value = 'Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.'
   } finally {
     isLoading.value = false
+  }
+}
+
+// Hàm lấy dữ liệu loại homestay từ API
+const fetchLoaiHomestayData = async () => {
+  try {
+    const res = await getLoaiHomeStay()
+    if (res.data && Array.isArray(res.data)) {
+      // Chỉ lấy các loại homestay đang hoạt động
+      loaiHomestays.value = res.data.filter(loai => loai.trangThai === true)
+      console.log('Dữ liệu loại homestay:', loaiHomestays.value)
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy dữ liệu loại homestay:', error)
+    // Nếu không lấy được dữ liệu từ API, sử dụng dữ liệu mẫu
+    loaiHomestays.value = [
+      { id: 1, tenLoaiHomestay: 'Homestay truyền thống' },
+      { id: 2, tenLoaiHomestay: 'Cottage gỗ' },
+      { id: 3, tenLoaiHomestay: 'Villa cao cấp' },
+      { id: 4, tenLoaiHomestay: 'Bungalow' }
+    ]
   }
 }
 
@@ -688,6 +712,7 @@ onMounted(() => {
   startSlideshow();
   // Tiếp tục các onMounted hiện có
   fetchHomestayData();
+  fetchLoaiHomestayData(); // Lấy dữ liệu loại homestay
   fetchNewsData();
   fetchReviews(); // Thêm dòng này để lấy đánh giá từ backend
   startReviewSlideshow();

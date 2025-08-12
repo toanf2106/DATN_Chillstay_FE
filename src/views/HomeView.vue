@@ -155,15 +155,19 @@
 
               <div class="homestay-price" v-if="home.giaCaHomestay">
                 <span class="price">{{ home.giaCaHomestay.toLocaleString('vi-VN') }}₫</span>
-                <button class="book-now-btn" @click="navigateToBooking(home.id)">Đặt ngay</button>
+                <button class="book-now-btn" @click="navigateToBooking(home.id)">Xem Chi Tiết Homestay</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Nút xem tất cả homestay đặt sau lưới -->
-        <div class="view-more" v-if="!isLoading && !hasError">
-          <button class="view-more-btn" @click="viewAllHomestays">Xem Tất Cả Homestay</button>
+        <!-- Dòng xem tất cả homestay -->
+        <div class="view-more-line" v-if="!isLoading && !hasError">
+          <div class="line-separator">
+            <span class="line"></span>
+            <span class="view-more-text" @click="viewAllHomestays">Xem Tất Cả Homestay</span>
+            <span class="line"></span>
+          </div>
         </div>
       </div>
     </section>
@@ -1107,6 +1111,9 @@ const fixImageUrl = (url) => {
     box-shadow 0.3s ease;
   border: 1px solid #e8e8e8;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .homestay-card:hover {
@@ -1118,12 +1125,23 @@ const fixImageUrl = (url) => {
   position: relative;
   height: 220px;
   overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .homestay-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.homestay-image:empty::before {
+  content: '🏠';
+  font-size: 48px;
+  color: #6c757d;
+  opacity: 0.5;
 }
 
 .homestay-status {
@@ -1167,6 +1185,9 @@ const fixImageUrl = (url) => {
 
 .homestay-content {
   padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .homestay-location {
@@ -1243,13 +1264,14 @@ const fixImageUrl = (url) => {
   cursor: pointer;
   transition: background 0.3s ease;
   text-align: center;
+  margin-top: auto;
 }
 
 .book-now-btn:hover {
   background: #0096c7;
 }
 
-.view-more {
+.view-more-line {
   text-align: center;
   margin-top: 35px;
   width: 100%;
@@ -1257,21 +1279,33 @@ const fixImageUrl = (url) => {
   justify-content: center;
 }
 
-.view-more-btn {
-  padding: 12px 30px;
-  background: #48cae4;
-  color: #fff;
-  border: none;
-  border-radius: 30px;
+.line-separator {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #48cae4, transparent);
+}
+
+.view-more-text {
+  color: #48cae4;
   font-weight: 500;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.3s ease;
-  min-width: 200px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  padding: 0 10px;
 }
 
-.view-more-btn:hover {
-  background: #0096c7;
+.view-more-text:hover {
+  color: #0096c7;
+  transform: scale(1.05);
 }
 
 /* Phần Kêu Gọi Hành Động */

@@ -111,6 +111,19 @@ class PaymentService {
       throw error
     }
   }
+
+  // Ép trạng thái thất bại nếu đang chờ
+  async forceFailIfPending(orderCode, reason = '') {
+    try {
+      const response = await api.post(`/api/payment/force-fail/${orderCode}`, null, {
+        params: { reason }
+      })
+      return response.data
+    } catch (error) {
+      console.error(`Lỗi khi ép trạng thái thất bại cho đơn ${orderCode}:`, error)
+      throw error
+    }
+  }
 }
 
 export default new PaymentService()

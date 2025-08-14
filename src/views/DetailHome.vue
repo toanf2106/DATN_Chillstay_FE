@@ -346,7 +346,7 @@
                         <div class="info-content">
                           <strong>Tổng số người</strong>
                           <span>{{ room.soNguoiToiDa || (room.soNguoiLon + (room.soTreNho || room.soNguoiNho || 0))
-                          }}</span>
+                            }}</span>
                         </div>
                       </div>
                     </div>
@@ -420,7 +420,7 @@
                 <i class="fas fa-box"></i>
                 <div class="supply-content">
                   <span class="supply-name">{{ item.tenVatTu }} <small v-if="item.soLuong">({{ item.soLuong
-                  }})</small></span>
+                      }})</small></span>
                   <p v-if="item.moTa" class="supply-description">{{ item.moTa }}</p>
                 </div>
               </div>
@@ -443,7 +443,7 @@
                   <div class="service-header">
                     <span class="service-name">{{ item.tenDichVu }}</span>
                     <span class="service-price">{{ formatPrice(item.gia) }}<small>/{{ item.donVi || 'Ngày'
-                    }}</small></span>
+                        }}</small></span>
                   </div>
                   <p v-if="item.moTa" class="service-description">{{ item.moTa }}</p>
                 </div>
@@ -613,50 +613,6 @@
               Việc đặt phòng đồng nghĩa với việc bạn đã đọc và đồng ý với tất cả các quy tắc trên. Nếu có bất kỳ thắc
               mắc nào, vui lòng liên hệ với chúng tôi trước khi đặt phòng.
             </p>
-          </div>
-
-          <div class="info-section">
-            <h3>Đánh giá từ khách hàng</h3>
-            <div v-if="isLoadingReviews" class="loading-indicator">
-              <div class="spinner-sm"></div>
-              <span>Đang tải đánh giá...</span>
-            </div>
-            <div v-else-if="reviews.length > 0" class="reviews-summary">
-              <div class="overall-rating">
-                <span class="rating-number">{{ homestay.danhGiaTrungBinh || 0 }}</span>
-                <div class="stars">★★★★★</div>
-                <span class="review-count">{{ reviews.length }} đánh giá</span>
-              </div>
-
-              <!-- Danh sách đánh giá chi tiết -->
-              <div class="reviews-list">
-                <div v-for="review in reviews.slice(0, 3)" :key="review.ID" class="review-item">
-                  <div class="review-header">
-                    <div class="reviewer-info">
-                      <i class="fas fa-user-circle"></i>
-                      <span class="reviewer-name">{{ review.khachHang?.hoTen || review.khachHang?.HoTen || 'Khách hàng'
-                      }}</span>
-                    </div>
-                    <div class="review-rating">
-                      <span class="stars">★★★★★</span>
-                      <span class="rating-score">{{ review.Diem_So }}/5</span>
-                    </div>
-                  </div>
-                  <p class="review-content">{{ review.Noi_Dung }}</p>
-                  <div class="review-date">{{ new Date(review.Thoi_Gian_Danh_Gia).toLocaleDateString('vi-VN') }}</div>
-                </div>
-              </div>
-
-              <div v-if="reviews.length > 3" class="more-reviews">
-                <router-link :to="`/danh-gia/${homestay.id}`" class="more-reviews-link">
-                  Xem tất cả {{ reviews.length }} đánh giá <i class="fas fa-arrow-right"></i>
-                </router-link>
-              </div>
-            </div>
-            <div v-else class="no-data">
-              <i class="fas fa-info-circle"></i>
-              <span>Chưa có đánh giá nào cho homestay này</span>
-            </div>
           </div>
         </div>
       </div>

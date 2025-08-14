@@ -124,7 +124,6 @@
                       <th>Homestay</th>
                       <th>Check-in</th>
                       <th>Check-out</th>
-                      <th>Trạng thái</th>
                       <th>Tổng tiền</th>
                     </tr>
                   </thead>
@@ -132,18 +131,10 @@
                     <tr v-for="b in recentBookings" :key="b.id">
                       <td>{{ b.tenKhachHang || b.khachHang?.tenKhachHang || 'Ẩn danh' }}</td>
                       <td>{{ b.tenHomestay || b.homestay?.tenHomestay || '---' }}</td>
-                      <td>{{ b.ngayCheckIn ? new Date(b.ngayCheckIn).toLocaleDateString('vi-VN') : '' }}</td>
-                      <td>{{ b.ngayCheckOut ? new Date(b.ngayCheckOut).toLocaleDateString('vi-VN') : '' }}</td>
-                      <td>
-                        <span class="badge" :class="{
-                          'bg-success': b.trangThai === true || b.trangThai === 'Đã thanh toán',
-                          'bg-warning': b.trangThai === 'Đang xử lý',
-                          'bg-danger': b.trangThai === false || b.trangThai === 'Đã hủy',
-                          'bg-info': b.trangThai === 'Mới đặt',
-                        }">
-                          {{ b.trangThai || '---' }}
-                        </span>
-                      </td>
+                      <td>{{ b.ngayNhanPhong ? new Date(b.ngayNhanPhong).toLocaleDateString('vi-VN') : (b.ngayCheckIn ?
+                        new Date(b.ngayCheckIn).toLocaleDateString('vi-VN') : '') }}</td>
+                      <td>{{ b.ngayTraPhong ? new Date(b.ngayTraPhong).toLocaleDateString('vi-VN') : (b.ngayCheckOut ?
+                        new Date(b.ngayCheckOut).toLocaleDateString('vi-VN') : '') }}</td>
                       <td>{{ formatMoney(b.tongTien || b.soTien || 0) }}</td>
                     </tr>
                   </tbody>

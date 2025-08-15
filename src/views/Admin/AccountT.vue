@@ -7,13 +7,8 @@
         <div class="search-control-group">
           <div class="search-input-wrapper">
             <i class="fas fa-search search-icon"></i>
-            <input
-              type="text"
-              v-model="searchKeyword"
-              placeholder="Tìm kiếm tài khoản..."
-              class="search-input"
-              @input="onSearchChange"
-            />
+            <input type="text" v-model="searchKeyword" placeholder="Tìm kiếm tài khoản..." class="search-input"
+              @input="onSearchChange" />
             <button v-if="searchKeyword" @click="clearSearch" class="clear-search-btn">
               <i class="fas fa-times"></i>
             </button>
@@ -61,11 +56,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(account, index) in paginatedAccounts"
-            :key="account.id"
-            @dblclick="viewAccountDetails(account)"
-          >
+          <tr v-for="(account, index) in paginatedAccounts" :key="account.id" @dblclick="viewAccountDetails(account)">
             <td class="text-center">{{ startItem + index }}</td>
             <td class="text-center">{{ account.tenDangNhap }}</td>
             <td class="text-center">{{ account.email }}</td>
@@ -82,53 +73,32 @@
                 <div v-if="imageLoadingStates[account.id]" class="image-loading">
                   <div class="spinner-border spinner-border-sm text-primary"></div>
                 </div>
-                <img
-                  v-if="(account.anhBase64 || account.anh) && !imageErrors[account.id]"
-                  :src="processImageUrl(account.anhBase64 || account.anh)"
-                  :alt="`Ảnh ${account.tenDangNhap}`"
-                  class="account-avatar"
-                  :class="{ loading: imageLoadingStates[account.id] }"
-                  @click.stop="
+                <img v-if="(account.anhBase64 || account.anh) && !imageErrors[account.id]"
+                  :src="processImageUrl(account.anhBase64 || account.anh)" :alt="`Ảnh ${account.tenDangNhap}`"
+                  class="account-avatar" :class="{ loading: imageLoadingStates[account.id] }" @click.stop="
                     openImagePreview(account.anhBase64 || account.anh, account.tenDangNhap)
-                  "
-                  @load="handleImageLoad(account.id)"
-                  @error="handleImageError(account.id)"
-                />
-                <div
-                  v-else
-                  class="no-image-placeholder"
-                  @click.stop="openImagePreview(null, account.tenDangNhap)"
-                >
+                    " @load="handleImageLoad(account.id)" @error="handleImageError(account.id)" />
+                <div v-else class="no-image-placeholder" @click.stop="openImagePreview(null, account.tenDangNhap)">
                   <i class="fas fa-user-circle"></i>
                   <span>{{ imageErrors[account.id] ? 'Lỗi ảnh' : 'Chưa có ảnh' }}</span>
                 </div>
               </div>
             </td>
             <td class="text-center">
-              <div v-if="account.trangThai" class="action-buttons">
-                <button
-                  class="btn btn-icon btn-warning-light"
-                  title="Chỉnh sửa"
-                  @click.stop="openEditModal(account)"
-                >
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button
-                  class="btn btn-icon btn-danger-light"
-                  title="Khóa"
-                  @click.stop="confirmDelete(account)"
-                >
-                  <i class="fas fa-lock"></i>
-                </button>
-              </div>
-              <div v-else class="action-buttons">
-                <button
-                  class="btn btn-icon btn-success-light"
-                  title="Mở khóa"
-                  @click.stop="confirmRestore(account)"
-                >
-                  <i class="fas fa-unlock"></i>
-                </button>
+              <div class="action-buttons">
+                <div v-if="account.tenLoai === 'Admin'" class="action-view-only">Chỉ xem</div>
+                <template v-else>
+                  <button class="btn btn-icon btn-warning-light" title="Chỉnh sửa" @click.stop="openEditModal(account)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-icon btn-danger-light" title="Khóa" @click.stop="confirmDelete(account)">
+                    <i class="fas fa-lock"></i>
+                  </button>
+                  <button v-if="!account.trangThai" class="btn btn-icon btn-success-light" title="Mở khóa"
+                    @click.stop="confirmRestore(account)">
+                    <i class="fas fa-unlock"></i>
+                  </button>
+                </template>
               </div>
             </td>
           </tr>
@@ -158,18 +128,10 @@
               <i class="fas fa-chevron-left"></i>
             </a>
           </li>
-          <li
-            v-for="page in totalPages"
-            :key="page"
-            class="page-item"
-            :class="{ active: page - 1 === currentPage }"
-          >
+          <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: page - 1 === currentPage }">
             <a class="page-link" href="#" @click.prevent="changePage(page - 1)">{{ page }}</a>
           </li>
-          <li
-            class="page-item"
-            :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }"
-          >
+          <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }">
             <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
               <i class="fas fa-chevron-right"></i>
             </a>
@@ -191,53 +153,33 @@
               <div class="col-md-4">
                 <div class="account-avatar-display">
                   <div class="avatar-preview" @click="triggerImageUpload">
-                    <img
-                      v-if="newAccount.anhPreview"
-                      :src="newAccount.anhPreview"
-                      class="uploaded-avatar"
-                      @error="handleUploadImageError"
-                    />
+                    <img v-if="newAccount.anhPreview" :src="newAccount.anhPreview" class="uploaded-avatar"
+                      @error="handleUploadImageError" />
                     <div v-else class="avatar-placeholder">
                       <i class="fas fa-user"></i>
                       <span>Click để chọn ảnh</span>
                     </div>
                   </div>
-                  <input
-                    type="file"
-                    ref="imageInput"
-                    style="display: none"
-                    accept="image/*"
-                    @change="handleImageUpload"
-                  />
+                  <input type="file" ref="imageInput" style="display: none" accept="image/*"
+                    @change="handleImageUpload" />
                 </div>
               </div>
               <div class="col-md-8">
                 <div class="form-group">
                   <label>Tên đăng nhập <span class="required-mark">*</span></label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="newAccount.tenDangNhap"
-                    required
-                    :class="{ 'is-invalid': validationErrors.tenDangNhap }"
-                  />
+                  <input type="text" class="form-control" v-model="newAccount.tenDangNhap" required
+                    :class="{ 'is-invalid': validationErrors.tenDangNhap }" />
                   <div class="invalid-feedback" v-if="validationErrors.tenDangNhap">
                     {{ validationErrors.tenDangNhap }}
                   </div>
-                  <small class="form-text text-muted"
-                    >Chỉ được dùng chữ cái và số, không dấu, không ký tự đặc biệt.</small
-                  >
+                  <small class="form-text text-muted">Chỉ được dùng chữ cái và số, không dấu, không ký tự đặc
+                    biệt.</small>
                 </div>
 
                 <div class="form-group">
                   <label>Họ và tên <span class="required-mark">*</span></label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="newAccount.hoTen"
-                    required
-                    :class="{ 'is-invalid': validationErrors.hoTen }"
-                  />
+                  <input type="text" class="form-control" v-model="newAccount.hoTen" required
+                    :class="{ 'is-invalid': validationErrors.hoTen }" />
                   <div class="invalid-feedback" v-if="validationErrors.hoTen">
                     {{ validationErrors.hoTen }}
                   </div>
@@ -245,29 +187,18 @@
 
                 <div class="form-group">
                   <label>Mật khẩu <span class="required-mark">*</span></label>
-                  <input
-                    type="password"
-                    class="form-control"
-                    v-model="newAccount.matKhau"
-                    :class="{ 'is-invalid': validationErrors.matKhau }"
-                  />
+                  <input type="password" class="form-control" v-model="newAccount.matKhau"
+                    :class="{ 'is-invalid': validationErrors.matKhau }" />
                   <div class="invalid-feedback" v-if="validationErrors.matKhau">
                     {{ validationErrors.matKhau }}
                   </div>
-                  <small class="form-text text-muted"
-                    >Để trống để sử dụng mật khẩu mặc định: 123456</small
-                  >
+                  <small class="form-text text-muted">Để trống để sử dụng mật khẩu mặc định: 123456</small>
                 </div>
 
                 <div class="form-group">
                   <label>Email <span class="required-mark">*</span></label>
-                  <input
-                    type="email"
-                    class="form-control"
-                    v-model="newAccount.email"
-                    required
-                    :class="{ 'is-invalid': validationErrors.email }"
-                  />
+                  <input type="email" class="form-control" v-model="newAccount.email" required
+                    :class="{ 'is-invalid': validationErrors.email }" />
                   <div class="invalid-feedback" v-if="validationErrors.email">
                     {{ validationErrors.email }}
                   </div>
@@ -275,26 +206,23 @@
 
                 <div class="form-group">
                   <label>Số điện thoại <span class="required-mark">*</span></label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="newAccount.soDienThoai"
-                    required
-                    :class="{ 'is-invalid': validationErrors.soDienThoai }"
-                  />
+                  <input type="text" class="form-control" v-model="newAccount.soDienThoai" required
+                    :class="{ 'is-invalid': validationErrors.soDienThoai }" />
                   <div class="invalid-feedback" v-if="validationErrors.soDienThoai">
                     {{ validationErrors.soDienThoai }}
                   </div>
-                  <small class="form-text text-muted"
-                    >Số điện thoại phải có 10-11 chữ số và bắt đầu bằng số 0.</small
-                  >
+                  <small class="form-text text-muted">Số điện thoại phải có 10-11 chữ số và bắt đầu bằng số 0.</small>
                 </div>
 
                 <div class="form-group">
                   <label>Loại tài khoản <span class="required-mark">*</span></label>
-                  <select class="form-control" v-model="newAccount.loaiTaiKhoan" required>
-                    <option v-for="role in accountTypes" :key="role.id" :value="role.id">
-                      {{ role.tenLoai }}
+                  <select class="form-control" v-model="newAccount.loaiTaiKhoan" required
+                    @change="onChangeNewAccountRole">
+                    <option v-for="role in accountTypes" :key="role.id" :value="role.id"
+                      :disabled="adminCount >= 2 && role.tenLoai === 'Admin'">
+                      {{ role.tenLoai }}{{ role.tenLoai === 'Admin' && adminCount >= 2 ? ' (Thêm tối đa 2 tài khoản
+                      admin)'
+                      : '' }}
                     </option>
                   </select>
                 </div>
@@ -304,12 +232,8 @@
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="closeAddModal">Hủy bỏ</button>
               <button type="submit" class="btn btn-primary" :disabled="isAddingAccount">
-                <span
-                  v-if="isAddingAccount"
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
+                <span v-if="isAddingAccount" class="spinner-border spinner-border-sm" role="status"
+                  aria-hidden="true"></span>
                 <span v-else>Tạo tài khoản</span>
               </button>
             </div>
@@ -332,33 +256,20 @@
                 <div class="account-avatar-display">
                   <div class="avatar-preview" @click="triggerImageUploadInEdit">
                     <!-- Ưu tiên sử dụng anhPreview nếu có (ảnh mới được chọn) -->
-                    <img
-                      v-if="selectedAccount.anhPreview"
-                      :src="selectedAccount.anhPreview"
-                      :alt="`Ảnh ${selectedAccount.tenDangNhap}`"
-                      @error="handleProfileImageError"
-                      class="uploaded-avatar"
-                    />
+                    <img v-if="selectedAccount.anhPreview" :src="selectedAccount.anhPreview"
+                      :alt="`Ảnh ${selectedAccount.tenDangNhap}`" @error="handleProfileImageError"
+                      class="uploaded-avatar" />
                     <!-- Nếu không có anhPreview, sử dụng URL từ server -->
-                    <img
-                      v-else-if="selectedAccount.anh"
-                      :src="processImageUrl(selectedAccount.anh)"
-                      :alt="`Ảnh ${selectedAccount.tenDangNhap}`"
-                      @error="handleProfileImageError"
-                      class="uploaded-avatar"
-                    />
+                    <img v-else-if="selectedAccount.anh" :src="processImageUrl(selectedAccount.anh)"
+                      :alt="`Ảnh ${selectedAccount.tenDangNhap}`" @error="handleProfileImageError"
+                      class="uploaded-avatar" />
                     <div v-else class="avatar-placeholder">
                       <i class="fas fa-user"></i>
                       <span>Click để chọn ảnh</span>
                     </div>
                   </div>
-                  <input
-                    type="file"
-                    ref="editImageInput"
-                    style="display: none"
-                    accept="image/*"
-                    @change="handleEditImageUpload"
-                  />
+                  <input type="file" ref="editImageInput" style="display: none" accept="image/*"
+                    @change="handleEditImageUpload" />
                   <h4 class="text-center mt-3">{{ selectedAccount.tenDangNhap }}</h4>
                   <p class="text-center account-id">ID: {{ selectedAccount.id }}</p>
                 </div>
@@ -366,12 +277,7 @@
               <div class="col-md-8">
                 <div class="form-group">
                   <label>Email <span class="required-mark">*</span></label>
-                  <input
-                    type="email"
-                    class="form-control"
-                    v-model="selectedAccount.email"
-                    required
-                  />
+                  <input type="email" class="form-control" v-model="selectedAccount.email" required />
                   <div class="invalid-feedback" v-if="formErrors.email">
                     {{ formErrors.email }}
                   </div>
@@ -379,31 +285,18 @@
 
                 <div class="form-group">
                   <label>Mật khẩu</label>
-                  <input
-                    type="password"
-                    class="form-control"
-                    v-model="selectedAccount.matKhau"
-                    placeholder="Để trống nếu không thay đổi mật khẩu"
-                  />
-                  <small class="form-text text-muted"
-                    >Để trống nếu không muốn thay đổi mật khẩu.</small
-                  >
+                  <input type="password" class="form-control" v-model="selectedAccount.matKhau"
+                    placeholder="Để trống nếu không thay đổi mật khẩu" />
+                  <small class="form-text text-muted">Để trống nếu không muốn thay đổi mật khẩu.</small>
                 </div>
 
                 <div class="form-group">
                   <label>Số điện thoại <span class="required-mark">*</span></label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="selectedAccount.soDienThoai"
-                    required
-                  />
+                  <input type="text" class="form-control" v-model="selectedAccount.soDienThoai" required />
                   <div class="invalid-feedback" v-if="formErrors.soDienThoai">
                     {{ formErrors.soDienThoai }}
                   </div>
-                  <small class="form-text text-muted"
-                    >Số điện thoại phải có 10-11 chữ số và bắt đầu bằng số 0.</small
-                  >
+                  <small class="form-text text-muted">Số điện thoại phải có 10-11 chữ số và bắt đầu bằng số 0.</small>
                 </div>
 
                 <div class="form-group">
@@ -419,13 +312,10 @@
 
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="cancelEdit">Hủy bỏ</button>
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-                <span
-                  v-if="isSubmitting"
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
+              <button type="submit" class="btn btn-primary"
+                :disabled="isSubmitting || selectedAccount.tenLoai === 'Admin'">
+                <span v-if="isSubmitting" class="spinner-border spinner-border-sm" role="status"
+                  aria-hidden="true"></span>
                 <span v-else>Lưu thay đổi</span>
               </button>
             </div>
@@ -435,11 +325,8 @@
     </div>
 
     <!-- Confirmation Modals -->
-    <div
-      v-if="showDeleteConfirm || showRestoreConfirm"
-      class="modal-overlay"
-      @click.self="showDeleteConfirm ? cancelDelete() : cancelRestore()"
-    >
+    <div v-if="showDeleteConfirm || showRestoreConfirm" class="modal-overlay"
+      @click.self="showDeleteConfirm ? cancelDelete() : cancelRestore()">
       <!-- Delete Confirmation -->
       <div v-if="showDeleteConfirm" class="confirmation-box">
         <button class="close-button" @click="cancelDelete">&times;</button>
@@ -450,20 +337,14 @@
           <h4 class="confirm-title">Xác nhận khóa tài khoản?</h4>
           <p class="confirm-text">
             Bạn có chắc chắn muốn khóa tài khoản
-            <strong>{{ selectedAccount.tenDangNhap }}</strong
-            >? <br />
+            <strong>{{ selectedAccount.tenDangNhap }}</strong>? <br />
             Tài khoản này sẽ không thể đăng nhập cho đến khi được mở khóa.
           </p>
         </div>
         <div class="confirmation-footer">
           <button class="btn btn-secondary" @click="cancelDelete">Hủy bỏ</button>
           <button class="btn btn-danger" @click="executeDelete" :disabled="deleting">
-            <span
-              v-if="deleting"
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
+            <span v-if="deleting" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             <span v-else>Xác nhận khóa</span>
           </button>
         </div>
@@ -479,20 +360,14 @@
           <h4 class="confirm-title">Xác nhận mở khóa?</h4>
           <p class="confirm-text">
             Bạn có chắc chắn muốn mở khóa tài khoản
-            <strong>{{ selectedAccount.tenDangNhap }}</strong
-            >? <br />
+            <strong>{{ selectedAccount.tenDangNhap }}</strong>? <br />
             Tài khoản này sẽ có thể đăng nhập sau khi được mở khóa.
           </p>
         </div>
         <div class="confirmation-footer">
           <button class="btn btn-secondary" @click="cancelRestore">Hủy bỏ</button>
           <button class="btn btn-primary" @click="executeRestore" :disabled="restoring">
-            <span
-              v-if="restoring"
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
+            <span v-if="restoring" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             <span v-else>Xác nhận mở khóa</span>
           </button>
         </div>
@@ -511,13 +386,9 @@
             <div class="col-md-4">
               <div class="account-avatar-display">
                 <div class="avatar-preview">
-                  <img
-                    v-if="selectedAccount.anh"
-                    :src="processImageUrl(selectedAccount.anh)"
-                    :alt="`Ảnh ${selectedAccount.tenDangNhap}`"
-                    @error="handleProfileImageError"
-                    class="uploaded-avatar"
-                  />
+                  <img v-if="selectedAccount.anh" :src="processImageUrl(selectedAccount.anh)"
+                    :alt="`Ảnh ${selectedAccount.tenDangNhap}`" @error="handleProfileImageError"
+                    class="uploaded-avatar" />
                   <div v-else class="avatar-placeholder">
                     <i class="fas fa-user"></i>
                     <span>ảnh</span>
@@ -538,52 +409,27 @@
               <div class="account-info">
                 <div class="form-group">
                   <label>Tên đăng nhập</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="selectedAccount.tenDangNhap"
-                    readonly
-                  />
+                  <input type="text" class="form-control" :value="selectedAccount.tenDangNhap" readonly />
                 </div>
 
                 <div class="form-group">
                   <label>Email</label>
-                  <input
-                    type="email"
-                    class="form-control"
-                    :value="selectedAccount.email"
-                    readonly
-                  />
+                  <input type="email" class="form-control" :value="selectedAccount.email" readonly />
                 </div>
 
                 <div class="form-group">
                   <label>Số điện thoại</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="selectedAccount.soDienThoai || 'N/A'"
-                    readonly
-                  />
+                  <input type="text" class="form-control" :value="selectedAccount.soDienThoai || 'N/A'" readonly />
                 </div>
 
                 <div class="form-group">
                   <label>Vai trò</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="selectedAccount.tenLoai"
-                    readonly
-                  />
+                  <input type="text" class="form-control" :value="selectedAccount.tenLoai" readonly />
                 </div>
 
                 <div class="form-group">
                   <label>Ngày Tạo</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    :value="formatDate(selectedAccount.ngayTao)"
-                    readonly
-                  />
+                  <input type="text" class="form-control" :value="formatDate(selectedAccount.ngayTao)" readonly />
                 </div>
               </div>
             </div>
@@ -609,13 +455,8 @@
             <i class="fas fa-user-circle"></i>
             <p>Tài khoản chưa có ảnh</p>
           </div>
-          <img
-            v-else
-            :src="processImageUrl(previewImage)"
-            :alt="previewImageTitle"
-            class="preview-image"
-            @error="handlePreviewImageError"
-          />
+          <img v-else :src="processImageUrl(previewImage)" :alt="previewImageTitle" class="preview-image"
+            @error="handlePreviewImageError" />
         </div>
       </div>
     </div>
@@ -653,6 +494,7 @@ export default {
     const accountRoles = ref([])
     const imageInput = ref(null)
     const accountTypes = ref([])
+    const adminCount = ref(0)
 
     // Add new state variables for adding a new account
     const newAccount = ref({
@@ -702,6 +544,8 @@ export default {
         totalPages.value = Math.ceil(totalItems.value / pageSize.value)
         // Lấy danh sách loại tài khoản duy nhất
         accountRoles.value = [...new Set(accounts.value.map((acc) => acc.tenLoai))]
+        // Đếm số tài khoản Admin hiện có
+        adminCount.value = accounts.value.filter(acc => acc.tenLoai === 'Admin' || acc.loaiTaiKhoan === 2).length
 
         // Initialize image loading states
         accounts.value.forEach((account) => {
@@ -748,6 +592,10 @@ export default {
 
     // Delete (Lock) functions
     const confirmDelete = (account) => {
+      if (account.tenLoai === 'Admin' || account.loaiTaiKhoan === 2) {
+        notification.info('Không thể khóa/mở khóa tài khoản Admin')
+        return
+      }
       selectedAccount.value = { ...account }
       showDeleteConfirm.value = true
     }
@@ -788,6 +636,10 @@ export default {
 
     // Restore (Unlock) functions
     const confirmRestore = (account) => {
+      if (account.tenLoai === 'Admin' || account.loaiTaiKhoan === 2) {
+        notification.info('Không thể khóa/mở khóa tài khoản Admin')
+        return
+      }
       selectedAccount.value = { ...account }
       showRestoreConfirm.value = true
     }
@@ -1146,6 +998,14 @@ export default {
         return
       }
 
+      // Chặn tạo quá 2 tài khoản Admin
+      const isCreatingAdmin = Number(newAccount.value.loaiTaiKhoan) === 2 || accountTypes.value.find(r => r.id === newAccount.value.loaiTaiKhoan)?.tenLoai === 'Admin'
+      if (isCreatingAdmin && adminCount.value >= 2) {
+        notification.error('Chỉ được phép có tối đa 2 tài khoản Admin')
+        isAddingAccount.value = false
+        return
+      }
+
       try {
         // Gọi API để thêm tài khoản mới với FormData
         addTaiKhoan(newAccount.value)
@@ -1185,7 +1045,7 @@ export default {
             isAddingAccount.value = false
           })
       } catch (error) {
-        console.error('Error submitting form:', error)
+        console.error('Error submitting add form:', error)
         notification.error('Có lỗi xảy ra khi xử lý form')
         isAddingAccount.value = false
       }
@@ -1239,6 +1099,13 @@ export default {
 
     // Edit functions
     const openEditModal = (account) => {
+      // Chặn mở modal chỉnh sửa cho Admin
+      if (account.tenLoai === 'Admin' || account.loaiTaiKhoan === 2) {
+        notification.info('Tài khoản Admin chỉ được phép xem, không thể chỉnh sửa')
+        viewAccountDetails(account)
+        return
+      }
+
       // Xóa URL tạm thời cũ nếu có
       if (selectedAccount.value && selectedAccount.value._tempImageUrl) {
         URL.revokeObjectURL(selectedAccount.value._tempImageUrl)
@@ -1365,6 +1232,16 @@ export default {
       selectedAccount.value = { ...selectedAccount.value }
     }
 
+    const onChangeNewAccountRole = (e) => {
+      const selectedRoleId = Number(e?.target?.value || newAccount.value.loaiTaiKhoan)
+      const isAdminRole = selectedRoleId === 2 || accountTypes.value.find(r => r.id === selectedRoleId)?.tenLoai === 'Admin'
+      if (isAdminRole && adminCount.value >= 2) {
+        notification.error('Chỉ được phép thêm tối đa 2 tài khoản Admin')
+        // Revert selection to non-admin
+        newAccount.value.loaiTaiKhoan = null
+      }
+    }
+
     return {
       accounts,
       loading,
@@ -1446,6 +1323,8 @@ export default {
       editImageInput,
       triggerImageUploadInEdit,
       handleEditImageUpload,
+      adminCount,
+      onChangeNewAccountRole,
     }
   },
 }
@@ -1713,27 +1592,34 @@ export default {
   color: #0dcaf0;
   background-color: rgba(13, 202, 240, 0.1);
 }
+
 .btn-info-light:hover {
   background-color: rgba(13, 202, 240, 0.2);
 }
+
 .btn-warning-light {
   color: #ffc107;
   background-color: rgba(255, 193, 7, 0.1);
 }
+
 .btn-warning-light:hover {
   background-color: rgba(255, 193, 7, 0.2);
 }
+
 .btn-danger-light {
   color: #dc3545;
   background-color: rgba(220, 53, 69, 0.1);
 }
+
 .btn-danger-light:hover {
   background-color: rgba(220, 53, 69, 0.2);
 }
+
 .btn-success-light {
   color: #198754;
   background-color: rgba(25, 135, 84, 0.1);
 }
+
 .btn-success-light:hover {
   background-color: rgba(25, 135, 84, 0.2);
 }
@@ -1945,6 +1831,7 @@ export default {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -1955,6 +1842,7 @@ export default {
     opacity: 0;
     transform: scale(0.9) translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -2001,6 +1889,7 @@ export default {
   from {
     transform: scale(0);
   }
+
   to {
     transform: scale(1);
   }
@@ -2053,13 +1942,16 @@ export default {
   background-color: #e2e8f0;
   color: #475569;
 }
+
 .confirmation-footer .btn-secondary:hover {
   background-color: #cbd5e1;
 }
+
 .confirmation-footer .btn-danger:hover {
   opacity: 0.9;
   transform: translateY(-2px);
 }
+
 .confirmation-footer .btn-primary:hover {
   opacity: 0.9;
   transform: translateY(-2px);
@@ -2125,6 +2017,7 @@ export default {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2188,11 +2081,13 @@ export default {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   position: relative;
 }
+
 .avatar-preview:hover {
   border-color: #3b82f6;
   transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
+
 .avatar-preview::before {
   content: '\f030';
   font-family: 'Font Awesome 5 Free';
@@ -2208,9 +2103,11 @@ export default {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+
 .avatar-preview:hover::before {
   opacity: 0.7;
 }
+
 .avatar-preview::after {
   content: '';
   position: absolute;
@@ -2222,9 +2119,11 @@ export default {
   transition: all 0.3s ease;
   z-index: 1;
 }
+
 .avatar-preview:hover::after {
   background-color: rgba(0, 0, 0, 0.3);
 }
+
 .avatar-placeholder {
   display: flex;
   flex-direction: column;
@@ -2235,12 +2134,14 @@ export default {
   justify-content: center;
   z-index: 0;
 }
+
 .avatar-placeholder i {
   font-size: 64px;
   margin-bottom: 15px;
   color: #adb5bd;
   transition: all 0.3s ease;
 }
+
 .avatar-placeholder span {
   font-size: 16px;
   text-align: center;
@@ -2248,9 +2149,11 @@ export default {
   color: #6c757d;
   transition: all 0.3s ease;
 }
+
 .avatar-preview:hover .avatar-placeholder i {
   color: #3b82f6;
 }
+
 .uploaded-avatar {
   width: 100%;
   height: 100%;
@@ -2449,30 +2352,39 @@ export default {
 .table tbody tr:nth-child(1) {
   animation-delay: 0.05s;
 }
+
 .table tbody tr:nth-child(2) {
   animation-delay: 0.1s;
 }
+
 .table tbody tr:nth-child(3) {
   animation-delay: 0.15s;
 }
+
 .table tbody tr:nth-child(4) {
   animation-delay: 0.2s;
 }
+
 .table tbody tr:nth-child(5) {
   animation-delay: 0.25s;
 }
+
 .table tbody tr:nth-child(6) {
   animation-delay: 0.3s;
 }
+
 .table tbody tr:nth-child(7) {
   animation-delay: 0.35s;
 }
+
 .table tbody tr:nth-child(8) {
   animation-delay: 0.4s;
 }
+
 .table tbody tr:nth-child(9) {
   animation-delay: 0.45s;
 }
+
 .table tbody tr:nth-child(10) {
   animation-delay: 0.5s;
 }
@@ -2552,6 +2464,7 @@ export default {
     opacity: 0;
     transform: translateY(-30px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -2847,16 +2760,16 @@ export default {
   background-color: white;
 }
 
-.form-check-input:checked + .form-check-label {
+.form-check-input:checked+.form-check-label {
   color: #0d6efd;
 }
 
-.form-check-input:checked + .form-check-label::before {
+.form-check-input:checked+.form-check-label::before {
   background-color: #0d6efd;
   border: none;
 }
 
-.form-check-input:checked + .form-check-label::after {
+.form-check-input:checked+.form-check-label::after {
   content: '';
   position: absolute;
   left: 6px;
@@ -2893,8 +2806,8 @@ export default {
 }
 
 /* Target WordPress-like themes that might add underlines */
-.form-check-label > span,
-.form-check-label > * {
+.form-check-label>span,
+.form-check-label>* {
   text-decoration: none !important;
   border-bottom: none !important;
 }
@@ -2915,16 +2828,19 @@ export default {
   transform: translateY(0);
   animation: modal-slide-down 0.4s ease;
 }
+
 @keyframes modal-slide-down {
   0% {
     opacity: 0;
     transform: translateY(-30px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .add-account-modal .modal-header,
 .account-details-modal .modal-header {
   background: linear-gradient(135deg, #0d6efd 0%, #0088ff 50%, #00a1ff 100%);
@@ -2933,6 +2849,7 @@ export default {
   position: relative;
   overflow: hidden;
 }
+
 .add-account-modal .modal-header:before,
 .account-details-modal .modal-header:before {
   content: '';
@@ -2945,6 +2862,7 @@ export default {
   transform: rotate(30deg);
   pointer-events: none;
 }
+
 .add-account-modal .modal-header h3,
 .account-details-modal .modal-header h3 {
   color: white;
@@ -2954,6 +2872,7 @@ export default {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   position: relative;
 }
+
 .add-account-modal .modal-header .close-button,
 .account-details-modal .modal-header .close-button {
   background: rgba(255, 255, 255, 0.2);
@@ -2970,22 +2889,26 @@ export default {
   z-index: 1;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
 .add-account-modal .modal-header .close-button:hover,
 .account-details-modal .modal-header .close-button:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: rotate(90deg);
 }
+
 .add-account-modal .modal-body,
 .account-details-modal .modal-body {
   padding: 30px 30px 5px 30px;
   background-color: #fff;
 }
+
 .account-avatar-display {
   padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+
 .account-avatar-display .avatar-preview {
   width: 150px;
   height: 150px;
@@ -3001,11 +2924,13 @@ export default {
   position: relative;
   background-color: #f9fafb;
 }
+
 .account-avatar-display .avatar-preview:hover {
   transform: translateY(-5px);
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
   border-color: #3b82f6;
 }
+
 .account-avatar-display .avatar-preview::before {
   content: '\f030';
   font-family: 'Font Awesome 5 Free';
@@ -3021,9 +2946,11 @@ export default {
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+
 .account-avatar-display .avatar-preview:hover::before {
   opacity: 0.7;
 }
+
 .account-avatar-display .avatar-preview::after {
   content: '';
   position: absolute;
@@ -3035,9 +2962,11 @@ export default {
   transition: all 0.3s ease;
   z-index: 1;
 }
+
 .account-avatar-display .avatar-preview:hover::after {
   background-color: rgba(0, 0, 0, 0.3);
 }
+
 .avatar-placeholder {
   display: flex;
   flex-direction: column;
@@ -3048,12 +2977,14 @@ export default {
   justify-content: center;
   z-index: 0;
 }
+
 .avatar-placeholder i {
   font-size: 64px;
   margin-bottom: 15px;
   color: #adb5bd;
   transition: all 0.3s ease;
 }
+
 .avatar-placeholder span {
   font-size: 16px;
   text-align: center;
@@ -3061,9 +2992,11 @@ export default {
   color: #6c757d;
   transition: all 0.3s ease;
 }
+
 .account-avatar-display .avatar-preview:hover .avatar-placeholder i {
   color: #3b82f6;
 }
+
 .uploaded-avatar {
   width: 100%;
   height: 100%;
@@ -3071,6 +3004,7 @@ export default {
   transition: all 0.3s;
   z-index: 0;
 }
+
 .account-avatar-display h4 {
   font-size: 1.3rem;
   font-weight: 600;
@@ -3078,29 +3012,35 @@ export default {
   margin-bottom: 0.3rem;
   color: #333;
 }
+
 .account-avatar-display .account-id {
   font-size: 0.9rem;
   color: #6c757d;
 }
+
 .status-badge {
   padding-top: 15px;
   text-align: center;
 }
+
 .status-badge label {
   display: block;
   margin-bottom: 5px;
   font-size: 0.9rem;
   font-weight: 500;
 }
+
 .status-badge .badge {
   font-size: 0.9rem;
   padding: 8px 16px;
   font-weight: 500;
   letter-spacing: 0.5px;
 }
+
 .account-info {
   padding: 8px;
 }
+
 .account-info .form-control[readonly] {
   background-color: #f9fafb;
   border-color: #e5e7eb;
@@ -3109,6 +3049,7 @@ export default {
   font-size: 0.95rem;
   color: #333;
 }
+
 .form-group label {
   display: block;
   margin-bottom: 8px;
@@ -3118,6 +3059,7 @@ export default {
   transition: all 0.2s;
   position: relative;
 }
+
 .form-group label::after {
   content: '';
   position: absolute;
@@ -3128,72 +3070,90 @@ export default {
   background: linear-gradient(90deg, #0d6efd, #00c6ff);
   transition: width 0.3s ease;
 }
+
 .form-group:focus-within label::after {
   width: 30px;
 }
+
 .form-group:focus-within label {
   color: #0d6efd;
 }
+
 .form-control:focus {
   border-color: #0d6efd;
   box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.18);
   background-color: #fff;
 }
+
 .form-control.is-invalid {
   animation: shake 0.5s ease-in-out;
 }
+
 @keyframes shake {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   20%,
   60% {
     transform: translateX(-5px);
   }
+
   40%,
   80% {
     transform: translateX(5px);
   }
 }
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .add-account-modal .form-group,
 .account-details-modal .form-group {
   animation: fadeInUp 0.4s ease backwards;
 }
+
 .add-account-modal .form-group:nth-child(1),
 .account-details-modal .form-group:nth-child(1) {
   animation-delay: 0.1s;
 }
+
 .add-account-modal .form-group:nth-child(2),
 .account-details-modal .form-group:nth-child(2) {
   animation-delay: 0.15s;
 }
+
 .add-account-modal .form-group:nth-child(3),
 .account-details-modal .form-group:nth-child(3) {
   animation-delay: 0.2s;
 }
+
 .add-account-modal .form-group:nth-child(4),
 .account-details-modal .form-group:nth-child(4) {
   animation-delay: 0.25s;
 }
+
 .add-account-modal .form-group:nth-child(5),
 .account-details-modal .form-group:nth-child(5) {
   animation-delay: 0.3s;
 }
+
 .add-account-modal .form-group:nth-child(6),
 .account-details-modal .form-group:nth-child(6) {
   animation-delay: 0.35s;
 }
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -3202,6 +3162,7 @@ export default {
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background-color: #fff;
 }
+
 .modal-footer .btn {
   padding: 12px 28px;
   font-size: 16px;
@@ -3211,35 +3172,1103 @@ export default {
   position: relative;
   overflow: hidden;
 }
+
 .modal-footer .btn-secondary {
   background-color: #f1f3f5;
   color: #495057;
   border: none;
   min-width: 120px;
 }
+
 .modal-footer .btn-secondary:hover {
   background-color: #e9ecef;
   color: #212529;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
 }
+
 .modal-footer .btn-primary {
   background: linear-gradient(45deg, #0d6efd, #0099ff);
   border: none;
   box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
   min-width: 150px;
 }
+
 .modal-footer .btn-primary:hover {
   background: linear-gradient(45deg, #0b5ed7, #0084ff);
   box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
   transform: translateY(-2px);
 }
+
 .modal-footer .btn-primary:active {
   transform: translateY(0);
   box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
 }
+
 .modal-footer .btn-primary:disabled {
   background: linear-gradient(45deg, #6c757d, #adb5bd);
   box-shadow: none;
   opacity: 0.8;
+}
+
+/* Form row styling */
+.row {
+  margin: 0 -15px;
+}
+
+.col-md-4,
+.col-md-8 {
+  padding: 0 15px;
+}
+
+/* Custom Radio Button Styling - Complete Reset */
+.gender-group {
+  margin: 15px 0;
+}
+
+.form-check-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 10px;
+  gap: 30px;
+}
+
+.form-check {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.form-check-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.form-check-label {
+  position: relative;
+  padding-left: 30px;
+  margin: 0;
+  cursor: pointer;
+  font-size: 16px;
+  color: #4b5563;
+  display: inline-block;
+  border: none;
+  text-decoration: none !important;
+  line-height: normal;
+}
+
+.form-check-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #c1c1c1;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.form-check-input:checked+.form-check-label {
+  color: #0d6efd;
+}
+
+.form-check-input:checked+.form-check-label::before {
+  background-color: #0d6efd;
+  border: none;
+}
+
+.form-check-input:checked+.form-check-label::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+/* Remove any link-like styling */
+.gender-group a,
+.gender-group a:hover,
+.gender-group a:active,
+.gender-group a:visited,
+.gender-group label,
+.gender-group label::after,
+.gender-group label::before {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.form-check-label::after {
+  border-bottom: none !important;
+}
+
+/* Override any global underlines or borders that might be applied */
+.form-check-label {
+  border-bottom: none !important;
+  text-decoration: none !important;
+}
+
+/* Target WordPress-like themes that might add underlines */
+.form-check-label>span,
+.form-check-label>* {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* --- ĐỒNG BỘ CSS VỚI NHANVIEN.VUE --- */
+.add-account-modal {
+  position: relative;
+  background-color: #fff;
+  border-radius: 16px;
+  width: 800px;
+  max-width: 95%;
+  max-height: 95vh;
+  overflow-y: auto;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.1),
+    0 6px 12px rgba(0, 0, 0, 0.08),
+    0 30px 60px -12px rgba(50, 50, 93, 0.25);
+  transform: translateY(0);
+  animation: modal-slide-down 0.4s ease;
+}
+
+@keyframes modal-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-account-modal .modal-header,
+.account-details-modal .modal-header {
+  background: linear-gradient(135deg, #0d6efd 0%, #0088ff 50%, #00a1ff 100%);
+  padding: 20px 30px;
+  border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-account-modal .modal-header:before,
+.account-details-modal .modal-header:before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+.add-account-modal .modal-header h3,
+.account-details-modal .modal-header h3 {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.add-account-modal .modal-header .close-button,
+.account-details-modal .modal-header .close-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-account-modal .modal-header .close-button:hover,
+.account-details-modal .modal-header .close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.add-account-modal .modal-body,
+.account-details-modal .modal-body {
+  padding: 30px 30px 5px 30px;
+  background-color: #fff;
+}
+
+.account-avatar-display {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.account-avatar-display .avatar-preview {
+  width: 150px;
+  height: 150px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border: 3px dashed #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #f9fafb;
+}
+
+.account-avatar-display .avatar-preview:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+}
+
+.account-avatar-display .avatar-preview::before {
+  content: '\f030';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  color: #fff;
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.account-avatar-display .avatar-preview:hover::before {
+  opacity: 0.7;
+}
+
+.account-avatar-display .avatar-preview::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.account-avatar-display .avatar-preview:hover::after {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #9ca3af;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+  z-index: 0;
+}
+
+.avatar-placeholder i {
+  font-size: 64px;
+  margin-bottom: 15px;
+  color: #adb5bd;
+  transition: all 0.3s ease;
+}
+
+.avatar-placeholder span {
+  font-size: 16px;
+  text-align: center;
+  max-width: 80%;
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.account-avatar-display .avatar-preview:hover .avatar-placeholder i {
+  color: #3b82f6;
+}
+
+.uploaded-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s;
+  z-index: 0;
+}
+
+.account-avatar-display h4 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+  color: #333;
+}
+
+.account-avatar-display .account-id {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.status-badge {
+  padding-top: 15px;
+  text-align: center;
+}
+
+.status-badge label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.status-badge .badge {
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.account-info {
+  padding: 8px;
+}
+
+.account-info .form-control[readonly] {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  cursor: text;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #3a3a3a;
+  font-size: 15px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.form-group label::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #0d6efd, #00c6ff);
+  transition: width 0.3s ease;
+}
+
+.form-group:focus-within label::after {
+  width: 30px;
+}
+
+.form-group:focus-within label {
+  color: #0d6efd;
+}
+
+.form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.18);
+  background-color: #fff;
+}
+
+.form-control.is-invalid {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-account-modal .form-group,
+.account-details-modal .form-group {
+  animation: fadeInUp 0.4s ease backwards;
+}
+
+.add-account-modal .form-group:nth-child(1),
+.account-details-modal .form-group:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.add-account-modal .form-group:nth-child(2),
+.account-details-modal .form-group:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.add-account-modal .form-group:nth-child(3),
+.account-details-modal .form-group:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.add-account-modal .form-group:nth-child(4),
+.account-details-modal .form-group:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.add-account-modal .form-group:nth-child(5),
+.account-details-modal .form-group:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.add-account-modal .form-group:nth-child(6),
+.account-details-modal .form-group:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 10px 35px 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+}
+
+.modal-footer .btn {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-footer .btn-secondary {
+  background-color: #f1f3f5;
+  color: #495057;
+  border: none;
+  min-width: 120px;
+}
+
+.modal-footer .btn-secondary:hover {
+  background-color: #e9ecef;
+  color: #212529;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.modal-footer .btn-primary {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  border: none;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+  min-width: 150px;
+}
+
+.modal-footer .btn-primary:hover {
+  background: linear-gradient(45deg, #0b5ed7, #0084ff);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-footer .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+}
+
+.modal-footer .btn-primary:disabled {
+  background: linear-gradient(45deg, #6c757d, #adb5bd);
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+/* Form row styling */
+.row {
+  margin: 0 -15px;
+}
+
+.col-md-4,
+.col-md-8 {
+  padding: 0 15px;
+}
+
+/* Custom Radio Button Styling - Complete Reset */
+.gender-group {
+  margin: 15px 0;
+}
+
+.form-check-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 10px;
+  gap: 30px;
+}
+
+.form-check {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.form-check-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.form-check-label {
+  position: relative;
+  padding-left: 30px;
+  margin: 0;
+  cursor: pointer;
+  font-size: 16px;
+  color: #4b5563;
+  display: inline-block;
+  border: none;
+  text-decoration: none !important;
+  line-height: normal;
+}
+
+.form-check-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid #c1c1c1;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.form-check-input:checked+.form-check-label {
+  color: #0d6efd;
+}
+
+.form-check-input:checked+.form-check-label::before {
+  background-color: #0d6efd;
+  border: none;
+}
+
+.form-check-input:checked+.form-check-label::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+/* Remove any link-like styling */
+.gender-group a,
+.gender-group a:hover,
+.gender-group a:active,
+.gender-group a:visited,
+.gender-group label,
+.gender-group label::after,
+.gender-group label::before {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.form-check-label::after {
+  border-bottom: none !important;
+}
+
+/* Override any global underlines or borders that might be applied */
+.form-check-label {
+  border-bottom: none !important;
+  text-decoration: none !important;
+}
+
+/* Target WordPress-like themes that might add underlines */
+.form-check-label>span,
+.form-check-label>* {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* --- ĐỒNG BỘ CSS VỚI NHANVIEN.VUE --- */
+.add-account-modal {
+  position: relative;
+  background-color: #fff;
+  border-radius: 16px;
+  width: 800px;
+  max-width: 95%;
+  max-height: 95vh;
+  overflow-y: auto;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.1),
+    0 6px 12px rgba(0, 0, 0, 0.08),
+    0 30px 60px -12px rgba(50, 50, 93, 0.25);
+  transform: translateY(0);
+  animation: modal-slide-down 0.4s ease;
+}
+
+@keyframes modal-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-account-modal .modal-header,
+.account-details-modal .modal-header {
+  background: linear-gradient(135deg, #0d6efd 0%, #0088ff 50%, #00a1ff 100%);
+  padding: 20px 30px;
+  border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-account-modal .modal-header:before,
+.account-details-modal .modal-header:before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+.add-account-modal .modal-header h3,
+.account-details-modal .modal-header h3 {
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.add-account-modal .modal-header .close-button,
+.account-details-modal .modal-header .close-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.add-account-modal .modal-header .close-button:hover,
+.account-details-modal .modal-header .close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.add-account-modal .modal-body,
+.account-details-modal .modal-body {
+  padding: 30px 30px 5px 30px;
+  background-color: #fff;
+}
+
+.account-avatar-display {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.account-avatar-display .avatar-preview {
+  width: 150px;
+  height: 150px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border: 3px dashed #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: #f9fafb;
+}
+
+.account-avatar-display .avatar-preview:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
+}
+
+.account-avatar-display .avatar-preview::before {
+  content: '\f030';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  color: #fff;
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.account-avatar-display .avatar-preview:hover::before {
+  opacity: 0.7;
+}
+
+.account-avatar-display .avatar-preview::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.account-avatar-display .avatar-preview:hover::after {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #9ca3af;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+  z-index: 0;
+}
+
+.avatar-placeholder i {
+  font-size: 64px;
+  margin-bottom: 15px;
+  color: #adb5bd;
+  transition: all 0.3s ease;
+}
+
+.avatar-placeholder span {
+  font-size: 16px;
+  text-align: center;
+  max-width: 80%;
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.account-avatar-display .avatar-preview:hover .avatar-placeholder i {
+  color: #3b82f6;
+}
+
+.uploaded-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s;
+  z-index: 0;
+}
+
+.account-avatar-display h4 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+  color: #333;
+}
+
+.account-avatar-display .account-id {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.status-badge {
+  padding-top: 15px;
+  text-align: center;
+}
+
+.status-badge label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.status-badge .badge {
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.account-info {
+  padding: 8px;
+}
+
+.account-info .form-control[readonly] {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  cursor: text;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #3a3a3a;
+  font-size: 15px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.form-group label::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #0d6efd, #00c6ff);
+  transition: width 0.3s ease;
+}
+
+.form-group:focus-within label::after {
+  width: 30px;
+}
+
+.form-group:focus-within label {
+  color: #0d6efd;
+}
+
+.form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.18);
+  background-color: #fff;
+}
+
+.form-control.is-invalid {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-account-modal .form-group,
+.account-details-modal .form-group {
+  animation: fadeInUp 0.4s ease backwards;
+}
+
+.add-account-modal .form-group:nth-child(1),
+.account-details-modal .form-group:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.add-account-modal .form-group:nth-child(2),
+.account-details-modal .form-group:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.add-account-modal .form-group:nth-child(3),
+.account-details-modal .form-group:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.add-account-modal .form-group:nth-child(4),
+.account-details-modal .form-group:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.add-account-modal .form-group:nth-child(5),
+.account-details-modal .form-group:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.add-account-modal .form-group:nth-child(6),
+.account-details-modal .form-group:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 10px 35px 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+}
+
+.modal-footer .btn {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 30px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-footer .btn-secondary {
+  background-color: #f1f3f5;
+  color: #495057;
+  border: none;
+  min-width: 120px;
+}
+
+.modal-footer .btn-secondary:hover {
+  background-color: #e9ecef;
+  color: #212529;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.modal-footer .btn-primary {
+  background: linear-gradient(45deg, #0d6efd, #0099ff);
+  border: none;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+  min-width: 150px;
+}
+
+.modal-footer .btn-primary:hover {
+  background: linear-gradient(45deg, #0b5ed7, #0084ff);
+  box-shadow: 0 6px 15px rgba(13, 110, 253, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-footer .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+}
+
+.modal-footer .btn-primary:disabled {
+  background: linear-gradient(45deg, #6c757d, #adb5bd);
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+/* View-only pill for Admin */
+.action-view-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: #0d6efd;
+  background: rgba(13, 110, 253, 0.1);
+  border: 1px solid rgba(13, 110, 253, 0.25);
+  box-shadow: 0 2px 6px rgba(13, 110, 253, 0.15);
+  cursor: default;
+  user-select: none;
+  min-width: 78px;
+}
+
+.action-view-only::before {
+  content: '\f06e';
+  /* eye icon */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+/* Keep row hover consistent when only label is present */
+.table tbody tr:hover .action-view-only {
+  background: rgba(13, 110, 253, 0.15);
+  border-color: rgba(13, 110, 253, 0.35);
 }
 </style>

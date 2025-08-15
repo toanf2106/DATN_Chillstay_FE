@@ -1,66 +1,93 @@
+// src/Service/api.js
 import axios from 'axios'
 
-// Lấy ID phiên hiện tại từ sessionStorage
-const getSessionId = () => {
-  return sessionStorage.getItem('current_tab_id')
+/* ================= Helpers ================= */
+
+// Lấy ID phiên hiện tại từ sessionStorage (để đọc token theo từng tab)
+const getSessionId = () => sessionStorage.getItem('current_tab_id')
+
+// Chỉ log ở môi trường dev
+const log = (...args) => {
+  if (import.meta.env?.DEV) console.log(...args)
 }
 
-// Tạo instance axios với cấu hình mặc định
+// Xác định BASE_URL tự động cho cả localhost và domain
+function getBaseURL() {
+  const envVal = (import.meta.env?.VITE_API_BASE ?? '').trim()
+  if (envVal) return envVal.replace(/\/+$/, '') // dùng đúng những gì bạn set
+
+  const { hostname } = window.location
+  // Khi dev trên máy: FE chạy 5173, BE chạy 8080 -> gọi thẳng BE
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8080'
+  }
+  // Khi lên server: FE & BE cùng domain; Nginx proxy đường /api sang BE
+  return '/api'
+}
+
+const BASE_URL = getBaseURL()
+
+/* ================= Axios instance ================= */
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080', // URL API backend Spring Boot
-  timeout: 30000, // Tăng timeout lên 30 giây
+  baseURL: BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json; charset=utf-8',
-    'Accept': 'application/json; charset=utf-8',
+    Accept: 'application/json; charset=utf-8',
   },
 })
 
-// Cấu hình retry cho các request bị lỗi
-const MAX_RETRIES = 2; // Số lần thử lại tối đa
-const RETRY_DELAY = 1000; // Delay giữa các lần thử lại (ms)
+/* ================= Retry logic ================= */
 
-// Hàm thực hiện retry với delay
-const retryRequest = (config, retryCount = 0) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      console.log(`Retry attempt ${retryCount + 1} for ${config.url}`);
+const MAX_RETRIES = 2
+const RETRY_DELAY = 1000
 
-      // Tạo request mới với cấu hình cũ
-      axios(config)
-        .then(response => resolve(response))
-        .catch(error => {
-          // Nếu vẫn còn lần thử lại và lỗi phù hợp để thử lại
-          if (retryCount < MAX_RETRIES && shouldRetry(error)) {
-            retryRequest(config, retryCount + 1)
-              .then(resolve)
-              .catch(reject);
-          } else {
-            reject(error);
-          }
-        });
-    }, RETRY_DELAY);
-  });
-};
-
-// Hàm kiểm tra xem có nên retry không
 const shouldRetry = (error) => {
-  // Retry cho lỗi mạng, timeout hoặc server error (500)
-  return !error.response ||
+  return (
+    !error.response ||
     error.code === 'ECONNABORTED' ||
-    (error.response && error.response.status >= 500);
-};
+    error.response?.status === 429 ||
+    (error.response && error.response.status >= 500)
+  )
+}
 
-// Interceptor để thêm token vào header của mỗi request
+const retryRequest = (config, retryCount = 0) =>
+  new Promise((resolve, reject) => {
+    setTimeout(() => {
+      log(`Retry attempt ${retryCount + 1} for ${config.url}`)
+      // Dùng chính instance `api` để giữ nguyên baseURL & interceptors
+      api
+        .request(config)
+        .then(resolve)
+        .catch((error) => {
+          if (retryCount < MAX_RETRIES && shouldRetry(error)) {
+            retryRequest(config, retryCount + 1).then(resolve).catch(reject)
+          } else {
+            reject(error)
+          }
+        })
+    }, RETRY_DELAY)
+  })
+
+/* ================= Interceptors ================= */
+
+// Request: thêm token (trừ các endpoint public), đảm bảo header UTF-8
 api.interceptors.request.use(
   (config) => {
-    // Đảm bảo charset UTF-8 được thiết lập cho mọi request
-    if (!config.headers['Content-Type'] || config.headers['Content-Type'].includes('application/json')) {
+    // ensure charset
+    if (
+      !config.headers['Content-Type'] ||
+      String(config.headers['Content-Type']).includes('application/json')
+    ) {
       config.headers['Content-Type'] = 'application/json; charset=utf-8'
     }
+    if (!config.headers['Accept']) {
+      config.headers['Accept'] = 'application/json; charset=utf-8'
+    }
 
-    // Danh sách các API endpoints công khai không cần token
+    // Các API công khai không cần token
     const publicEndpoints = [
-      // API xác thực
       '/api/register',
       '/api/login',
       '/api/gui-lai-xac-nhan',
@@ -68,137 +95,100 @@ api.interceptors.request.use(
       '/api/dat-lai-mat-khau',
       '/api/kiem-tra-token',
       '/api/xac-nhan-tai-khoan',
-      // Tất cả các GET request tự động được cho phép trong interceptor
-    ];
+    ]
 
-    // Kiểm tra xem URL hiện tại có phải là API công khai không
+    const url = config.url || ''
+    const method = (config.method || 'get').toLowerCase()
+
     const isPublicEndpoint =
-      // Là một trong các API công khai đã định nghĩa
-      publicEndpoints.some(endpoint => config.url && config.url.includes(endpoint)) ||
-      // Hoặc là GET request đến API
-      (config.method && config.method.toLowerCase() === 'get' && config.url && config.url.startsWith('/api/'));
+      publicEndpoints.some((ep) => url.includes(ep)) ||
+      (method === 'get' && url.startsWith('/api/')) // tuỳ back-end, bạn đang mở GET public
 
-    // Chỉ thêm token nếu không phải là API công khai
     if (!isPublicEndpoint) {
       const sessionId = getSessionId()
       if (sessionId) {
         const token = localStorage.getItem(`token_${sessionId}`)
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
+        if (token) config.headers.Authorization = `Bearer ${token}`
       }
     }
 
-    // Thêm log chi tiết cho request
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
-    if (config.data) {
-      console.log('Request data:', JSON.stringify(config.data, null, 2))
-    }
-
+    log(`API Request: ${method.toUpperCase()} ${config.baseURL}${url}`)
+    if (config.data) log('Request data:', JSON.stringify(config.data, null, 2))
     return config
   },
-  (error) => {
-    console.error('Request error:', error)
-    return Promise.reject(error)
-  },
+  (error) => Promise.reject(error),
 )
 
-// Interceptor để xử lý response
+// Response: log, retry, xử lý 401
 api.interceptors.response.use(
   (response) => {
-    // Log success response
-    console.log(`API Response [${response.status}]:`, response.config.url)
+    log(`API Response [${response.status}]:`, response.config?.url)
     return response
   },
   (error) => {
-    // Log detailed error information
     console.error('API Error:', error.message)
+
     if (error.response) {
       console.error('Status:', error.response.status)
       console.error('Data:', error.response.data)
       console.error('Headers:', error.response.headers)
-      console.error('Request URL:', error.config.url)
-      console.error('Request Method:', error.config.method)
-      if (error.config.data) {
-        console.error('Request Data:', error.config.data)
-      }
+      console.error('Request URL:', error.config?.url)
+      console.error('Request Method:', error.config?.method)
+      if (error.config?.data) console.error('Request Data:', error.config.data)
 
-      // Xử lý retry cho lỗi server 500
-      if (error.response.status >= 500 && !error.config.__isRetry) {
-        console.log(`Server error (${error.response.status}) detected, attempting retry...`);
-
-        // Đánh dấu request này đang được retry để tránh lặp vô hạn
-        const newConfig = { ...error.config, __isRetry: true };
-        return retryRequest(newConfig);
+      if ((error.response.status >= 500 || error.response.status === 429) && !error.config.__isRetry) {
+        const newConfig = { ...error.config, __isRetry: true }
+        return retryRequest(newConfig)
       }
     } else if (error.request) {
       console.error('No response received:', error.request)
-
-      // Retry cho lỗi không nhận được response
       if (!error.config.__isRetry) {
-        console.log('No response received, attempting retry...');
-        const newConfig = { ...error.config, __isRetry: true };
-        return retryRequest(newConfig);
+        const newConfig = { ...error.config, __isRetry: true }
+        return retryRequest(newConfig)
       }
     }
 
-    // Xử lý lỗi 401 Unauthorized
+    // 401: clear token theo phiên, tránh loop
     if (error.response && error.response.status === 401) {
-      console.log('Lỗi xác thực:', error.response.data)
-
-      // Kiểm tra xem lỗi có phải từ đường dẫn login hay không
-      const isLoginRequest = error.config && error.config.url && error.config.url.includes('/api/login')
-
-      // Biến cờ static để đảm bảo chỉ redirect một lần
+      const isLoginRequest = error.config?.url?.includes('/api/login')
       if (!api.isRedirecting) {
-        // Nếu không phải lỗi từ request login và không phải ở trang login/home thì mới logout và redirect
         if (!isLoginRequest) {
-          console.log('Token hết hạn hoặc không hợp lệ, đăng xuất...')
-
-          // Kiểm tra đường dẫn hiện tại
           const currentPath = window.location.pathname
-          const isHomePage = currentPath === '/' || currentPath === '/home'
-          const isLoginPage = currentPath === '/login'
-          const isAllHomestaysPage = currentPath === '/all-homestays'
+          const isHome = currentPath === '/' || currentPath === '/home'
+          const isLogin = currentPath === '/login'
+          const isAllHomestays = currentPath === '/all-homestays'
 
-          // Xóa dữ liệu localStorage cho phiên hiện tại
           const sessionId = getSessionId()
           if (sessionId) {
             localStorage.removeItem(`token_${sessionId}`)
             localStorage.removeItem(`user_${sessionId}`)
             localStorage.removeItem(`isAdmin_${sessionId}`)
-
-            // Thêm thông báo về việc phiên đăng nhập hết hạn
             if (window.dispatchEvent) {
-              window.dispatchEvent(new CustomEvent('session-expired', {
-                detail: { message: 'Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.' }
-              }));
+              window.dispatchEvent(
+                new CustomEvent('session-expired', {
+                  detail: { message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' },
+                }),
+              )
             }
           }
 
-          // Chỉ redirect nếu không ở trang chủ, trang login hoặc trang tất cả homestay
-          if (!isHomePage && !isLoginPage && !isAllHomestaysPage) {
-            api.isRedirecting = true // Đánh dấu đang redirect
-
-            // Tăng thời gian chờ để tránh reload quá nhanh
+          if (!isHome && !isLogin && !isAllHomestays) {
+            api.isRedirecting = true
             setTimeout(() => {
               window.location.href = '/login?expired=true'
-              // Reset biến cờ sau khi đã redirect
-              setTimeout(() => {
-                api.isRedirecting = false
-              }, 1000)
+              setTimeout(() => (api.isRedirecting = false), 1000)
             }, 500)
           }
         } else {
-          // Nếu là lỗi đăng nhập, chỉ log ra console và không redirect
-          console.log('Đăng nhập thất bại: Sai tên đăng nhập hoặc mật khẩu')
+          log('Đăng nhập thất bại: Sai tên đăng nhập hoặc mật khẩu')
         }
       } else {
-        console.log('Đã có redirect đang xử lý, bỏ qua...')
+        log('Đang redirect vì 401, bỏ qua...')
       }
     }
+
     return Promise.reject(error)
-  }
+  },
 )
 
 export default api
